@@ -1,7 +1,15 @@
+"""
+While I try to provide adequate documentation, the RP1210C standard is owned by TMC, not me, and is
+not reproduced here. For a complete understanding of the RP1210 standard, you must purchase and
+read the RP1210C documentation from TMC.
+
+RP1210C documentation can be purchased from TMC at this link ($37.50 at time of writing):
+    https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP's
+"""
 import os
 import configparser
-from configparser import ConfigParser
-from ctypes import c_char_p, c_long, c_short, cdll, CDLL
+from configparser import ConfigParser, Error
+from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -28,7 +36,7 @@ RP1210_ERRORS = {
     148: "ERR_CLIENT_DISCONNECTED",
     149: "ERR_CONNECT_NOT_ALLOWED",
     150: "ERR_CHANGE_MODE_FAILED",
-    151: "ERR BUS OFF",
+    151: "ERR_BUS_OFF",
     152: "ERR_COULD_NOT_TX_ADDRESS_CLAIMED",
     153: "ERR_ADDRESS_LOST",
     154: "ERR_CODE_NOT_FOUND",
@@ -47,7 +55,7 @@ RP1210_ERRORS = {
     207: "ERR_DEVICE_NOT_SUPPORTED",
     208: "ERR_INVALID_PORT_PARAM",
     213: "ERR_COMMAND_TIMED_OUT",
-    220: "ERR OS NOT SUPPORTED",
+    220: "ERR_OS_NOT_SUPPORTED",
     222: "ERR_COMMAND_QUEUE_IS_FULL",
     224: "ERR_CANNOT_SET_CAN_BAUDRATE",
     225: "ERR_CANNOT_CLAIM_BROADCAST_ADDRESS",
@@ -64,18 +72,73 @@ RP1210_ERRORS = {
     600: "ERR_INVALID_IOCTL_ID",
     601: "ERR_NULL_PARAMETER",
     602: "ERR_HARDWARE_NOT_SUPPORTED"}
+"""RP1210 error codes. Use this to translate ClientConnect output."""
 
-def translateClientID(nClientID :int) -> str:
-    """
-    Matches clientID with error string in RP1210_ERRORS.
+RP1210_COMMANDS = {
+    0 : "Reset_Device",
+    3 : "Set_All_Filters_States_to_Pass",
+    4 : "Set_Message_Filtering_For_J1939",
+    5 : "Set_Message_Filtering_For_CAN",
+    7 : "Set_Message_Filtering_For_J1708",
+    8 : "Set_Message_Filtering_For_J1850",
+    9 : "Set_Message_Filtering_For_ISO15765",
+    14 : "Generic_Driver_Command",
+    15 : "Set_J1708_Mode",
+    16 : "Echo_Transmitted_Messages",
+    17 : "Set_All_Filters_States_to_Discard",
+    18 : "Set_Message_Receive",
+    19 : "Protect_J1939_Address",
+    20 : "Set_Broadcast_For_J1708",
+    21 : "Set_Broadcast_For_CAN",
+    22 : "Set_Broadcast_For_J1939",
+    23 : "Set_Broadcast_For_J1850",
+    24 : "Set_J1708_Filter_Type",
+    25 : "Set_J1939_Filter_Type",
+    26 : "Set_CAN_Filter_Type",
+    27 : "Set_J1939_Interpacket_Time",
+    28 : "SetMaxErrorMsgSize",
+    29 : "Disallow_Further_Connections",
+    30 : "Set_J1850_Filter_Type",
+    31 : "Release_J1939_Address",
+    32 : "Set_ISO15765_Filter_Type",
+    33 : "Set_Broadcast_For_ISO15765",
+    34 : "Set_ISO15765_Flow_Control",
+    35 : "Clear_ISO15765_Flow_Control",
+    37 : "Set_J1939_Baud",
+    38 : "Set_ISO15765_Baud",
+    215 : "Set_BlockTimeout",
+    305 : "Set_J1708_Baud",
+    39 : "Flush_Tx_Rx_Buffers",
+    41 : "Set_Broadcast_For_KWP2000",
+    42 : "Set_Broadcast_For_ISO9141",
+    45 : "Get_Protocol_Connection_Speed",
+    46 : "Set_ISO9141KWP2000_Mode",
+    47 : "Set_CAN_Baud",
+    48 : "Get_Wireless_State"}
+"""Mnemonics for RP1210_SendCommand commands. Follows ordering of table in section 21.4."""
 
-    NO_ERRORS has been expanded to cover clientID = 0 to 127.
-    
-    If there is no match, returns the clientID as str.
-    """
-    if 0 <= nClientID < 128:
-        return "NO_ERRORS"
-    return RP1210_ERRORS.get(nClientID, str(nClientID))
+IOCTL_IDS = {
+    0x01 : "GET_CONFIG",
+    0x02 : "SET_CONFIG",
+    0x04 : "FIVE_BAUD_INIT",
+    0x05 : "FAST_INIT",
+    0x06 : "ISO9141_K_LINE_ONLY"
+    #0x03, 0x07 - 0xFFFF    reserved for TMC
+    #0x10000 - OxFFFFFFFF   vendor specific
+}
+"""IOCTL ID values - use these to lookup inputs to Ioctl function."""
+
+def translateErrorCode(ClientID :int) -> str:
+        """
+        Matches clientID with error string in RP1210_ERRORS.
+
+        NO_ERRORS has been expanded to cover clientID = 0 to 127.
+        
+        If there is no match, returns the clientID as str.
+        """
+        if 0 <= ClientID < 128:
+            return "NO_ERRORS"
+        return RP1210_ERRORS.get(ClientID, str(ClientID))
 
 class RP121032Parser(ConfigParser):
     """
@@ -119,18 +182,18 @@ class RP121032Parser(ConfigParser):
     
 class RP1210Interface(ConfigParser):
     """
-    Reads & stores API information. It's a child of ConfigParser. Use RP121032Parser to get an
+    Reads & stores API information. Child of ConfigParser. Use RP121032Parser to get an
     RP1210 API name to feed to this class.
 
     This class has functions for reading EVERY SINGLE data field defined in the RP1210C standard.
-    As such, it is embarrassingly long. Most of it is just docstrings, though.
+    As such, it is embarrassingly long.
 
     This class holds an instance of RP1210API, which you can use to call RP1210 functions.
     The interface is accessed via the function api(), e.g.:
         nexiq = RP1210Interface("NULN2R32")
          clientID = nexiq.api().ClientConnect(args)
 
-    You can use str() to generate a string to display in your Vendors dropdown.
+    You can use str(this_object) to generate a string to display in your Vendors dropdown.
     """
     def __init__(self, api_name : str) -> None:
         super().__init__()
@@ -516,16 +579,25 @@ class RP1210Interface(ConfigParser):
 class RP1210API:
     """
     Interface with RP1210 API to call functions from your adapter's drivers.
+
+    See function docstrings for details on each function.
     """
-    def __init__(self) -> None:
+    def __init__(self, dll = None) -> None:
         self.api_valid = False
-        self.DLL = None
+        self.dll = None
+        if dll:
+            self.setDLL(dll)
 
     def isValid(self) -> bool:
-        """Returns api_valid boolean, which is set when the DLL is loaded."""
+        """
+        Returns api_valid boolean, which is set when the DLL is loaded.
+        
+        True = DLL loaded, False = DLL failed to load
+        """
         return self.api_valid
 
     def setDLL(self, dll : CDLL):
+        """Sets the CDLL used to call RP1210 API functions."""
         try:
             self.dll = dll
             if self.dll: # check it's not None
@@ -536,15 +608,156 @@ class RP1210API:
         except OSError:
             self.api_valid = False
 
+    def ClientConnect(self, DeviceID : int, Protocol : str, TxBufferSize = 0, 
+                            RcvBufferSize = 0, isAppPacketizingincomingMsgs = 0) -> int:
+        """
+        Attempts to connect to an RP1210 adapter.
+        - nDeviceID determines which adapter it tries to connect to.
+        - You can generate fpchProtocol with a ProtocolFormatter class, e.g. J1939ProtocolFormatter,
+        use RP1210Protocol class to read supported formats from file, or just do it yourself.
+        - Tx and Rcv buffer sizes default to 8K when given an argument of 0.
+        - Don't mess with argument nisAppPacketizingincomingMsgs.
+
+        Returns nDeviceID. 0 to 127 means connection was successful; >127 means it failed.
+
+        Use function translateClientID() to translate nClientID to an error message.
+        """
+        return self.dll.RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
+                                                RcvBufferSize, isAppPacketizingincomingMsgs)
+    
+    def ClientDisconnect(self, ClientID : int) -> int:
+        """
+        Disconnects from client w/ specified clientID.
+        
+        Returns 0 if successful, or >127 if it failed.
+            You can use translateClientID() to translate the failure code.
+        """
+        return self.dll.RP1210_ClientDisconnect(ClientID)
+
+    def SendMessage(self, ClientID : int, ClientMessage : str, MessageSize : int) -> int:
+        """
+        Send a message to the databus your adapter is connected to.
+        - nClientID = clientID you got from ClientConnect
+        - fpchClientMessage = message you want to send
+        - nMessageSize = message size in bytes (including identifier, checksum, etc)
+        
+        Use a Message class provided with this package (e.g. J1939Message) to generate arguments
+        fpchClientMessage and nMessageSize.
+
+        Returns 0 if successful, or >127 if it failed.
+            You can use translateClientID() to translate the failure code.
+        """
+        return self.dll.RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
+
+    def ReadMessage(self, ClientID : int, RxBuffer : bytearray, BufferSize : int, 
+                        BlockOnRead = 0) -> int:
+        """
+        Rx function.
+        - ClientID = clientID you got from ClientConnect
+        - RxBuffer = buffer you want to read the message into (called fpchAPIMessage in RP1210 docs)
+        - BufferSize = the size of the buffer in bytes.
+        - BlockOnRead = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
+        
+        Returns the number of bytes read (including 4 bytes for timestamp). Returns 0 if no message
+        is present.
+        """
+        return self.dll.RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
+
+    def ReadDirect(self, ClientID : int, BufferSize = 512, BlockOnRead = 0) -> bytearray:
+        """
+        Calls ReadMessage, but generates and returns its own RxBuffer as a bytearray.
+        - ClientID = clientID you got from ClientConnect
+        - BufferSize = the size of the buffer in bytes. Defaults to 512.
+        - BlockOnRead = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
+
+        Automatically cuts array size to the message size reported by ReadMessage().
+
+        Output still includes leading 4 timestamp bytes.
+        """
+        RxBuffer = bytearray(BufferSize)
+        size = self.dll.RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
+        return RxBuffer[:size]
+
+    def ReadVersionDirect(self, BufferSize = 16) -> tuple:
+        """
+        Reads API and DLL version info. Returns a tuple containing (in order):
+        - DLLMajorVersion (str)
+        - DLLMinorVersion (str)
+        - APIMajorVersion (str)
+        - APIMinorVersion (str)
+
+        Arg BufferSize can be used to specify the size of the buffers used to read each element.
+
+        This function checks your RP1210 drivers; there is no communication with an adapter.
+        """
+        DLLMajorVersion = create_string_buffer(BufferSize)
+        DLLMinorVersion = create_string_buffer(BufferSize)
+        APIMajorVersion = create_string_buffer(BufferSize)
+        APIMinorVersion = create_string_buffer(BufferSize)
+        self.dll.RP1210_ReadVersion(DLLMajorVersion, DLLMinorVersion, 
+                                    APIMajorVersion, APIMinorVersion)
+        return (DLLMajorVersion.value, DLLMinorVersion.value,
+                APIMajorVersion.value, APIMinorVersion.value)
+        
+    def ReadDetailedVersionDirect(self, ClientID : int) -> tuple:
+        """
+        Reads API, DLL, and adapter firmware version info. Returns a tuple containing (in order):
+        - APIVersionInfo (str)
+        - DLLVersionInfo (str)
+        - FWVersionInfo (str) (this is from the adapter)
+
+        This function communicates with your adapter to read firmware info.
+        """
+        APIVersionInfo = create_string_buffer(17)
+        DLLVersionInfo = create_string_buffer(17)
+        FWVersionInfo = create_string_buffer(17)
+        self.dll.RP1210_ReadDetailedVersion(ClientID, APIVersionInfo, DLLVersionInfo, FWVersionInfo)
+        return (APIVersionInfo.value, DLLVersionInfo.value, FWVersionInfo.value)
+
+    def GetErrorMsgDirect(self, ErrorCode : int) -> str:
+        """
+        Returns 'a textual representation of the last error code that occurred by that client in an
+        application.'
+        - ErrorCode = 'Numerical value for the last error which occurred.'
+
+        If GetErrorMsg fails, this function will return the GetErrorMsg code (generally ERR_CODE_NOT_FOUND).
+        """
+        ErrorMsg = create_string_buffer(80)
+        ret_code = self.dll.RP1210_GetErrorMsg(ErrorCode, ErrorMsg)
+        if ret_code == 0:
+            return ErrorMsg.value
+        else:
+            return translateErrorCode(ret_code)
+
+    def GetHardwareStatusDirect(self, ClientID : int, InfoSize = 64) -> bytearray:
+        """
+        Calls GetHardwareStatus and returns the result directly.
+
+        InfoSize must be 16 <= InfoSize <= 64, and must be a multiple of 2.
+        """
+        ClientInfo = bytearray(InfoSize)
+        self.dll.RP1210_GetHardwareStatus(ClientID, ClientInfo, InfoSize, 0)
+        return ClientInfo
+
+    def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = "", MessageSize = 0) -> int:
+        """
+        Calls RP1210_SendCommand.
+        """
+        return self.dll.RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize)
+
     def __init_functions(self):
+        """Give Python type hints for interfacing with the DLL."""
         self.dll.RP1210_ClientConnect.argtypes = [c_long, c_short, c_char_p, c_long, c_long, c_short]
         self.dll.RP1210_ClientDisconnect.argtypes = [c_short]
         self.dll.RP1210_SendMessage.argtypes = [c_short, c_char_p, c_short, c_short, c_short]
         self.dll.RP1210_ReadMessage.argtypes = [c_short, c_char_p, c_short, c_short]
         self.dll.RP1210_ReadVersion.argtypes = [c_char_p, c_char_p, c_char_p, c_char_p]
+        self.dll.RP1210_ReadDetailedVersion.argtypes = [c_short, c_char_p, c_char_p, c_char_p]
         self.dll.RP1210_GetErrorMsg.argtypes = [c_short, c_char_p]
+        self.dll.RP1210_GetLastErrorMsg.argtypes = [c_short, POINTER(c_int32), c_char_p, c_short]
         self.dll.RP1210_GetHardwareStatus.argtypes = [c_short, c_char_p, c_short, c_short]
         self.dll.RP1210_SendCommand.argtypes = [c_short, c_short, c_char_p, c_short]
+        self.dll.RP1210_Ioctl.argtypes = [c_short, c_long, c_void_p, c_void_p]
 
 class RP1210Device:
     """
