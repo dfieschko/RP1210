@@ -4,11 +4,11 @@ not reproduced here. For a complete understanding of the RP1210 standard, you mu
 read the RP1210C documentation from TMC.
 
 RP1210C documentation can be purchased from TMC at this link ($37.50 at time of writing):
-    https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP's
+    https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP
 """
 import os
 import configparser
-from configparser import ConfigParser, Error
+from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 
 RP1210_ERRORS = {
@@ -140,45 +140,24 @@ def translateErrorCode(ClientID :int) -> str:
             return "NO_ERRORS"
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
-class RP121032Parser(ConfigParser):
+def getAPINames() -> list[str]:
     """
-    A simple little class for reading API names from RP121032.ini.
+    A function for reading API names from RP121032.ini.
 
-    Just initialize the class and call getAPINames() to get the API names. Then, you can initialize
+    Just call getAPINames() to get the API names. Then, you can initialize
     an RP1210Interface object using one of the API names.
 
     Doesn't handle any exceptions on its own, since if this fails none of your RP1210 functions
     will work.
     - Will throw FileNotFoundError if RP121032.ini isn't found.
-    - Will throw ConfigParser exceptions if something goes wrong on the ConfigParser end.
+    - Will throw ConfigParser exceptions if something goes wrong while reading the file.
     """
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def getAPINames(self) -> list[str]:
-        """
-        Returns list of API names from RP121032.ini.
-
-        If file hasn't already been read, will try to read the file first via populate().
-        """
-        if not self or not self.has_section("RP1210Support"):
-            self.populate()
-        return self["RP1210Support"]["APIImplementations"].split(",")
-
-    def populate(self) -> list[str]:
-        """
-        Reads RP121032.ini in Windows directory.
-        These API name strings correspond with .ini filenames.
-
-        Raises FileNotFoundError if RP121032.ini isn't found in WINDOWS directory.
-
-        Raises your standard ConfigParser exceptions if something goes wrong w/ reading the file.
-        """
-        rp121032_path = os.path.join(os.environ["WINDIR"], "RP121032.ini")
-        if not os.path.isfile(rp121032_path):
-            raise FileNotFoundError
-        self.read(rp121032_path)
+    parser = ConfigParser()
+    rp121032_path = os.path.join(os.environ["WINDIR"], "RP121032.ini")
+    if not os.path.isfile(rp121032_path):
+        raise FileNotFoundError
+    parser.read(rp121032_path)
+    return parser["RP1210Support"]["APIImplementations"].split(",")
     
 class RP1210Interface(ConfigParser):
     """
@@ -229,36 +208,7 @@ class RP1210Interface(ConfigParser):
             self.loadDLL()
         return self.API
 
-    def getDLL(self) -> CDLL:
-        """
-        Returns CDLL object for this RP1210 API.
-
-        Will return None if cdll.LoadLibrary was unsuccessful.
-        """
-        if not self.dll:
-            self.loadDLL()
-        return self.dll
-
-    def loadDLL(self) -> CDLL:
-        """
-        Loads and returns CDLL for this API.
-        
-        If you already called loadDLL(), you can call getDLL() to get the DLL you loaded previously.
-        """
-        try:
-            try:
-                path = self.api_name + ".dll"
-                dll = cdll.LoadLibrary(path)
-            except WindowsError:
-                # Try "DLL installed in wrong directory" band-aid
-                path = self.__get_dll_path_aux()
-                dll = cdll.LoadLibrary(path)
-            self.API.setDLL(dll)
-            self.dll = dll
-            return dll
-        except Exception: # RIP
-            self.api_valid = False
-            return None
+    
 
     def isValid(self) -> bool:
         """
@@ -569,24 +519,45 @@ class RP1210Interface(ConfigParser):
         """Returns absolute path to API config file."""
         return os.path.join(os.environ["WINDIR"], self.api_name + ".ini")
 
-    def __get_dll_path_aux(self) -> str:
-        """
-        Some adapter vendors (looking at you, Actia) install their drivers in the wrong directory.
-        This function returns the dll path in that directory.
-        """
-        return os.path.join(os.environ["WINDIR"], self.api_name + ".dll")
-
 class RP1210API:
     """
     Interface with RP1210 API to call functions from your adapter's drivers.
 
     See function docstrings for details on each function.
     """
-    def __init__(self, dll = None) -> None:
+    def __init__(self, api_name : str) -> None:
         self.api_valid = False
-        self.dll = None
-        if dll:
-            self.setDLL(dll)
+        self.api_name = api_name
+
+    def getDLL(self) -> CDLL:
+        """
+        Returns CDLL object for this RP1210 API.
+
+        Will return None if cdll.LoadLibrary was unsuccessful.
+        """
+        if not self.dll:
+            self.loadDLL()
+        return self.dll
+
+    def loadDLL(self) -> CDLL:
+        """
+        Loads and returns CDLL for this API.
+        
+        If you already called loadDLL(), you can call getDLL() to get the DLL you loaded previously.
+        """
+        try:
+            try:
+                path = self.api_name + ".dll"
+                dll = cdll.LoadLibrary(path)
+            except WindowsError:
+                # Try "DLL installed in wrong directory" band-aid
+                path = self.__get_dll_path_aux()
+                dll = cdll.LoadLibrary(path)
+            self.dll = dll
+            return dll
+        except Exception: # RIP
+            self.api_valid = False
+            return None
 
     def isValid(self) -> bool:
         """
@@ -759,11 +730,52 @@ class RP1210API:
         self.dll.RP1210_SendCommand.argtypes = [c_short, c_short, c_char_p, c_short]
         self.dll.RP1210_Ioctl.argtypes = [c_short, c_long, c_void_p, c_void_p]
 
+    def __get_dll_path_aux(self) -> str:
+        """
+        Some adapter vendors (looking at you, Actia) install their drivers in the wrong directory.
+        This function returns the dll path in that directory.
+        """
+        return os.path.join(os.environ["WINDIR"], self.api_name + ".dll")
+
+class RP1210Protocol:
+    """
+    Stores information for an RP1210 protocol, e.g. info stored in ProtocolInformationXXX sections.
+
+    Access information directly, e.g. curr_description = protocols[0].Description
+
+    All values default to empty strings, empty lists, or None if not provided.
+    - Description (str)
+    - ProtocolSpeed (list[str]) - stored as strings because it can contain "Auto"
+    - ProtocolString (str)
+    - ProtocolParams (list[str])
+    - Devices (list[str])
+    """
+    def __init__(self,  Description     = "",
+                        ProtocolSpeed   = [],
+                        ProtocolString  = "",
+                        ProtocolParams  = [],
+                        Devices         = []) -> None:
+        self.Description    = Description
+        self.ProtocolSpeed  = ProtocolSpeed
+        self.ProtocolString = ProtocolString
+        self.ProtocolParams = ProtocolParams
+        self.Devices        = Devices
+
 class RP1210Device:
     """
+    Stores information for an RP1210 device, e.g. info stored in DeviceInformationXXX sections.
+
+    Access information directly, e.g. curr_description = devices[0].Description
+    - DeviceID (int)
+    - Description (str)
+    - DeviceName (str)
+    - DeviceParams (str)
     """
-    def __init__(self) -> None:
-        self.DeviceID = -1
-        self.DeviceDescription = ""
-        self.DeviceName = ""
-        self.DeviceParams = ""
+    def __init__(self,  DeviceID    = None,
+                        Description = "",
+                        DeviceName  = "",
+                        DeviceParams = "") -> None:
+        self.DeviceID       = DeviceID
+        self.Description    = Description
+        self.DeviceName     = DeviceName
+        self.DeviceParams   = DeviceParams
