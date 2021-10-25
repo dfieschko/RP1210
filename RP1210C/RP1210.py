@@ -140,24 +140,27 @@ def translateErrorCode(ClientID :int) -> str:
             return "NO_ERRORS"
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
-def getAPINames() -> list[str]:
+def getAPINames(rp121032_path = None) -> list[str]:
     """
-    A function for reading API names from RP121032.ini.
+    A function for reading API names from RP121032.ini. Returns a list of strings.
 
-    Just call getAPINames() to get the API names. Then, you can initialize
+    Just call getAPINames() to get the API names. Then you can initialize
     an RP1210Interface object using one of the API names.
 
-    Doesn't handle any exceptions on its own, since if this fails none of your RP1210 functions
-    will work.
-    - Will throw FileNotFoundError if RP121032.ini isn't found.
-    - Will throw ConfigParser exceptions if something goes wrong while reading the file.
+    You can provide your own path to RP121032.ini, or let it find it on its own.
+
+    Returns empty list [] if RP121032.ini isn't found or couldn't be parsed.
     """
-    parser = ConfigParser()
-    rp121032_path = os.path.join(os.environ["WINDIR"], "RP121032.ini")
-    if not os.path.isfile(rp121032_path):
-        raise FileNotFoundError
-    parser.read(rp121032_path)
-    return parser["RP1210Support"]["APIImplementations"].split(",")
+    if not rp121032_path: # find our own path if none is given
+        rp121032_path = os.path.join(os.environ["WINDIR"], "RP121032.ini")
+    if not os.path.isfile(rp121032_path): # check if file exists
+        return []
+    try:    # read from file
+        parser = ConfigParser()
+        parser.read(rp121032_path)
+        return parser["RP1210Support"]["APIImplementations"].split(",")
+    except Exception:
+        return []
     
 class RP1210Interface(ConfigParser):
     """
@@ -179,8 +182,7 @@ class RP1210Interface(ConfigParser):
         self.api_name = api_name
         self.api_valid = True
         self.devices = []   # type: list[RP1210Device]
-        self.dll = None
-        self.API = RP1210API()
+        self.API = RP1210API(api_name)
 
         self.populate()
 
@@ -204,11 +206,7 @@ class RP1210Interface(ConfigParser):
         
         If DLL has not yet been loaded, will load DLL before returning API.
         """
-        if not self.dll:
-            self.loadDLL()
         return self.API
-
-    
 
     def isValid(self) -> bool:
         """
@@ -230,9 +228,6 @@ class RP1210Interface(ConfigParser):
         Returns 'Name' field from VendorInformation section.
 
         Will return "(Vendor Name Missing)" if the 'Name' field isn't found.
-        
-        'Description' would be a better name for this field, but I'm not the one who came up
-        with the RP1210 standard ¯\\\_(ツ)_/¯.
         """
         if not self.has_option("VendorInformation", "Name"):
             return "(Vendor Name Missing)"
@@ -338,7 +333,7 @@ class RP1210Interface(ConfigParser):
             return None
         try:
             return self.getint("VendorInformation", "Version")
-        except ValueError:
+        except (ValueError, KeyError):
             return None
 
     def autoDetectCapable(self) -> bool:
@@ -351,7 +346,7 @@ class RP1210Interface(ConfigParser):
             return False
         try:
             return self.getboolean("VendorInformation", "AutoDetectCapable")
-        except ValueError:
+        except (ValueError, KeyError):
             return False
 
     def getTimeStampWeight(self) -> float:
@@ -364,7 +359,7 @@ class RP1210Interface(ConfigParser):
             return None
         try:
             return self.getfloat("VendorInformation", "TimeStampWeight")
-        except ValueError:
+        except (ValueError, KeyError):
             return None
 
     def getMessageString(self) -> str:
@@ -413,7 +408,7 @@ class RP1210Interface(ConfigParser):
             return -1
         try:
             return self.getint("VendorInformation", "DebugLevel")
-        except ValueError:
+        except (ValueError, KeyError):
             return -1
 
     def getDebugFile(self) -> str:
@@ -440,7 +435,7 @@ class RP1210Interface(ConfigParser):
             return None
         try:
             return self.getint("VendorInformation", "DebugMode")
-        except ValueError:
+        except (ValueError, KeyError):
             return None
 
     def getDebugFileSize(self) -> int:
@@ -457,7 +452,7 @@ class RP1210Interface(ConfigParser):
             return 1024
         try:
             return self.getint("VendorInformation", "DebugFileSize")
-        except ValueError:
+        except (ValueError, KeyError):
             return 1024
 
     def getNumberOfSessions(self) -> int:
@@ -473,7 +468,7 @@ class RP1210Interface(ConfigParser):
             return 1
         try:
             return self.getint("VendorInformation", "NumberOfSessions")
-        except ValueError:
+        except (ValueError, KeyError):
             return 1
 
     def getCANFormatsSupported(self) -> list[int]:
@@ -553,7 +548,7 @@ class RP1210API:
                 # Try "DLL installed in wrong directory" band-aid
                 path = self.__get_dll_path_aux()
                 dll = cdll.LoadLibrary(path)
-            self.dll = dll
+            self.setDLL(dll)
             return dll
         except Exception: # RIP
             self.api_valid = False
@@ -593,7 +588,7 @@ class RP1210API:
 
         Use function translateClientID() to translate nClientID to an error message.
         """
-        return self.dll.RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
+        return self.getDLL().RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
                                                 RcvBufferSize, isAppPacketizingincomingMsgs)
     
     def ClientDisconnect(self, ClientID : int) -> int:
@@ -603,7 +598,7 @@ class RP1210API:
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
         """
-        return self.dll.RP1210_ClientDisconnect(ClientID)
+        return self.getDLL().RP1210_ClientDisconnect(ClientID)
 
     def SendMessage(self, ClientID : int, ClientMessage : str, MessageSize : int) -> int:
         """
@@ -618,7 +613,7 @@ class RP1210API:
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
         """
-        return self.dll.RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
+        return self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
 
     def ReadMessage(self, ClientID : int, RxBuffer : bytearray, BufferSize : int, 
                         BlockOnRead = 0) -> int:
@@ -632,7 +627,7 @@ class RP1210API:
         Returns the number of bytes read (including 4 bytes for timestamp). Returns 0 if no message
         is present.
         """
-        return self.dll.RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
+        return self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
 
     def ReadDirect(self, ClientID : int, BufferSize = 512, BlockOnRead = 0) -> bytearray:
         """
@@ -646,7 +641,7 @@ class RP1210API:
         Output still includes leading 4 timestamp bytes.
         """
         RxBuffer = bytearray(BufferSize)
-        size = self.dll.RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
+        size = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
         return RxBuffer[:size]
 
     def ReadVersionDirect(self, BufferSize = 16) -> tuple:
@@ -665,8 +660,8 @@ class RP1210API:
         DLLMinorVersion = create_string_buffer(BufferSize)
         APIMajorVersion = create_string_buffer(BufferSize)
         APIMinorVersion = create_string_buffer(BufferSize)
-        self.dll.RP1210_ReadVersion(DLLMajorVersion, DLLMinorVersion, 
-                                    APIMajorVersion, APIMinorVersion)
+        self.getDLL().RP1210_ReadVersion(DLLMajorVersion, DLLMinorVersion, 
+                                        APIMajorVersion, APIMinorVersion)
         return (DLLMajorVersion.value, DLLMinorVersion.value,
                 APIMajorVersion.value, APIMinorVersion.value)
         
@@ -682,7 +677,7 @@ class RP1210API:
         APIVersionInfo = create_string_buffer(17)
         DLLVersionInfo = create_string_buffer(17)
         FWVersionInfo = create_string_buffer(17)
-        self.dll.RP1210_ReadDetailedVersion(ClientID, APIVersionInfo, DLLVersionInfo, FWVersionInfo)
+        self.getDLL().RP1210_ReadDetailedVersion(ClientID, APIVersionInfo, DLLVersionInfo, FWVersionInfo)
         return (APIVersionInfo.value, DLLVersionInfo.value, FWVersionInfo.value)
 
     def GetErrorMsgDirect(self, ErrorCode : int) -> str:
@@ -694,7 +689,7 @@ class RP1210API:
         If GetErrorMsg fails, this function will return the GetErrorMsg code (generally ERR_CODE_NOT_FOUND).
         """
         ErrorMsg = create_string_buffer(80)
-        ret_code = self.dll.RP1210_GetErrorMsg(ErrorCode, ErrorMsg)
+        ret_code = self.getDLL().RP1210_GetErrorMsg(ErrorCode, ErrorMsg)
         if ret_code == 0:
             return ErrorMsg.value
         else:
@@ -707,14 +702,14 @@ class RP1210API:
         InfoSize must be 16 <= InfoSize <= 64, and must be a multiple of 2.
         """
         ClientInfo = bytearray(InfoSize)
-        self.dll.RP1210_GetHardwareStatus(ClientID, ClientInfo, InfoSize, 0)
+        self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, InfoSize, 0)
         return ClientInfo
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = "", MessageSize = 0) -> int:
         """
         Calls RP1210_SendCommand.
         """
-        return self.dll.RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize)
+        return self.getDLL().RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize)
 
     def __init_functions(self):
         """Give Python type hints for interfacing with the DLL."""
@@ -764,6 +759,8 @@ class RP1210Protocol:
 class RP1210Device:
     """
     Stores information for an RP1210 device, e.g. info stored in DeviceInformationXXX sections.
+
+    Use str() to get a pre-made string to put in Device dropdown menu.
 
     Access information directly, e.g. curr_description = devices[0].Description
     - DeviceID (int)

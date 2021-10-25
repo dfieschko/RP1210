@@ -1,0 +1,2 @@
+py -m pytest
+pause
