@@ -64,10 +64,70 @@ def test_clientid_translation():
     assert RP1210.translateErrorCode(623423401) == "623423401"
     assert RP1210.translateErrorCode(-234235) == "-234235"
 
-def test_RP1210Interface():
+def test_RP1210Interface_InvalidAPIName():
     """
-    Tests initialization of RP1210Interface class.
-    
-    You must have the following RP1210 drivers installed to run this test:
-    -
+    Tests the RP1210Interface class with an API name that doesn't exist.
     """
+    api_name = "Chunglebungus"
+    rp1210 = RP1210.RP1210Interface(api_name)
+    assert rp1210.isValid() == False
+    assert str(rp1210) == api_name + " - (Vendor Name Missing) - (drivers invalid)"
+    assert rp1210.getAPIName() == api_name
+    assert rp1210.getName() == "(Vendor Name Missing)"
+    assert rp1210.getAddress1() == ""
+    assert rp1210.getAddress2() == ""
+    assert rp1210.getCity() == ""
+    assert rp1210.getState() == ""
+    assert rp1210.getCountry() == ""
+    assert rp1210.getPostal() == ""
+    assert rp1210.getTelephone() == ""
+    assert rp1210.getFax() == ""
+    assert rp1210.getVendorURL() == ""
+    assert rp1210.getVersion() == None
+    assert rp1210.autoDetectCapable() == False
+    assert rp1210.getTimeStampWeight() == None
+    assert rp1210.getMessageString() == ""
+    assert rp1210.getErrorString() == ""
+    assert rp1210.getRP1210Version() == ""
+    assert rp1210.getDebugLevel() == -1
+    assert rp1210.getDebugFile() == ""
+    assert rp1210.getDebugMode() == None
+    assert rp1210.getDebugFileSize() == 1024
+    assert rp1210.getNumberOfSessions() == 1
+    assert rp1210.getCANFormatsSupported() == []
+    assert rp1210.getJ1939FormatsSupported() == []
+
+def test_RP1210Interface_NEMESIS():
+    """
+    Tests the RP1210Interface class with Cummins' NEMESIS dummy drivers, which are invalid.
+
+    You must have these drivers installed to run this test.
+    """
+    api_name = "CMNSIM32"
+
+def test_RP1210Interface_DearbornDPA5Pro():
+    """
+    Tests the RP1210Interface class with Dearborn DPA5 Pro drivers.
+
+    You must have these drivers installed to run this test.
+    """
+    api_name = "DGDPA5MA"
+    assert api_name in RP1210.getAPINames()
+
+def test_RP1210Interface_Nexiq():
+    """
+    Tests the RP1210Interface class with Nexiq USB-Link 3 drivers.
+
+    You must have these drivers installed to run this test.
+    """
+    api_name = "NULN2R32"
+    assert api_name in RP1210.getAPINames()
+
+def test_RP1210Interface_NoregonDLA2():
+    """
+    Tests the RP1210Interface class with Noregon DLA 2.0 drivers.
+
+    You must have these drivers installed to run this test.
+    """
+    api_name = "DLAUSB32"
+    assert api_name in RP1210.getAPINames()

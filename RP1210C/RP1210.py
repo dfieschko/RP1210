@@ -203,8 +203,6 @@ class RP1210Interface(ConfigParser):
     def api(self):
         """
         Returns RP1210API object that can be used to call RP1210 functions.
-        
-        If DLL has not yet been loaded, will load DLL before returning API.
         """
         return self.API
 
@@ -506,8 +504,9 @@ class RP1210Interface(ConfigParser):
     def populate(self):
         """Reads .ini file for the specified RP1210 API."""
         try:
-            self.read(self.getPath())
-        except configparser.Error:
+            with open(self.getPath()) as file:
+                self.read(file)
+        except (configparser.Error, IOError):
             self.api_valid = False
 
     def getPath(self):
