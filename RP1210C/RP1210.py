@@ -183,7 +183,6 @@ class RP1210Interface(ConfigParser):
         self.api_valid = True
         self.API = RP1210API(api_name)
         self.populate()
-        print(self.sections())
 
     def __str__(self) -> str:
         """
@@ -320,7 +319,7 @@ class RP1210Interface(ConfigParser):
             return ""
         return self.get("VendorInformation", "VendorURL")
 
-    def getVersion(self) -> int:
+    def getVersion(self) -> str:
         """
         Returns the 'Version' field in VendorInformation section.
         
@@ -329,7 +328,7 @@ class RP1210Interface(ConfigParser):
         if not self.has_option("VendorInformation", "Version"):
             return None
         try:
-            return self.getint("VendorInformation", "Version")
+            return self.get("VendorInformation", "Version")
         except (ValueError, KeyError):
             return None
 
@@ -385,9 +384,9 @@ class RP1210Interface(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "RP1210Version"):
+        if not self.has_option("VendorInformation", "RP1210"):
             return ""
-        return self.get("VendorInformation", "RP1210Version")
+        return self.get("VendorInformation", "RP1210")
 
     def getDebugLevel(self) -> int:
         """
@@ -480,7 +479,10 @@ class RP1210Interface(ConfigParser):
         if not self.has_option("VendorInformation", "CANFormatsSupported"):
             return []
         try:
-            return self["VendorInformation"]["CANFormatsSupported"].split(",")
+            params = []
+            for param in self["VendorInformation"]["CANFormatsSupported"].split(","):
+                params.append(int(param))
+            return params
         except Exception:
             return []
 
@@ -496,9 +498,21 @@ class RP1210Interface(ConfigParser):
         if not self.has_option("VendorInformation", "J1939FormatsSupported"):
             return []
         try:
-            return self["VendorInformation"]["J1939FormatsSupported"].split(",")
+            params = []
+            for param in self["VendorInformation"]["J1939FormatsSupported"].split(","):
+                params.append(int(param))
+            return params
         except Exception:
             return []
+
+    def CANAutoBaud(self) -> bool:
+        """Returns the CANAutoBaud field in VendorInformation."""
+        if not self.has_option("VendorInformation", "CANAutoBaud"):
+            return False
+        try:
+            return self.getboolean("VendorInformation", "CANAutoBaud")
+        except (ValueError, KeyError):
+            return False
 
     def getDevice(self, deviceID : int):
         """
