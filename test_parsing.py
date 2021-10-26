@@ -14,9 +14,18 @@ def create_file(path : str) -> ConfigParser:
     parser.write(file)
     return parser
 
-def test_getAPINames_only():
-    """Just check to make sure it doesn't crash"""
-    RP1210.getAPINames()
+def test_getAPINames():
+    """
+    The following drivers must be installed for this test:
+    
+    - Noregon DLA 2.0
+    - Nexiq USB-Link 2
+    """
+    assert RP1210.getAPINames() != None
+    api_names = RP1210.getAPINames()
+    assert "DLAUSB32" in api_names
+    assert "NULN2R32" in api_names
+    
 
 def test_getAPINames_notfound():
     """test getAPINames when file doesn't exist at path"""
@@ -398,3 +407,4 @@ def test_RP1210Interface_NEMESIS():
     rp1210 = RP1210.RP1210Interface(api_name)
     assert rp1210.isValid() == False
     assert str(rp1210) == api_name + " - Cummins Inc. NEMESIS Mock RP1210 Driver - (drivers invalid)"
+
