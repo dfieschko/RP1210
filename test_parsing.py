@@ -370,6 +370,23 @@ def test_RP1210Interface_NoregonDLA2():
     assert rp1210.getDevices() == [100]
     assert rp1210.getProtocols() == [51,52,53,54,55,56,58,59,60,61,62,63]
 
+def test_RP1210Interface_NoregonDLA2_Devices():
+    """
+    Tests the Device class with Noregon DLA 2.0 drivers.
+
+    You must have these drivers installed to run this test.
+    """
+    api_name = "DLAUSB32"
+    assert api_name in RP1210.getAPINames()
+    rp1210 = RP1210.RP1210Interface(api_name)
+    deviceIDs = rp1210.getDevices()
+    assert deviceIDs == [100]
+    device100 = rp1210.getDevice(100)
+    assert device100.getID() == 100
+    assert device100.getDescription() == "DLA+ 2.0, USB"
+    assert device100.getName() == "DLA+ 2.0"
+    assert device100.getParams() == "USB:CAN1:250"
+
 def test_RP1210Interface_NEMESIS():
     """
     Tests the RP1210Interface class with Cummins' NEMESIS dummy drivers, which are invalid.
