@@ -182,16 +182,19 @@ def test_RP1210Interface_ACTIA_Protocols():
     assert protocol1.getString() == "CAN"
     assert protocol1.getParams() == ""
     assert protocol1.getDevices() == [1, 2, 3]
+    assert protocol1.getSpeed() == []
     protocol2 = rp1210.getProtocol(2)
     assert protocol2.getDescription() == "J1708 Link Layer Protocol"
     assert protocol2.getString() == "J1708"
     assert protocol2.getParams() == ""
     assert protocol2.getDevices() == [1, 2, 3]
+    assert protocol2.getSpeed() == []
     protocol3 = rp1210.getProtocol(3)
     assert protocol3.getDescription() == "J1939 Link Layer Protocol"
     assert protocol3.getString() == "J1939"
     assert protocol3.getParams() == ""
     assert protocol3.getDevices() == [1, 2, 3]
+    assert protocol3.getSpeed() == []
 
 def test_RP1210Interface_DearbornDPA5Pro():
     """
@@ -285,18 +288,48 @@ def test_RP1210Interface_Nexiq_Devices():
     device1 = rp1210.getDevice(1)
     assert device1.getID() == 1
     assert device1.getDescription() == "USB-Link 2"
-    assert device1.getName() == "BasicXS USB"
+    assert device1.getName() == "USBLINK"
     assert device1.getParams() == ""
     device2 = rp1210.getDevice(2)
     assert device2.getID() == 2
-    assert device2.getDescription() == "BasicXS, COM1"
-    assert device2.getName() == "BasicXS COM1"
+    assert device2.getDescription() == "Bluetooth USB-Link 2"
+    assert device2.getName() == "BTUSBLINK"
     assert device2.getParams() == ""
     device3 = rp1210.getDevice(3)
     assert device3.getID() == 3
-    assert device3.getDescription() == "BasicXS, COM2"
-    assert device3.getName() == "BasicXS COM2"
+    assert device3.getDescription() == "WiFi USB-Link 2"
+    assert device3.getName() == "WIFIUSBLINK"
     assert device3.getParams() == ""
+
+def test_RP1210Interface_Nexiq_Protocols():
+    """
+    Tests the Protocol class with Nexiq USB-Link 3 drivers.
+
+    You must have these drivers installed to run this test.
+    """
+    api_name = "NULN2R32"
+    assert api_name in RP1210.getAPINames()
+    rp1210 = RP1210.RP1210Interface(api_name)
+    protocolIDs = rp1210.getProtocols()
+    assert protocolIDs == [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27]
+    protocol1 = rp1210.getProtocol(1)
+    assert protocol1.getDescription() == "SAE J1939 Protocol"
+    assert protocol1.getString() == "J1939"
+    assert protocol1.getParams() == ""
+    assert protocol1.getDevices() == [1, 2, 3]
+    assert protocol1.getSpeed() == ["250","500","666","1000","Auto"]
+    protocol2 = rp1210.getProtocol(2)
+    assert protocol2.getDescription() == "CAN Network Protocol"
+    assert protocol2.getString() == "CAN"
+    assert protocol2.getParams() == ""
+    assert protocol2.getDevices() == [1, 2, 3]
+    assert protocol2.getSpeed() == ["125","250","500","666","1000","Auto"]
+    protocol26 = rp1210.getProtocol(26)
+    assert protocol26.getDescription() == "Fault-Tolerant CAN"
+    assert protocol26.getString() == "FT_CAN"
+    assert protocol26.getParams() == ""
+    assert protocol26.getDevices() == [1, 2, 3]
+    assert protocol26.getSpeed() == ["50","125"]
 
 def test_RP1210Interface_NoregonDLA2():
     """

@@ -816,8 +816,10 @@ class RP1210Protocol:
 
     def getSpeed(self):
         try:
-            speeds = [] 
-            for speed in self.section["ProtocolSpeed"]:
+            speeds = []
+            print(self.section["ProtocolSpeed"])
+            section_list = str(self.section["ProtocolSpeed"]).split(',')
+            for speed in section_list:
                 speeds.append(speed)
             return speeds
         except Exception:
