@@ -130,6 +130,17 @@ def test_disconnected_SendCommand():
     for command in RP1210.RP1210_COMMANDS:
         assert rp1210.api.SendCommand(command, 0) in RP1210.RP1210_ERRORS
 
+def test_disconnected_GetHardwareStatus():
+    rp1210 = RP1210.RP1210Interface(API_NAME)
+    buffer = create_string_buffer(64)
+    ret_val = rp1210.api.GetHardwareStatus(0, buffer, 64)
+    assert not buffer.value
+    assert ret_val in RP1210.RP1210_ERRORS
+
+def test_disconnected_GetHardwareStatusDirect():
+    rp1210 = RP1210.RP1210Interface(API_NAME)
+    assert not rp1210.api.GetHardwareStatusDirect(0).value
+
 def test_disconnected_RemainingFunctions():
     """Tests whether API functions follow expected behavior when disconnected from device."""
     rp1210 = RP1210.RP1210Interface(API_NAME)
