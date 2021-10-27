@@ -3,13 +3,13 @@ While I try to provide adequate documentation, the RP1210C standard is owned by 
 not reproduced here. For a complete understanding of the RP1210 standard, you must purchase and
 read the RP1210C documentation from TMC.
 
-RP1210C documentation can be purchased from TMC at this link ($37.50 at time of writing):
+Official RP1210C documentation can be purchased from TMC at this link ($37.50 at time of writing):
     https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP
 """
 import os
 import configparser
 from configparser import ConfigParser
-from ctypes import POINTER, Array, c_char, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer, sizeof
+from ctypes import POINTER, Array, c_char, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -73,7 +73,7 @@ RP1210_ERRORS = {
     600: "ERR_INVALID_IOCTL_ID",
     601: "ERR_NULL_PARAMETER",
     602: "ERR_HARDWARE_NOT_SUPPORTED"}
-"""RP1210 error codes. Use this to translate ClientConnect output."""
+"""RP1210 error codes. Use this to translate ClientConnect output and other error codes."""
 
 RP1210_COMMANDS = {
     0 : "Reset_Device",
@@ -815,11 +815,25 @@ class RP1210API:
         else:
             return translateErrorCode(ret_code)
 
+    def GetHardwareStatus(self, ClientID : int, ClientInfoBuffer : Array[c_char], BufferSize : int) -> int:
+        """
+        Calls GetHardwareStatus and places the result in ClientInfoBuffer. Returns an error code.
+
+        Use create_str_buffer() to create the buffer.
+
+        ClientInfoBuffer size must be 16 <= InfoSize <= 64, and must be a multiple of 2.
+
+        You can also just use GetHardwareStatusDirect() and not worry about buffers.
+        """
+        return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0)
+
+
     def GetHardwareStatusDirect(self, ClientID : int, InfoSize = 64) -> Array[c_char]:
         """
         Calls GetHardwareStatus and returns the result directly.
 
-        InfoSize must be 16 <= InfoSize <= 64, and must be a multiple of 2.
+        InfoSize must be 16 <= InfoSize <= 64, and must be a multiple of 2. Leave InfoSize blank
+        to default to 64.
         """
         ClientInfo = create_string_buffer(InfoSize)
         self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, InfoSize, 0)
