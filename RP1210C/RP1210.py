@@ -1,10 +1,5 @@
 """
-While I try to provide adequate documentation, the RP1210C standard is owned by TMC, not me, and is
-not reproduced here. For a complete understanding of the RP1210 standard, you must purchase and
-read the RP1210C documentation from TMC.
-
-Official RP1210C documentation can be purchased from TMC at this link ($37.50 at time of writing):
-    https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP
+Base RP1210 functions.
 """
 import os
 import configparser
