@@ -125,47 +125,6 @@ def test_InvalidAPIName_load_dll():
     rp1210 = RP1210.RP1210Interface(api_name)
     assert rp1210.api.getDLL() == None
 
-
-
-def test_RP1210Interface_DearbornDPA5Pro():
-    """
-    Tests the RP1210Interface class with Dearborn DPA5 Pro drivers.
-
-    You must have these drivers installed to run this test.
-    """
-    api_name = "DGDPA5MA"
-    assert api_name in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Interface(api_name)
-    assert rp1210.isValid() == True
-    assert str(rp1210) == api_name + " - DG Technologies DPA 5 Multi Application"
-    assert rp1210.getAPIName() == api_name
-    assert rp1210.getName() == "DG Technologies DPA 5 Multi Application"
-    assert rp1210.getAddress1() == "DG Technologies"
-    assert rp1210.getAddress2() == "33604 West 8 Mile Road"
-    assert rp1210.getCity() == "Farmington Hills"
-    assert rp1210.getState() == "MI"
-    assert rp1210.getCountry() == "USA"
-    assert rp1210.getPostal() == "48335"
-    assert rp1210.getTelephone() == "248-888-2000"
-    assert rp1210.getFax() == "248-888-9977"
-    assert rp1210.getVendorURL() == "http://www.dgtech.com"
-    assert rp1210.getVersion() == "4.04"
-    assert rp1210.autoDetectCapable() == True
-    assert rp1210.getTimeStampWeight() == 1000
-    assert rp1210.getMessageString() == "dgDPA5MessageString"
-    assert rp1210.getErrorString() == "dgDPA5ErrorString"
-    assert rp1210.getRP1210Version() == "C"
-    assert rp1210.getDebugLevel() == 0
-    assert rp1210.getDebugFile() == "C:\\DGTech\\DPA 5\\Utilities\\DGDPA5MA_Log.txt"
-    assert rp1210.getDebugMode() == 1
-    assert rp1210.getDebugFileSize() == 1024
-    assert rp1210.getNumberOfSessions() == 1
-    assert rp1210.CANAutoBaud() == True
-    assert rp1210.getCANFormatsSupported() == [4, 5]
-    assert rp1210.getJ1939FormatsSupported() == [1, 2]
-    assert rp1210.getDevices() == [1, 2]
-    assert rp1210.getProtocols() == [100,101,102,103,104,105,106,107,108,109,110,111]
-
 def test_RP1210Interface_NoregonDLA2():
     """
     Tests the RP1210Interface class with Noregon DLA 2.0 drivers.

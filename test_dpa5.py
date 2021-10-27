@@ -1,44 +1,45 @@
-from ctypes import create_string_buffer
 from RP1210C import RP1210
+from ctypes import create_string_buffer
 
-API_NAME = "IMBRP32"
+API_NAME = "DGDPA5MA"
 
 def test_RP1210Interface():
     """
-    Tests the RP1210Interface class with ACTIA BasicXS drivers.
+    Tests the RP1210Interface class with Dearborn DPA5 Pro drivers.
 
     You must have these drivers installed to run this test.
     """
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Interface(API_NAME)
     assert rp1210.isValid() == True
-    assert str(rp1210) == API_NAME + " - I+ME ACTIA GmbH"
+    assert str(rp1210) == API_NAME + " - DG Technologies DPA 5 Multi Application"
     assert rp1210.getAPIName() == API_NAME
-    assert rp1210.getName() == "I+ME ACTIA GmbH"
-    assert rp1210.getAddress1() == ""
-    assert rp1210.getAddress2() == ""
-    assert rp1210.getCity() == ""
-    assert rp1210.getState() == ""
-    assert rp1210.getCountry() == ""
-    assert rp1210.getPostal() == ""
-    assert rp1210.getTelephone() == ""
-    assert rp1210.getFax() == ""
-    assert rp1210.getVendorURL() == ""
-    assert rp1210.getVersion() == None
-    assert rp1210.autoDetectCapable() == False
-    assert rp1210.getTimeStampWeight() == 100
-    assert rp1210.getMessageString() == "IME RP1210 Interrupt BasicXS"
-    assert rp1210.getErrorString() == "IME RP1210 Error BasicXS"
-    assert rp1210.getRP1210Version() == ""
-    assert rp1210.getDebugLevel() == -1
-    assert rp1210.getDebugFile() == ""
-    assert rp1210.getDebugMode() == None
+    assert rp1210.getName() == "DG Technologies DPA 5 Multi Application"
+    assert rp1210.getAddress1() == "DG Technologies"
+    assert rp1210.getAddress2() == "33604 West 8 Mile Road"
+    assert rp1210.getCity() == "Farmington Hills"
+    assert rp1210.getState() == "MI"
+    assert rp1210.getCountry() == "USA"
+    assert rp1210.getPostal() == "48335"
+    assert rp1210.getTelephone() == "248-888-2000"
+    assert rp1210.getFax() == "248-888-9977"
+    assert rp1210.getVendorURL() == "http://www.dgtech.com"
+    assert rp1210.getVersion() == "4.04"
+    assert rp1210.autoDetectCapable() == True
+    assert rp1210.getTimeStampWeight() == 1000
+    assert rp1210.getMessageString() == "dgDPA5MessageString"
+    assert rp1210.getErrorString() == "dgDPA5ErrorString"
+    assert rp1210.getRP1210Version() == "C"
+    assert rp1210.getDebugLevel() == 0
+    assert rp1210.getDebugFile() == "C:\\DGTech\\DPA 5\\Utilities\\DGDPA5MA_Log.txt"
+    assert rp1210.getDebugMode() == 1
     assert rp1210.getDebugFileSize() == 1024
     assert rp1210.getNumberOfSessions() == 1
-    assert rp1210.getCANFormatsSupported() == []
-    assert rp1210.getJ1939FormatsSupported() == []
-    assert rp1210.getDevices() == [1, 2, 3]
-    assert rp1210.getProtocols() == [1, 2, 3]
+    assert rp1210.CANAutoBaud() == True
+    assert rp1210.getCANFormatsSupported() == [4, 5]
+    assert rp1210.getJ1939FormatsSupported() == [1, 2]
+    assert rp1210.getDevices() == [1, 2]
+    assert rp1210.getProtocols() == [100,101,102,103,104,105,106,107,108,109,110,111]
 
 def test_Devices():
     """
@@ -49,22 +50,21 @@ def test_Devices():
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Interface(API_NAME)
     deviceIDs = rp1210.getDevices()
-    assert deviceIDs == [1, 2, 3]
+    assert deviceIDs == [1, 2]
     device1 = rp1210.getDevice(1)
     assert device1.getID() == 1
-    assert device1.getDescription() == "BasicXS, USB"
-    assert device1.getName() == "BasicXS USB"
-    assert device1.getParams() == ""
+    assert device1.getDescription() == "DG DPA 5 Dual CAN (MA) USB,USB"
+    assert device1.getName() == "DG DPA 5 Dual CAN (MA) USB"
+    assert device1.getParams() == "DG USB,Type=3"
+    assert device1.getMultiCANChannels() == 2
+    assert device1.getMultiJ1939Channels() == 2
     device2 = rp1210.getDevice(2)
     assert device2.getID() == 2
-    assert device2.getDescription() == "BasicXS, COM1"
-    assert device2.getName() == "BasicXS COM1"
-    assert device2.getParams() == ""
-    device3 = rp1210.getDevice(3)
-    assert device3.getID() == 3
-    assert device3.getDescription() == "BasicXS, COM2"
-    assert device3.getName() == "BasicXS COM2"
-    assert device3.getParams() == ""
+    assert device2.getDescription() == "DG DPA 5 Pro (MA) USB,USB"
+    assert device2.getName() == "DG DPA 5 Pro (MA) USB"
+    assert device2.getParams() == "DG USB,Type=4"
+    assert device2.getMultiCANChannels() == 4
+    assert device2.getMultiJ1939Channels() == 4
 
 def test_Protocols():
     """
@@ -75,25 +75,19 @@ def test_Protocols():
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Interface(API_NAME)
     protocolIDs = rp1210.getProtocols()
-    assert protocolIDs == [1, 2, 3]
-    protocol1 = rp1210.getProtocol(1)
-    assert protocol1.getDescription() == "Generic CAN"
-    assert protocol1.getString() == "CAN"
-    assert protocol1.getParams() == ""
-    assert protocol1.getDevices() == [1, 2, 3]
-    assert protocol1.getSpeed() == []
-    protocol2 = rp1210.getProtocol(2)
-    assert protocol2.getDescription() == "J1708 Link Layer Protocol"
-    assert protocol2.getString() == "J1708"
+    assert protocolIDs == [100,101,102,103,104,105,106,107,108,109,110,111]
+    protocol1 = rp1210.getProtocol(100)
+    assert protocol1.getDescription() == "SAE J1939 Protocol"
+    assert protocol1.getString() == "J1939"
+    assert protocol1.getParams() == "FAST_TRANSPORT"
+    assert protocol1.getDevices() == [1, 2]
+    assert protocol1.getSpeed() == ["125","250","500","666","1000","Auto"]
+    protocol2 = rp1210.getProtocol(102)
+    assert protocol2.getDescription() == "CAN Network Protocol"
+    assert protocol2.getString() == "CAN"
     assert protocol2.getParams() == ""
-    assert protocol2.getDevices() == [1, 2, 3]
-    assert protocol2.getSpeed() == []
-    protocol3 = rp1210.getProtocol(3)
-    assert protocol3.getDescription() == "J1939 Link Layer Protocol"
-    assert protocol3.getString() == "J1939"
-    assert protocol3.getParams() == ""
-    assert protocol3.getDevices() == [1, 2, 3]
-    assert protocol3.getSpeed() == []
+    assert protocol2.getDevices() == [1, 2]
+    assert protocol2.getSpeed() == ["125","250","500","666","1000","Auto"]
 
 def test_load_DLL():
     """
@@ -128,14 +122,14 @@ def test_disconnected_ReadVersion():
     buff3 = create_string_buffer(16)
     buff4 = create_string_buffer(16)
     rp1210.api.ReadVersion(buff1, buff2, buff3, buff4)
-    assert buff1.value == b"1"
+    assert buff1.value == b"0"
     assert buff2.value == b"0"
-    assert buff3.value == b"2"
+    assert buff3.value == b"3"
     assert buff4.value == b"0"
 
 def test_disconnected_ReadVersionDirect():
     rp1210 = RP1210.RP1210Interface(API_NAME)
-    assert rp1210.api.ReadVersionDirect() == ("1.0", "2.0")
+    assert rp1210.api.ReadVersionDirect() == ("0.0", "3.0")
 
 def test_disconnected_ReadDetailedVersion():
     rp1210 = RP1210.RP1210Interface(API_NAME)
@@ -149,7 +143,7 @@ def test_disconnected_GetErrorMsg():
     rp1210 = RP1210.RP1210Interface(API_NAME)
     for code in RP1210.RP1210_ERRORS:
         msg = rp1210.api.GetErrorMsg(code)
-        assert msg in RP1210.RP1210_ERRORS.values() or msg == "ERR_ISO15765_BAUD_SET_NONSTANDARD" # doesn't recognize this in dict for some reason
+        # Dearborn DPA5 has nonstandard error codes - don't check against dict for correctness
 
 def test_disconnected_SendCommand():
     rp1210 = RP1210.RP1210Interface(API_NAME)
