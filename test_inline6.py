@@ -58,6 +58,7 @@ def test_Devices():
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     device = rp1210.getDevice(2)
     assert device.getID() == 2
     assert device.getDescription() == "INLINE6,COM2"
@@ -65,6 +66,7 @@ def test_Devices():
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     device = rp1210.getDevice(3)
     assert device.getID() == 3
     assert device.getDescription() == "INLINE6,COM3"
@@ -72,6 +74,7 @@ def test_Devices():
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     device = rp1210.getDevice(4)
     assert device.getID() == 4
     assert device.getDescription() == "INLINE6,COM4"
@@ -79,6 +82,7 @@ def test_Devices():
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     device = rp1210.getDevice(5)
     assert device.getID() == 5
     assert device.getDescription() == "INLINE6,COM5"
@@ -86,6 +90,7 @@ def test_Devices():
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     device = rp1210.getDevice(6)
     assert device.getID() == 6
     assert device.getDescription() == "INLINE6,COM6"
@@ -93,6 +98,7 @@ def test_Devices():
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     device = rp1210.getDevice(7)
     assert device.getID() == 7
     assert device.getDescription() == "INLINE6,COM7"
@@ -100,6 +106,7 @@ def test_Devices():
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     device = rp1210.getDevice(8)
     assert device.getID() == 8
     assert device.getDescription() == "INLINE6,COM8"
@@ -108,12 +115,14 @@ def test_Devices():
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
     device = rp1210.getDevice(254)
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     assert device.getID() == 254
     assert device.getDescription() == "INLINE6,USB"
     assert device.getName() == "INLINE6"
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
     device = rp1210.getDevice(255)
     assert device.getID() == 255
     assert device.getDescription() == "INLINE6,COM Port Auto Detect"
@@ -121,6 +130,7 @@ def test_Devices():
     assert device.getParams() == ""
     assert device.getMultiJ1939Channels() == 2
     assert device.getMultiCANChannels() == 2
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
 
 def test_Protocols():
     assert API_NAME in RP1210.getAPINames()

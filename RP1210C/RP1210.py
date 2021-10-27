@@ -1000,10 +1000,10 @@ class RP1210Device:
     def __str__(self):
         ret_str = ""
         if self.getID() == -1:
-            ret_str += "(Invalid ID)"
+            ret_str += "(Invalid Device)"
         else:
-            ret_str += self.getID()
+            ret_str += str(self.getID())
         if self.getDescription() != "":
-            ret_str += "- " + self.getDescription()
+            ret_str += " - " + self.getDescription()
         return ret_str
          

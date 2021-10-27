@@ -55,16 +55,19 @@ def test_Devices():
     assert device1.getDescription() == "BasicXS, USB"
     assert device1.getName() == "BasicXS USB"
     assert device1.getParams() == ""
+    assert str(device1) == str(device1.getID()) + " - " + device1.getDescription()
     device2 = rp1210.getDevice(2)
     assert device2.getID() == 2
     assert device2.getDescription() == "BasicXS, COM1"
     assert device2.getName() == "BasicXS COM1"
     assert device2.getParams() == ""
+    assert str(device2) == str(device2.getID()) + " - " + device2.getDescription()
     device3 = rp1210.getDevice(3)
     assert device3.getID() == 3
     assert device3.getDescription() == "BasicXS, COM2"
     assert device3.getName() == "BasicXS COM2"
     assert device3.getParams() == ""
+    assert str(device3) == str(device3.getID()) + " - " + device3.getDescription()
 
 def test_Protocols():
     """

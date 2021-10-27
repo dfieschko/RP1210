@@ -53,6 +53,7 @@ def test_Devices():
     assert device1.getParams() == "DG USB,Type=3"
     assert device1.getMultiCANChannels() == 2
     assert device1.getMultiJ1939Channels() == 2
+    assert str(device1) == str(device1.getID()) + " - " + device1.getDescription()
     device2 = rp1210.getDevice(2)
     assert device2.getID() == 2
     assert device2.getDescription() == "DG DPA 5 Pro (MA) USB,USB"
@@ -60,6 +61,7 @@ def test_Devices():
     assert device2.getParams() == "DG USB,Type=4"
     assert device2.getMultiCANChannels() == 4
     assert device2.getMultiJ1939Channels() == 4
+    assert str(device2) == str(device2.getID()) + " - " + device2.getDescription()
 
 def test_Protocols():
     assert API_NAME in RP1210.getAPINames()

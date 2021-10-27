@@ -59,6 +59,7 @@ def test_Devices():
     assert device1.getParams() == ""
     assert device1.getMultiCANChannels() == 3
     assert device1.getMultiJ1939Channels() == 3
+    assert str(device1) == str(device1.getID()) + " - " + device1.getDescription()
     device2 = rp1210.getDevice(2)
     assert device2.getID() == 2
     assert device2.getDescription() == "Bluetooth USB-Link 2"
@@ -66,6 +67,7 @@ def test_Devices():
     assert device2.getParams() == ""
     assert device2.getMultiCANChannels() == 3
     assert device2.getMultiJ1939Channels() == 3
+    assert str(device2) == str(device2.getID()) + " - " + device2.getDescription()
     device3 = rp1210.getDevice(3)
     assert device3.getID() == 3
     assert device3.getDescription() == "WiFi USB-Link 2"
@@ -73,6 +75,7 @@ def test_Devices():
     assert device3.getParams() == ""
     assert device3.getMultiCANChannels() == 3
     assert device3.getMultiJ1939Channels() == 3
+    assert str(device3) == str(device3.getID()) + " - " + device3.getDescription()
 
 def test_Protocols_CAN_J1939():
     """

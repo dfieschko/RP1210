@@ -56,6 +56,7 @@ def test_Devices():
     assert device100.getDescription() == "DLA+ 2.0, USB"
     assert device100.getName() == "DLA+ 2.0"
     assert device100.getParams() == "USB:CAN1:250"
+    assert str(device100) == str(device100.getID()) + " - " + device100.getDescription()
 
 def test_Protocols():
     assert API_NAME in RP1210.getAPINames()

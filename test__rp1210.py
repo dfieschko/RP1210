@@ -119,6 +119,25 @@ def test_InvalidAPIName_Devices_Protocols():
     assert rp1210.getProtocol(3) == None
     assert rp1210.getDevice(3) == None
 
+def test_Invalid_Device():
+    device = RP1210.RP1210Device(None)
+    assert device.getID() == -1
+    assert device.getDescription() == ""
+    assert device.getName() == ""
+    assert device.getParams() == ""
+    assert device.getMultiCANChannels() == 0
+    assert device.getMultiJ1939Channels() == 0
+    assert str(device) == "(Invalid Device)"
+
+def test_Invalid_Protocol():
+    protocol = RP1210.RP1210Protocol(None)
+    assert protocol.getDescription() == ""
+    assert protocol.getSpeed() == []
+    assert protocol.getString() == ""
+    assert protocol.getParams() == ""
+    assert protocol.getDevices() == []
+    assert str(protocol) == " - "
+
 def test_InvalidAPIName_load_dll():
     api_name = "CHUNGLEBUNGUS"
     assert api_name not in RP1210.getAPINames()
@@ -136,4 +155,7 @@ def test_RP1210Interface_NEMESIS():
     rp1210 = RP1210.RP1210Interface(api_name)
     assert rp1210.isValid() == False
     assert str(rp1210) == api_name + " - Cummins Inc. NEMESIS Mock RP1210 Driver - (drivers invalid)"
+    devices = rp1210.getDevices()
+    device = rp1210.getDevice(devices[0])
+    assert str(device) == str(device.getID()) + " - " + device.getDescription()
 
