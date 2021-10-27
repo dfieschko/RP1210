@@ -1,3 +1,6 @@
 @ECHO OFF
+ECHO Checking pytest installation...
+py -m pip install -U -q pytest
+ECHO Done! Running test...
 py -m pytest
 pause
