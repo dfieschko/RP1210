@@ -112,29 +112,29 @@ class J1939MessageParser():
     def getTimestamp(self) -> int:
         """Returns timestamp (4 bytes) as int."""
         print(self.msg)
-        print(self.msg[0:3])
-        return int.from_bytes(self.msg[0:3], 'big')
+        print(self.msg[0:4])
+        return int.from_bytes(self.msg[0:4], 'big')
 
     def getPGN(self) -> int:
         """Returns PGN (3 bytes) as int."""
         start = 4 + self.echo_offset
         end = 6 + self.echo_offset
-        return int.from_bytes(self.msg[start, end], 'little')
+        return int.from_bytes(self.msg[start:end], 'little')
 
     def getPriority(self) -> int:
         """Returns Priority (1 byte) as int."""
         loc = 7 + self.echo_offset
-        return int.from_bytes(self.msg[loc], 'big')
+        return self.msg[loc]
 
     def getSource(self) -> int:
         """Returns Source Address (1 byte) as int."""
         loc = 8 + self.echo_offset
-        return int.from_bytes(self.msg[loc], 'big')
+        return self.msg[loc]
 
     def getDestination(self) -> int:
         """Returns Destination Address (1 byte) as int."""
         loc = 9 + self.echo_offset
-        return int.from_bytes(self.msg[loc], 'big')
+        return self.msg[loc]
 
     def getData(self) -> bytes:
         """Returns message data (0 - 1785 bytes) as bytes."""

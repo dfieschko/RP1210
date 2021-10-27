@@ -48,7 +48,29 @@ def test_toJ1939Message():
     data = 0xDEADBEEF
     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
     assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
+    pgn = 0x0AACCC
+    pri = "0"
+    sa = "22"
+    da = 0x1E
+    data = 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF
+    message = J1939.toJ1939Message(pgn, pri, sa, da, data)
+    assert message == b'\xCC\xAC\x0A\x00\x16\x1E\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF'
 
 def test_J1939MessageParser():
     """Test J1939MessageParser class"""
+    timestamp = sanitize_msg_param(0x01020304)
+    assert timestamp == b'\x01\x02\x03\x04'
+    pgn = 0x00FEEE
+    pri = 3
+    sa = 2
+    da = 0x0E
+    data = 0xDEADBEEF
+    message = timestamp + J1939.toJ1939Message(pgn, pri, sa, da, data)
+    assert message == b'\x01\x02\x03\x04\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
+    parser = J1939.J1939MessageParser(message)
+    assert parser.getTimestamp() == 0x01020304
+    assert parser.getPGN() == pgn
+    assert parser.getSource() == sa
+    assert parser.getDestination() == da
+    assert parser.getData() == sanitize_msg_param(data)
 
