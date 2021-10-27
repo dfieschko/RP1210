@@ -125,62 +125,6 @@ def test_InvalidAPIName_load_dll():
     rp1210 = RP1210.RP1210Interface(api_name)
     assert rp1210.api.getDLL() == None
 
-def test_RP1210Interface_NoregonDLA2():
-    """
-    Tests the RP1210Interface class with Noregon DLA 2.0 drivers.
-
-    You must have these drivers installed to run this test.
-    """
-    api_name = "DLAUSB32"
-    assert api_name in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Interface(api_name)
-    assert rp1210.isValid() == True
-    assert str(rp1210) == api_name + " - Noregon Systems Inc., DLA+ 2.0 Adapter"
-    assert rp1210.getAPIName() == api_name
-    assert rp1210.getName() == "Noregon Systems Inc., DLA+ 2.0 Adapter"
-    assert rp1210.getAddress1() == "7009 Albert Pick Rd."
-    assert rp1210.getAddress2() == ""
-    assert rp1210.getCity() == "Greensboro"
-    assert rp1210.getState() == "NC"
-    assert rp1210.getCountry() == "USA"
-    assert rp1210.getPostal() == "27409"
-    assert rp1210.getTelephone() == "+1 (336) 970-5567"
-    assert rp1210.getFax() == ""
-    assert rp1210.getVendorURL() == "www.JPROFleetProducts.com"
-    assert rp1210.getVersion() == "4"
-    assert rp1210.autoDetectCapable() == True
-    assert rp1210.CANAutoBaud() == True
-    assert rp1210.getTimeStampWeight() == 1000
-    assert rp1210.getMessageString() == "NSICAN_READ_NOTIFY"
-    assert rp1210.getErrorString() == "NSICAN_SEND_NOTIFY"
-    assert rp1210.getRP1210Version() == "C"
-    assert rp1210.getDebugLevel() == 0
-    assert rp1210.getDebugFile() == "C:\\Noregon\\dlausb32\\dlausb32.log"
-    assert rp1210.getDebugMode() == 1
-    assert rp1210.getDebugFileSize() == 1024
-    assert rp1210.getNumberOfSessions() == 1
-    assert rp1210.getCANFormatsSupported() == [4,5]
-    assert rp1210.getJ1939FormatsSupported() == [1,2]
-    assert rp1210.getDevices() == [100]
-    assert rp1210.getProtocols() == [51,52,53,54,55,56,58,59,60,61,62,63]
-
-def test_RP1210Interface_NoregonDLA2_Devices():
-    """
-    Tests the Device class with Noregon DLA 2.0 drivers.
-
-    You must have these drivers installed to run this test.
-    """
-    api_name = "DLAUSB32"
-    assert api_name in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Interface(api_name)
-    deviceIDs = rp1210.getDevices()
-    assert deviceIDs == [100]
-    device100 = rp1210.getDevice(100)
-    assert device100.getID() == 100
-    assert device100.getDescription() == "DLA+ 2.0, USB"
-    assert device100.getName() == "DLA+ 2.0"
-    assert device100.getParams() == "USB:CAN1:250"
-
 def test_RP1210Interface_NEMESIS():
     """
     Tests the RP1210Interface class with Cummins' NEMESIS dummy drivers, which are invalid.

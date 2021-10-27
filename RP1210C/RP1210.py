@@ -653,8 +653,9 @@ class RP1210API:
 
         Use function translateClientID() to translate nClientID to an error message.
         """
-        return self.getDLL().RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
+        clientID = self.getDLL().RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
                                                 RcvBufferSize, isAppPacketizingincomingMsgs)
+        return self.__dla2_clientid_fix(clientID)
     
     def ClientDisconnect(self, ClientID : int) -> int:
         """
@@ -856,6 +857,21 @@ class RP1210API:
         This function returns the dll path in that directory.
         """
         return os.path.join(os.environ["WINDIR"], self.api_name + ".dll")
+
+    def __dla2_clientid_fix(self, clientID) -> int:
+        """
+        Noregon DLA2 adapters have a dumb issue where they return a garbled ClientID.
+
+        This is the fix for that.
+        """
+        if not self.__is_valid_clientid(clientID):
+            cid = int(hex(clientID)[5:], 16) # snip off first 5 hex characters, translate back to int
+            if self.__is_valid_clientid(cid):
+                clientID = cid
+        return clientID
+    
+    def __is_valid_clientid(self, clientID) -> bool:
+        return clientID in RP1210_ERRORS or (0 <= clientID < 128)
 
 class RP1210Protocol:
     """
