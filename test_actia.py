@@ -24,7 +24,7 @@ def test_RP1210Interface():
     assert rp1210.getTelephone() == ""
     assert rp1210.getFax() == ""
     assert rp1210.getVendorURL() == ""
-    assert rp1210.getVersion() == None
+    assert rp1210.getVersion() == ""
     assert rp1210.autoDetectCapable() == False
     assert rp1210.getTimeStampWeight() == 100
     assert rp1210.getMessageString() == "IME RP1210 Interrupt BasicXS"

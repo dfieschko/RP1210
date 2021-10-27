@@ -93,7 +93,7 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getTelephone() == ""
     assert rp1210.getFax() == ""
     assert rp1210.getVendorURL() == ""
-    assert rp1210.getVersion() == None
+    assert rp1210.getVersion() == ""
     assert rp1210.autoDetectCapable() == False
     assert rp1210.CANAutoBaud() == False
     assert rp1210.getTimeStampWeight() == None

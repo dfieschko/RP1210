@@ -327,14 +327,14 @@ class RP1210Interface(ConfigParser):
         """
         Returns the 'Version' field in VendorInformation section.
         
-        Returns None if Version field isn't found.
+        Returns empty string if Version field isn't found.
         """
         if not self.has_option("VendorInformation", "Version"):
-            return None
+            return ""
         try:
             return self.get("VendorInformation", "Version")
         except (ValueError, KeyError):
-            return None
+            return ""
 
     def autoDetectCapable(self) -> bool:
         """
