@@ -284,7 +284,7 @@ class RP1210Device:
 
 class RP1210Interface(ConfigParser):
     """
-    Reads & stores API information. Child of ConfigParser. Use RP121032Parser to get an
+    Reads & stores Vendor API information. Child of ConfigParser. Use RP121032Parser to get an
     RP1210 API name to feed to this class.
 
     This class has functions for reading EVERY SINGLE data field defined in the RP1210C standard.
@@ -327,12 +327,11 @@ class RP1210Interface(ConfigParser):
 
     def isValid(self) -> bool:
         """
-        Returns self.api_valid, which is set to False if drivers fail to load,
-        devices can't be read, etc.
+        Returns self.api_valid, which is set to False if config file can't be parsed or doesn't
+        include VendorInformation.
 
-        This function DOES NOT run through any checks before returning api_valid - so don't
-        call it right away!
-            e.g. you can't call isValid() to see if you can call getDLL() - call getDLL() first.
+        This is a very basic check - a return value of True does not absolutely guarantee
+        that the driver config file is valid and correct!
         """
         return self.api_valid
 
@@ -715,6 +714,8 @@ class RP1210Interface(ConfigParser):
             if not os.path.exists(path):
                 raise IOError
             self.read(path)
+            if not self.has_section("VendorInformation"):
+                self.api_valid = False
         except (configparser.Error, IOError):
             self.api_valid = False
 
@@ -767,10 +768,24 @@ class RP1210API:
     def isValid(self) -> bool:
         """
         Returns api_valid boolean, which is set when the DLL is loaded.
+
+        This function will load the DLL if it wasn't loaded already.
         
         True = DLL loaded, False = DLL failed to load
         """
+        self.getDLL()
         return self.api_valid
+
+    def conformsToRP1210C(self) -> bool:
+        """
+        Returns True if the drivers appear to conform to the RP1210C standard, False if not.
+
+        This function will load the DLL if it wasn't loaded already.
+        
+        You can do this more easily by reading the RP1210 Version field in RP1210Interface.
+        """
+        self.getDLL()
+        return self.rp1210c
 
     def setDLL(self, dll : CDLL):
         """Sets the CDLL used to call RP1210 API functions."""
@@ -1020,9 +1035,8 @@ class RP1210API:
 
     def __dla2_clientid_fix(self, clientID) -> int:
         """
-        Noregon DLA2 adapters have a dumb issue where they return a garbled ClientID.
-
-        This is the fix for that.
+        Noregon DLA2 adapters have an issue where they return a bunch of garbage along with the
+        ClientID when calling ClientConnect. This is the fix for that.
         """
         if not self.__is_valid_clientid(clientID):
             cid = int(hex(clientID)[5:], 16) # snip off first 5 hex characters, translate back to int

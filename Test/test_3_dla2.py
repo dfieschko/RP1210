@@ -7,6 +7,7 @@ the PC's USB port.
 """
 from RP1210C import J1939, RP1210
 from tkinter import messagebox
+import time
 
 API_NAME = "DLAUSB32"
 
@@ -55,8 +56,29 @@ def test_ClientDisconnect():
         ret_val = dla2.api.ClientDisconnect(x)
         assert RP1210.translateErrorCode(ret_val) in ["NO_ERRORS", "ERR_INVALID_CLIENT_ID"] 
 
-def test_ClientConnect_j1939_speeds():
-    """Tests ClientConnect with all possible J1939 speeds"""
+def test_ClientConnect_Disconnect_j1939_speeds():
+    """
+    Tests ClientConnect and ClientDisconnect with all possible J1939 speeds.
+    """
     dla2 = RP1210.RP1210Interface(API_NAME)
     deviceID = dla2.getDevices()[0]
-    # TODO
+    # make sure we're disconnected
+    for x in range (0, 15):
+        dla2.api.ClientDisconnect(x)
+    # get valid baud rates
+    speeds = dla2.getProtocol("J1939").getSpeed()
+    assert speeds == ["250", "500", "666", "1000", "Auto"]
+    # cycle through all baud rates
+    for speed in speeds:
+        # generate protocol string
+        protocol = J1939.getJ1939ProtocolString(protocol=1, Baud=speed)
+        # connect
+        clientID = dla2.api.ClientConnect(deviceID, protocol)
+        assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
+        assert clientID in [0, 1]
+        time.sleep(0.05)
+        # disconnect
+        disconnect_code = dla2.api.ClientDisconnect(clientID)
+        assert RP1210.translateErrorCode(disconnect_code) == "NO_ERRORS"
+        time.sleep(0.05)
+

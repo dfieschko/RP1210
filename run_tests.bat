@@ -6,7 +6,7 @@ ECHO : Tests are run roughly in order from more basic to more complex functional
 ECHO : Running these tests requires installation of several adapter drivers,                      :
 ECHO : as well as physical possession of some adapters.                                           :
 ECHO : A list of adapter drivers can be found in the project's documentation.                     :
-ECHO : This is not a fully automated test.                                                        :
+ECHO : This is not a fully automated test. These are not continuous-integration tests.            :
 ECHO : Some tests rely on adapters being disconnected, while others rely on them being connected. :
 ECHO : You will be prompted to connect or disconnect adapters before each relevant step.          :
 ECHO ..............................................................................................

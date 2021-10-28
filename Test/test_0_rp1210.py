@@ -111,6 +111,7 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getDevices() == []
     assert rp1210.getProtocols() == []
     assert rp1210.getProtocolIDs() == []
+    assert rp1210.isValid() == False
 
 def test_InvalidAPIName_Devices_Protocols():
     api_name = "CHUNGLEBUNGUS"
@@ -145,6 +146,13 @@ def test_InvalidAPIName_load_dll():
     assert api_name not in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Interface(api_name)
     assert rp1210.api.getDLL() == None
+    assert rp1210.api.isValid() == False
+
+def test_InvalidAPIName_conforms_to_rp1210C():
+    api_name = "CHUNGLEBUNGUS"
+    assert api_name not in RP1210.getAPINames()
+    rp1210 = RP1210.RP1210Interface(api_name)
+    assert rp1210.api.conformsToRP1210C() == False
 
 def test_RP1210Interface_NEMESIS():
     """
