@@ -786,6 +786,8 @@ class RP1210API:
         You can do this more easily by reading the RP1210 Version field in RP1210Interface.
         """
         self.getDLL()
+        if not self.isValid():
+            return False
         return self.rp1210c
 
     def setDLL(self, dll : CDLL):
