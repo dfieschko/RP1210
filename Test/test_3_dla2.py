@@ -5,9 +5,8 @@ a device.
 This is done on the DLA 2.0 adapter because it has the ability to be powered from
 the PC's USB port.
 """
-from RP1210C import J1939, RP1210, sanitize_msg_param
+from RP1210C import J1939, RP1210, Commands
 from tkinter import messagebox
-import time
 
 def disconnect():
     api = RP1210.RP1210API(API_NAME)
@@ -17,7 +16,8 @@ def disconnect():
 API_NAME = "DLAUSB32"
 
 def test_dla2_drivers_begin():
-    messagebox.showinfo("Connect your DLA2 adapter!", "Connect your DLA2 adapter, then hit OK to continue.")
+    messagebox.showinfo("Connect your DLA2 adapter!", 
+                        "Connect your DLA2 adapter, then hit OK to continue.\nDon't connect the adapter to a CAN bus!")
 
 def test_dla2_drivers_installed():
     assert API_NAME in RP1210.getAPINames()
@@ -106,7 +106,7 @@ def test_SendCommand_claim_j1939_address():
     command_id = 19
     address = 10
     name = 24
-    command_params = J1939.J1939Commands.claimAddress(address, name)
+    command_params = Commands.protectJ1939Address(address, name)
     assert len(command_params) == 10
     # make sure we're disconnected
     disconnect()
@@ -120,17 +120,20 @@ def test_SendCommand_claim_j1939_address():
 
 def test_SendMessage():
     """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
+    disconnect()
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
     protocol = J1939.getJ1939ProtocolString(1, "500")
-    data = b"This is a test message!"
-    message = J1939.toJ1939Message(1234, 4, 10, 255, data)
     # connect
     clientID = api.ClientConnect(deviceID, protocol)
     assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
-    # claim address 10
-    # TODO
+    # claim address 10 w/ name 0xDEADBEEF
+    command_msg = Commands.protectJ1939Address(10, 0xDEADBEEF)
+    ret_val = api.SendCommand(19, clientID, command_msg)
+    assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
     # send message
+    data = b"This is a test message!"
+    message = J1939.toJ1939Message(1234, 4, 10, 255, data)
     ret_val = api.SendMessage(clientID, message)
-    assert RP1210.translateErrorCode(ret_val) == "ERR_ADDRESS_NEVER_CLAIMED"
+    assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
     api.ClientDisconnect(clientID)

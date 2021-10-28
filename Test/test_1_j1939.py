@@ -1,4 +1,4 @@
-from RP1210C import J1939, sanitize_msg_param
+from RP1210C import J1939, Commands, sanitize_msg_param
 
 def test_format_default():
     assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"
@@ -98,10 +98,10 @@ def test_command_claimAddress():
     address = 0x0F
     name = 0xDEADBEEF
     blocking = True
-    command = J1939.J1939Commands.claimAddress(address, name, blocking)
+    command = Commands.protectJ1939Address(address, name, blocking)
     assert command == b"\x0F\x00\x00\x00\x00\xDE\xAD\xBE\xEF\x00"
     address = 1
     name = 2355321 # 0x23F079
     blocking = False
-    command = J1939.J1939Commands.claimAddress(address, name, blocking)
+    command = Commands.protectJ1939Address(address, name, blocking)
     assert command == b"\x01\x00\x00\x00\x00\x00\x23\xF0\x79\x02"
