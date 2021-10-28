@@ -36,7 +36,7 @@ def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) ->
     0xFF, send it as an int and not "FF".
 
     Set argument sanitize to False if you don't want to sanitize arguments. This means
-    you must provide them as bytes, but will save a bit of CPU time.
+    you must provide them as bytes, but might save a bit of CPU time.
     """
     # sanitize inputs ~ convert to bytes
     if sanitize:
@@ -115,6 +115,9 @@ class J1939MessageParser():
     """
     A convenience class for parsing a J1939 message received from RP1210_ReadMessage.
 
+    Message must include timestamp (4 bytes) in its leading bytes (this conforms w/ return value
+    of RP1210_ReadMessage).
+
     - Initialize the object with the message received from ReadMessage.
     - If you used the command 'Set Echo Transmitted Messages' to turn echo on, set arg echo = True.
     """
@@ -127,6 +130,10 @@ class J1939MessageParser():
         if self.echo_offset == 1:
             return int.from_bytes(self.msg[4]) == 0x01
         return False
+
+    def isRequest(self) -> bool:
+        """Returns true if PGN matches J1939 Request PGN."""
+        return self.getPGN() == 0x00EA00
 
     def getTimestamp(self) -> int:
         """Returns timestamp (4 bytes) as int."""

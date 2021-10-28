@@ -4,7 +4,7 @@ Base RP1210 functions.
 import os
 import configparser
 from configparser import ConfigParser
-from ctypes import POINTER, Array, c_char, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
+from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 from tkinter.constants import E
 
 RP1210_ERRORS = {
@@ -135,7 +135,7 @@ def translateErrorCode(ClientID :int) -> str:
         """
         if 0 <= ClientID < 128:
             return "NO_ERRORS"
-        if ClientID < 0:
+        if ClientID < 0: # some functions return negative value for error code
             ClientID *= -1
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
