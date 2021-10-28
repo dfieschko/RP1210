@@ -175,7 +175,7 @@ class J1939Commands:
     """
     Generate ClientCommand inputs for RP1210_SendCommand.
     """
-    def claimAddress(self, address_to_claim, network_mgt_name, blocking = True):
+    def claimAddress(address_to_claim, network_mgt_name, blocking = True):
         """
         This command claims an address on the J1939 bus.
         - address_to_claim (1 byte) - 8-bit address to claim on the J1939 bus.

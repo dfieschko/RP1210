@@ -99,9 +99,9 @@ def test_command_claimAddress():
     name = 0xDEADBEEF
     blocking = True
     command = J1939.J1939Commands.claimAddress(address, name, blocking)
-    assert command == b"\x0F\x00\x00\x00\x00\xDE\xAD\xBE\xEF\x02"
+    assert command == b"\x0F\x00\x00\x00\x00\xDE\xAD\xBE\xEF\x00"
     address = 1
     name = 2355321 # 0x23F079
     blocking = False
     command = J1939.J1939Commands.claimAddress(address, name, blocking)
-    assert command == b"\x01\x00\x00\x00\x00\x00\x23\xF0\x79\x00"
+    assert command == b"\x01\x00\x00\x00\x00\x00\x23\xF0\x79\x02"

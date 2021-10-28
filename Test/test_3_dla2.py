@@ -84,26 +84,6 @@ def test_ClientConnect_Disconnect_j1939_speeds():
         disconnect_code = dla2.api.ClientDisconnect(clientID)
         assert RP1210.translateErrorCode(disconnect_code) == "NO_ERRORS"
 
-def test_SendCommand_claim_j1939_address():
-    """Test SendCommand function w/ command "Protect_J1939_Address" (19)"""
-    api = RP1210.RP1210API(API_NAME)
-    deviceID = 100
-    command = 19
-    address = sanitize_msg_param(10)
-    cmd_length = 1
-    # make sure we're disconnected
-    disconnect()
-    # connect to adapter
-    clientID = api.ClientConnect(deviceID, b"J1939:Baud=250")
-    assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
-
-def test_SendCommand_claim_j1939_address_nosize():
-    """Test SendCommand function w/ command "Protect_J1939_Address" (19)"""
-    api = RP1210.RP1210API(API_NAME)
-    deviceID = 100
-    command = 19
-    address = sanitize_msg_param(10)
-
 def test_SendMessage_no_address_claimed():
     """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
     api = RP1210.RP1210API(API_NAME)
@@ -117,7 +97,27 @@ def test_SendMessage_no_address_claimed():
     # send message w/o claiming address
     ret_val = api.SendMessage(clientID, message)
     assert RP1210.translateErrorCode(ret_val) == "ERR_ADDRESS_NEVER_CLAIMED"
-    
+    api.ClientDisconnect(clientID)
+
+def test_SendCommand_claim_j1939_address():
+    """Test SendCommand function w/ command "Protect_J1939_Address" (19)"""
+    api = RP1210.RP1210API(API_NAME)
+    deviceID = 100
+    command_id = 19
+    address = 10
+    name = 24
+    command_params = J1939.J1939Commands.claimAddress(address, name)
+    assert len(command_params) == 10
+    # make sure we're disconnected
+    disconnect()
+    # connect to adapter
+    clientID = api.ClientConnect(deviceID, b"J1939:Baud=500")
+    assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
+    # send command
+    ret_val = api.SendCommand(command_id, clientID, command_params)
+    assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
+    api.ClientDisconnect(clientID)
+
 def test_SendMessage():
     """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
     api = RP1210.RP1210API(API_NAME)
@@ -133,3 +133,4 @@ def test_SendMessage():
     # send message
     ret_val = api.SendMessage(clientID, message)
     assert RP1210.translateErrorCode(ret_val) == "ERR_ADDRESS_NEVER_CLAIMED"
+    api.ClientDisconnect(clientID)
