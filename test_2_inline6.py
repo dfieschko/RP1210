@@ -39,7 +39,7 @@ def test_RP1210Interface():
     assert rp1210.getCANFormatsSupported() == [4,5]
     assert rp1210.getJ1939FormatsSupported() == [1,2]
     assert rp1210.getDevices() == [1,2,3,4,5,6,7,8,254,255]
-    assert rp1210.getProtocols() == [1,2,3,4]
+    assert rp1210.getProtocolIDs() == [1,2,3,4]
 
 def test_Devices():
     """
@@ -135,8 +135,10 @@ def test_Devices():
 def test_Protocols():
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Interface(API_NAME)
-    protocolIDs = rp1210.getProtocols()
+    protocolIDs = rp1210.getProtocolIDs()
     assert protocolIDs == [1,2,3,4]
+    assert rp1210.getProtocols() == ["ISO15765", "J1939", "J1708", "CAN"]
+    assert rp1210.getProtocol("J1939").getString() == "J1939"
     protocol = rp1210.getProtocol(1)
     assert protocol.getDescription() == "ISO15765"
     assert protocol.getString() == "ISO15765"

@@ -5,6 +5,7 @@ import os
 import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, Array, c_char, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
+from tkinter.constants import E
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -159,7 +160,128 @@ def getAPINames(rp121032_path = None) -> list[str]:
         return parser["RP1210Support"]["APIImplementations"].split(",")
     except Exception:
         return []
+
+class RP1210Protocol:
+    """
+    Stores information for an RP1210 protocol, e.g. info stored in ProtocolInformationXXX sections.
+
+    Use str() to get a pre-made string to put in a Protocol dropdown menu or info section.
+
+    - getDescription() (str)
+    - getSpeed() (list[str]) - stored as strings because it can contain "Auto"
+    - getString() (str)
+    - getParams() (str)
+    - getDevices() (list[int])
+    """
+    def __init__(self,  section : dict) -> None:
+        self.section = section
+
+    def __str__(self) -> str:
+        return self.getString() + " - " + self.getDescription()
+
+    def getDescription(self):
+        try:
+            return self.section["ProtocolDescription"]
+        except Exception:
+            return ""
+
+    def getSpeed(self):
+        try:
+            speeds = []
+            print(self.section["ProtocolSpeed"])
+            section_list = str(self.section["ProtocolSpeed"]).split(',')
+            for speed in section_list:
+                speeds.append(speed)
+            return speeds
+        except Exception:
+            return []
+
+    def getString(self):
+        try:
+            return self.section["ProtocolString"]
+        except Exception:
+            return ""
+
+    def getParams(self):
+        try:
+            return self.section["ProtocolParams"]
+        except Exception:
+            return ""
+
+    def getDevices(self):
+        try:
+            devices = []
+            section_list = str(self.section["Devices"]).split(',')
+            for device in section_list:
+                devices.append(int(device))
+            return devices
+        except Exception:
+            return []
+
+
+class RP1210Device:
+    """
+    Stores information for an RP1210 device, e.g. info stored in DeviceInformationXXX sections.
+
+    Use str() to get a pre-made string to put in Device dropdown menu.
+
+    - getID() (int)
+    - getDescription() (str)
+    - geteName() (str)
+    - getParams() (str)
+    - getMultiCANChannels() (int)
+    - getMultiJ1939Channels() (int)
+    """
+    def __init__(self,  section : dict) -> None:
+        self.section = section
+
+    def getID(self):
+        try:
+            return int(self.section["DeviceID"])
+        except Exception:
+            return -1
+
+    def getDescription(self):
+        try:
+            return self.section["DeviceDescription"]
+        except Exception:
+            return ""
+
+    def getName(self):
+        try:
+            return self.section["DeviceName"]
+        except Exception:
+            return ""
+
+    def getParams(self):
+        try:
+            return self.section["DeviceParams"]
+        except Exception:
+            return ""
     
+    def getMultiCANChannels(self):
+        try:
+            return int(self.section["MultiCANChannels"])
+        except Exception:
+            return 0
+
+    def getMultiJ1939Channels(self):
+        try:
+            return int(self.section["MultiJ1939Channels"])
+        except Exception:
+            return 0
+
+    def __str__(self):
+        ret_str = ""
+        if self.getID() == -1:
+            ret_str += "(Invalid Device)"
+        else:
+            ret_str += str(self.getID())
+        if self.getDescription() != "":
+            ret_str += " - " + self.getDescription()
+        return ret_str
+         
+
 class RP1210Interface(ConfigParser):
     """
     Reads & stores API information. Child of ConfigParser. Use RP121032Parser to get an
@@ -513,7 +635,7 @@ class RP1210Interface(ConfigParser):
         except (ValueError, KeyError):
             return False
 
-    def getDevice(self, deviceID : int):
+    def getDevice(self, deviceID : int) -> RP1210Device:
         """
         Returns RP1210Device object matching deviceID.
         
@@ -525,7 +647,7 @@ class RP1210Interface(ConfigParser):
         except Exception:
             return None
 
-    def getDevices(self):
+    def getDevices(self) -> int:
         """Returns list of DeviceIDs described in .ini file."""
         try:
             devices = []
@@ -535,19 +657,48 @@ class RP1210Interface(ConfigParser):
         except Exception:
             return []
 
-    def getProtocol(self, protocolID : int):
+    def getProtocol(self, protocol = "J1939") -> RP1210Protocol:
         """
-        Returns RP1210Protocol object matching protocolID.
+        Returns RP1210Protocol object matching protocol arg.
+
+        protocol can be a string or an int.
+        - int will try to find a match in ProtocolInformation sections.
+        - str will try to find a match in 
 
         Returns None if the protocol isn't found.
         """
         try:
-            section = self["ProtocolInformation" + str(protocolID)]
-            return RP1210Protocol(section)
+            if isinstance(protocol, int):
+                section = self["ProtocolInformation" + str(protocol)]
+                return RP1210Protocol(section)
+            if isinstance(protocol, str):
+                if not protocol in self.getProtocols():
+                    return None
+                for pid in self.getProtocolIDs():
+                    prot = self.getProtocol(pid)
+                    if prot.getString() == protocol:
+                        return prot
         except Exception:
             return None
 
-    def getProtocols(self):
+    def getProtocols(self) -> list[str]:
+        """
+        Returns a list of protocol Strings.
+
+        Returns [] if no protocols are found.
+        """
+        try:
+            ids = self.getProtocolIDs()
+            if not ids:
+                return []
+            strings = []
+            for id in ids:
+                strings.append(self.getProtocol(id).getString())
+            return strings
+        except Exception:
+            return []
+
+    def getProtocolIDs(self) -> list[int]:
         """Returns list of ProtocolIDs described in .ini file."""
         try:
             protocols = []
@@ -567,7 +718,7 @@ class RP1210Interface(ConfigParser):
         except (configparser.Error, IOError):
             self.api_valid = False
 
-    def getPath(self):
+    def getPath(self) -> str:
         """Returns absolute path to API config file."""
         return os.path.join(os.environ["WINDIR"], self.api_name + ".ini")
 
@@ -676,7 +827,7 @@ class RP1210API:
         """
         return self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
 
-    def ReadMessage(self, ClientID : int, RxBuffer : Array[c_char], BufferSize = 0, 
+    def ReadMessage(self, ClientID : int, RxBuffer : bytes, BufferSize = 0, 
                         BlockOnRead = 0) -> int:
         """
         Rx function.
@@ -700,7 +851,7 @@ class RP1210API:
             ret_val = (ret_val - 0x10000)
         return ret_val
 
-    def ReadDirect(self, ClientID : int, BufferSize = 512, BlockOnRead = 0) -> Array[c_char]:
+    def ReadDirect(self, ClientID : int, BufferSize = 512, BlockOnRead = 0) -> bytes:
         """
         Calls ReadMessage, but generates and returns its own RxBuffer as an array of c_chars.
         - ClientID = clientID you got from ClientConnect
@@ -717,10 +868,10 @@ class RP1210API:
             return create_string_buffer(0)
         return create_string_buffer(RxBuffer[:size]) # this is kind of gross
 
-    def ReadVersion(self, DLLMajorVersionBuffer : Array[c_char], 
-                        DLLMinorVersionBuffer : Array[c_char],
-                        APIMajorVersionBuffer : Array[c_char],
-                        APIMinorVersionBuffer : Array[c_char]) -> None:
+    def ReadVersion(self, DLLMajorVersionBuffer : bytes, 
+                        DLLMinorVersionBuffer : bytes,
+                        APIMajorVersionBuffer : bytes,
+                        APIMinorVersionBuffer : bytes) -> None:
         """
         RP1210_ReadVersion function in all its glory. Provide it with four buffers via
         create_string_buffer(16). This function will overwrite each buffer with whatever it reads
@@ -751,8 +902,8 @@ class RP1210API:
         api_version = str(APIMajorVersion.value + b"." + APIMinorVersion.value, "utf-8")
         return (dll_version, api_version)
 
-    def ReadDetailedVersion(self, ClientID : int, APIVersionBuffer : Array[c_char], 
-                            DLLVersionBuffer : Array[c_char], FWVersionBuffer : Array[c_char]):
+    def ReadDetailedVersion(self, ClientID : int, APIVersionBuffer : bytes, 
+                            DLLVersionBuffer : bytes, FWVersionBuffer : bytes):
         """
         RP1210_ReadDetailedVersion function in all its glory. Provide it with three buffers via
         create_string_buffer(17).
@@ -810,7 +961,7 @@ class RP1210API:
         else:
             return translateErrorCode(ret_code)
 
-    def GetHardwareStatus(self, ClientID : int, ClientInfoBuffer : Array[c_char], BufferSize : int) -> int:
+    def GetHardwareStatus(self, ClientID : int, ClientInfoBuffer : bytes, BufferSize : int) -> int:
         """
         Calls GetHardwareStatus and places the result in ClientInfoBuffer. Returns an error code.
 
@@ -823,7 +974,7 @@ class RP1210API:
         return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0)
 
 
-    def GetHardwareStatusDirect(self, ClientID : int, InfoSize = 64) -> Array[c_char]:
+    def GetHardwareStatusDirect(self, ClientID : int, InfoSize = 64) -> bytes:
         """
         Calls GetHardwareStatus and returns the result directly.
 
@@ -882,123 +1033,3 @@ class RP1210API:
     def __is_valid_clientid(self, clientID) -> bool:
         return clientID in RP1210_ERRORS or (0 <= clientID < 128)
 
-class RP1210Protocol:
-    """
-    Stores information for an RP1210 protocol, e.g. info stored in ProtocolInformationXXX sections.
-
-    Use str() to get a pre-made string to put in a Protocol dropdown menu or info section.
-
-    - getDescription() (str)
-    - getSpeed() (list[str]) - stored as strings because it can contain "Auto"
-    - getString() (str)
-    - getParams() (str)
-    - getDevices() (list[int])
-    """
-    def __init__(self,  section : dict) -> None:
-        self.section = section
-
-    def __str__(self) -> str:
-        return self.getString() + " - " + self.getDescription()
-
-    def getDescription(self):
-        try:
-            return self.section["ProtocolDescription"]
-        except Exception:
-            return ""
-
-    def getSpeed(self):
-        try:
-            speeds = []
-            print(self.section["ProtocolSpeed"])
-            section_list = str(self.section["ProtocolSpeed"]).split(',')
-            for speed in section_list:
-                speeds.append(speed)
-            return speeds
-        except Exception:
-            return []
-
-    def getString(self):
-        try:
-            return self.section["ProtocolString"]
-        except Exception:
-            return ""
-
-    def getParams(self):
-        try:
-            return self.section["ProtocolParams"]
-        except Exception:
-            return ""
-
-    def getDevices(self):
-        try:
-            devices = []
-            section_list = str(self.section["Devices"]).split(',')
-            for device in section_list:
-                devices.append(int(device))
-            return devices
-        except Exception:
-            return []
-
-
-class RP1210Device:
-    """
-    Stores information for an RP1210 device, e.g. info stored in DeviceInformationXXX sections.
-
-    Use str() to get a pre-made string to put in Device dropdown menu.
-
-    - getID() (int)
-    - getDescription() (str)
-    - geteName() (str)
-    - getParams() (str)
-    - getMultiCANChannels() (int)
-    - getMultiJ1939Channels() (int)
-    """
-    def __init__(self,  section : dict) -> None:
-        self.section = section
-
-    def getID(self):
-        try:
-            return int(self.section["DeviceID"])
-        except Exception:
-            return -1
-
-    def getDescription(self):
-        try:
-            return self.section["DeviceDescription"]
-        except Exception:
-            return ""
-
-    def getName(self):
-        try:
-            return self.section["DeviceName"]
-        except Exception:
-            return ""
-
-    def getParams(self):
-        try:
-            return self.section["DeviceParams"]
-        except Exception:
-            return ""
-    
-    def getMultiCANChannels(self):
-        try:
-            return int(self.section["MultiCANChannels"])
-        except Exception:
-            return 0
-
-    def getMultiJ1939Channels(self):
-        try:
-            return int(self.section["MultiJ1939Channels"])
-        except Exception:
-            return 0
-
-    def __str__(self):
-        ret_str = ""
-        if self.getID() == -1:
-            ret_str += "(Invalid Device)"
-        else:
-            ret_str += str(self.getID())
-        if self.getDescription() != "":
-            ret_str += " - " + self.getDescription()
-        return ret_str
-         

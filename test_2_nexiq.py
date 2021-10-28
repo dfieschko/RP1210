@@ -40,7 +40,7 @@ def test_RP1210Interface():
     assert rp1210.getCANFormatsSupported() == [4, 5]
     assert rp1210.getJ1939FormatsSupported() == [1, 2]
     assert rp1210.getDevices() == [1, 2, 3]
-    assert rp1210.getProtocols() == [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27]
+    assert rp1210.getProtocolIDs() == [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27]
 
 def test_Devices():
     """
@@ -87,8 +87,14 @@ def test_Protocols_CAN_J1939():
     """
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Interface(API_NAME)
-    protocolIDs = rp1210.getProtocols()
+    protocolIDs = rp1210.getProtocolIDs()
     assert protocolIDs == [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27]
+    assert rp1210.getProtocols() == ["J1939", "CAN", "ISO15765", "J2284", "J1708", "ALDL", "ALDL9600",
+                                    "OBDII", "KW2000", "ISO9141", "J1850PWM", "J1850VPW", "J1850", 
+                                    "ATEC160BAUD", "ISO14230", "J1850_416k", "J1850_104k", "HINOCLUSTER", 
+                                    "IESCAN", "HUMMER_ALDL", "NULL", "KWP2000", "HUMMER_ALDL_ALT", "SW_CAN", 
+                                    "SW_ISO15765", "FT_CAN", "FT_ISO15765"]
+    assert rp1210.getProtocol("J1939").getString() == "J1939"
     protocol1 = rp1210.getProtocol(1)
     assert protocol1.getDescription() == "SAE J1939 Protocol"
     assert protocol1.getString() == "J1939"

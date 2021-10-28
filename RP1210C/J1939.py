@@ -1,4 +1,10 @@
 """
+J1939 functions for use with RP1210 APIs. Note that this implementation is RP1210-specific - i.e.
+if you try to generate J1939 messages to transmit directly onto a CANbus, these functions will fail!
+
+While a dict of J1939 PGNs would be convenient, they are not provided here because the list is a
+copyright of SAE.
+
 J1939 functions:
 - toJ1939Message
 - getJ1939ProtocolString
@@ -11,7 +17,7 @@ J1939 classes:
 from RP1210C import sanitize_msg_param
 
 
-def toJ1939Message(pgn, priority, source, destination, data : bytes, sanitize = True) -> bytes:
+def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) -> bytes:
     """
     Converts args to J1939 message suitable for RP1210_SendMessage function.
 
@@ -41,6 +47,19 @@ def toJ1939Message(pgn, priority, source, destination, data : bytes, sanitize = 
         data = sanitize_msg_param(data)
     return pgn + priority + source + destination + data
 
+def toJ1939Request(pgn_requested, source, destination = 255, priority = 6):
+    """
+    Formats a J1939 request message. This puts out a request for the specified PGN, and will prompt
+    other devices on the network to respond.
+
+    - pgn_requested: the parameter group you're requesting
+    - source: the source address, e.g. your address on the CANBus
+    - destination: 255 = global request; enter a different number to request from a specific address
+    - priority: priority of request; default is 6
+    """
+    pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
+    return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
+
 def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = -1,
                         SampleLocation = 95, SJW = 1,
                         PROP_SEG = 1, PHASE_SEG1 = 2, PHASE_SEG2 = 1,
@@ -65,17 +84,17 @@ def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = -1,
         chan_arg = ""
 
     if protocol == 1:
-        return f"J1939:Baud={str(Baud)}" + chan_arg
+        return bytes(f"J1939:Baud={str(Baud)}" + chan_arg, 'utf-8')
     elif protocol == 2:
-        return "J1939" + chan_arg
+        return bytes("J1939" + chan_arg, 'utf-8')
     elif protocol == 3:
-        return f"J1939:Baud={str(Baud)},SampleLocation={str(SampleLocation)},SJW={str(SJW)},IDSize=29" + chan_arg
+        return bytes(f"J1939:Baud={str(Baud)},SampleLocation={str(SampleLocation)},SJW={str(SJW)},IDSize=29" + chan_arg, 'utf-8')
     elif protocol == 4:
-        return f"J1939:Baud={str(Baud)},PROP_SEG={str(PROP_SEG)},PHASE_SEG1={str(PHASE_SEG1)},PHASE_SEG2={str(PHASE_SEG2)},SJW={str(SJW)},IDSize=29" + chan_arg
+        return bytes(f"J1939:Baud={str(Baud)},PROP_SEG={str(PROP_SEG)},PHASE_SEG1={str(PHASE_SEG1)},PHASE_SEG2={str(PHASE_SEG2)},SJW={str(SJW)},IDSize=29" + chan_arg, 'utf-8')
     elif protocol == 5:
-        return f"J1939:Baud={str(Baud)},TSEG1={str(TSEG1)},TSEG2={str(TSEG2)},SampleTimes={str(SampleTimes)},SJW={str(SJW)},IDSize=29" + chan_arg
+        return bytes(f"J1939:Baud={str(Baud)},TSEG1={str(TSEG1)},TSEG2={str(TSEG2)},SampleTimes={str(SampleTimes)},SJW={str(SJW)},IDSize=29" + chan_arg, 'utf-8')
     else:
-        return "J1939" # default to protocol format 2, default channel
+        return b"J1939" # default to protocol format 2, default channel
 
 def getJ1939ProtocolDescription(protocol : int) -> str:
     """Returns a description of the protocol selected with protocol arg."""

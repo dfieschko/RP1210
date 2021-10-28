@@ -1,23 +1,23 @@
 from RP1210C import J1939, sanitize_msg_param
 
 def test_format_default():
-    assert J1939.getJ1939ProtocolString() == "J1939:Baud=Auto"
+    assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"
 
 def test_format1():
-    assert J1939.getJ1939ProtocolString(protocol=1, Baud=250) == "J1939:Baud=250"
-    assert J1939.getJ1939ProtocolString(protocol=1, Baud="Auto") == "J1939:Baud=Auto"
-    assert J1939.getJ1939ProtocolString(protocol=1, Baud=666, Channel=3) == "J1939:Baud=666,Channel=3"
-    assert J1939.getJ1939ProtocolString(protocol=1, Baud="Auto", Channel=3) == "J1939:Baud=Auto,Channel=3"
-    assert J1939.getJ1939ProtocolString(protocol=1) == "J1939:Baud=Auto"
-    assert J1939.getJ1939ProtocolString(protocol=1, Channel=2) == "J1939:Baud=Auto,Channel=2"
+    assert J1939.getJ1939ProtocolString(protocol=1, Baud=250) == b"J1939:Baud=250"
+    assert J1939.getJ1939ProtocolString(protocol=1, Baud="Auto") == b"J1939:Baud=Auto"
+    assert J1939.getJ1939ProtocolString(protocol=1, Baud=666, Channel=3) == b"J1939:Baud=666,Channel=3"
+    assert J1939.getJ1939ProtocolString(protocol=1, Baud="Auto", Channel=3) == b"J1939:Baud=Auto,Channel=3"
+    assert J1939.getJ1939ProtocolString(protocol=1) == b"J1939:Baud=Auto"
+    assert J1939.getJ1939ProtocolString(protocol=1, Channel=2) == b"J1939:Baud=Auto,Channel=2"
     assert J1939.getJ1939ProtocolString(protocol=1, Baud=250, SampleLocation=23, SJW=1, 
                                     PROP_SEG=4, PHASE_SEG1=4, PHASE_SEG2=3, TSEG1=53, 
-                                    TSEG2=43, SampleTimes=5) == "J1939:Baud=250"
+                                    TSEG2=43, SampleTimes=5) == b"J1939:Baud=250"
 
 def test_format2():
-    assert J1939.getJ1939ProtocolString(protocol=2) == "J1939"
-    assert J1939.getJ1939ProtocolString(protocol=2, Channel=4) == "J1939,Channel=4"
-    assert J1939.getJ1939ProtocolString(protocol=2, Baud=500) == "J1939"
+    assert J1939.getJ1939ProtocolString(protocol=2) == b"J1939"
+    assert J1939.getJ1939ProtocolString(protocol=2, Channel=4) == b"J1939,Channel=4"
+    assert J1939.getJ1939ProtocolString(protocol=2, Baud=500) == b"J1939"
 
 # I don't really care about protocol IDs 3 through 5 at the moment
 
@@ -52,9 +52,9 @@ def test_toJ1939Message():
     pri = "0"
     sa = "22"
     da = 0x1E
-    data = 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF
+    data = 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF0000
     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
-    assert message == b'\xCC\xAC\x0A\x00\x16\x1E\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF'
+    assert message == b'\xCC\xAC\x0A\x00\x16\x1E\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\x00\x00'
 
 def test_J1939MessageParser():
     """Test J1939MessageParser class"""

@@ -110,13 +110,14 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getJ1939FormatsSupported() == []
     assert rp1210.getDevices() == []
     assert rp1210.getProtocols() == []
+    assert rp1210.getProtocolIDs() == []
 
 def test_InvalidAPIName_Devices_Protocols():
     api_name = "CHUNGLEBUNGUS"
     assert api_name not in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Interface(api_name)
     assert rp1210.getDevices() == []
-    assert rp1210.getProtocols() == []
+    assert rp1210.getProtocolIDs() == []
     assert rp1210.getProtocol(3) == None
     assert rp1210.getDevice(3) == None
 
