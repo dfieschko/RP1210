@@ -763,6 +763,7 @@ class RP1210API:
             return dll
         except Exception: # RIP
             self.api_valid = False
+            self.rp1210c = False
             return None
 
     def isValid(self) -> bool:
