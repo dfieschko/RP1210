@@ -5,9 +5,14 @@ a device.
 This is done on the DLA 2.0 adapter because it has the ability to be powered from
 the PC's USB port.
 """
-from RP1210C import J1939, RP1210
+from RP1210C import J1939, RP1210, sanitize_msg_param
 from tkinter import messagebox
 import time
+
+def disconnect():
+    api = RP1210.RP1210API(API_NAME)
+    for clientID in range(0, 15):
+        api.ClientDisconnect(clientID)
 
 API_NAME = "DLAUSB32"
 
@@ -63,8 +68,7 @@ def test_ClientConnect_Disconnect_j1939_speeds():
     dla2 = RP1210.RP1210Interface(API_NAME)
     deviceID = dla2.getDevices()[0]
     # make sure we're disconnected
-    for x in range (0, 15):
-        dla2.api.ClientDisconnect(x)
+    disconnect()
     # get valid baud rates
     speeds = dla2.getProtocol("J1939").getSpeed()
     assert speeds == ["250", "500", "666", "1000", "Auto"]
@@ -76,9 +80,56 @@ def test_ClientConnect_Disconnect_j1939_speeds():
         clientID = dla2.api.ClientConnect(deviceID, protocol)
         assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
         assert clientID in [0, 1]
-        time.sleep(0.05)
         # disconnect
         disconnect_code = dla2.api.ClientDisconnect(clientID)
         assert RP1210.translateErrorCode(disconnect_code) == "NO_ERRORS"
-        time.sleep(0.05)
 
+def test_SendCommand_claim_j1939_address():
+    """Test SendCommand function w/ command "Protect_J1939_Address" (19)"""
+    api = RP1210.RP1210API(API_NAME)
+    deviceID = 100
+    command = 19
+    address = sanitize_msg_param(10)
+    cmd_length = 1
+    # make sure we're disconnected
+    disconnect()
+    # connect to adapter
+    clientID = api.ClientConnect(deviceID, b"J1939:Baud=250")
+    assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
+
+def test_SendCommand_claim_j1939_address_nosize():
+    """Test SendCommand function w/ command "Protect_J1939_Address" (19)"""
+    api = RP1210.RP1210API(API_NAME)
+    deviceID = 100
+    command = 19
+    address = sanitize_msg_param(10)
+
+def test_SendMessage_no_address_claimed():
+    """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
+    api = RP1210.RP1210API(API_NAME)
+    deviceID = 100
+    protocol = J1939.getJ1939ProtocolString(1, "500")
+    data = b"This is a test message!"
+    message = J1939.toJ1939Message(1234, 4, 10, 255, data)
+    # connect
+    clientID = api.ClientConnect(deviceID, protocol)
+    assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
+    # send message w/o claiming address
+    ret_val = api.SendMessage(clientID, message)
+    assert RP1210.translateErrorCode(ret_val) == "ERR_ADDRESS_NEVER_CLAIMED"
+    
+def test_SendMessage():
+    """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
+    api = RP1210.RP1210API(API_NAME)
+    deviceID = 100
+    protocol = J1939.getJ1939ProtocolString(1, "500")
+    data = b"This is a test message!"
+    message = J1939.toJ1939Message(1234, 4, 10, 255, data)
+    # connect
+    clientID = api.ClientConnect(deviceID, protocol)
+    assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
+    # claim address 10
+    # TODO
+    # send message
+    ret_val = api.SendMessage(clientID, message)
+    assert RP1210.translateErrorCode(ret_val) == "ERR_ADDRESS_NEVER_CLAIMED"

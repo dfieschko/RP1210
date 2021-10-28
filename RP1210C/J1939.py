@@ -15,6 +15,7 @@ J1939 classes:
 """
 
 from RP1210C import sanitize_msg_param
+from RP1210C.RP1210 import RP1210API
 
 
 def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) -> bytes:
@@ -166,3 +167,31 @@ class J1939MessageParser():
         """Returns message data (0 - 1785 bytes) as bytes."""
         loc = 10 + self.echo_offset
         return self.msg[loc:]
+
+# class J1939API(RP1210API):
+#     """Child of RP1210API w/ J1939-specific functions."""
+
+class J1939Commands:
+    """
+    Generate ClientCommand inputs for RP1210_SendCommand.
+    """
+    def claimAddress(self, address_to_claim, network_mgt_name, blocking = True):
+        """
+        This command claims an address on the J1939 bus.
+        - address_to_claim (1 byte) - 8-bit address to claim on the J1939 bus.
+        - network_mgt_name (8 bytes) - 8-byte name of client on network (this is you!)
+            - See J1939 network management standard!
+            - Lowest name takes priority if two devices try to claim the same address
+        - blocking (bool) - True will block until done, False will return before completion
+
+        This function automatically sanitizes str, int, and bytes inputs. str are parsed as 10-bit
+        decimals! Use byte strings (b"message") if you want to pass utf-8 characters.
+        """
+        addr = sanitize_msg_param(address_to_claim, 1)
+        name = sanitize_msg_param(network_mgt_name, 8)
+        if blocking:
+            status = sanitize_msg_param(0, 1) # BLOCK_UNTIL_DONE
+        else:
+            status = sanitize_msg_param(2, 1) # RETURN_BEFORE_COMPLETION
+        return addr + name + status
+        

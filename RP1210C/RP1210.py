@@ -68,7 +68,8 @@ RP1210_ERRORS = {
     458: "ERR_IS015765_BAUD_SET_NONSTANDARD",
     600: "ERR_INVALID_IOCTL_ID",
     601: "ERR_NULL_PARAMETER",
-    602: "ERR_HARDWARE_NOT_SUPPORTED"}
+    602: "ERR_HARDWARE_NOT_SUPPORTED",
+    603: "ERR_CANNOT_DETERMINE_BAUD_RATE"}
 """RP1210 error codes. Use this to translate ClientConnect output and other error codes."""
 
 RP1210_COMMANDS = {
@@ -298,8 +299,8 @@ class RP1210Interface(ConfigParser):
     """
     def __init__(self, api_name : str) -> None:
         super().__init__()
-        self.api_name = api_name
-        self.api_valid = True
+        self._api_name = api_name
+        self._api_valid = True
         self.api = RP1210API(api_name)
         self.populate()
 
@@ -311,7 +312,7 @@ class RP1210Interface(ConfigParser):
 
         Appends " - (drivers invalid)" if drivers failed to load.
         """
-        if self.api_valid:
+        if self._api_valid:
             err_str = ""
         else:
             err_str = " - (drivers invalid)"
@@ -333,11 +334,11 @@ class RP1210Interface(ConfigParser):
         This is a very basic check - a return value of True does not absolutely guarantee
         that the driver config file is valid and correct!
         """
-        return self.api_valid
+        return self._api_valid
 
     def getAPIName(self) -> str:
         """Returns API name (i.e. the name of the .ini and .dll files)"""
-        return self.api_name
+        return self._api_name
 
     def getName(self) -> str:
         """
@@ -715,13 +716,13 @@ class RP1210Interface(ConfigParser):
                 raise IOError
             self.read(path)
             if not self.has_section("VendorInformation"):
-                self.api_valid = False
+                self._api_valid = False
         except (configparser.Error, IOError):
-            self.api_valid = False
+            self._api_valid = False
 
     def getPath(self) -> str:
         """Returns absolute path to API config file."""
-        return os.path.join(os.environ["WINDIR"], self.api_name + ".ini")
+        return os.path.join(os.environ["WINDIR"], self._api_name + ".ini")
 
 class RP1210API:
     """
@@ -730,10 +731,10 @@ class RP1210API:
     See function docstrings for details on each function.
     """
     def __init__(self, api_name : str) -> None:
-        self.api_valid = False
-        self.api_name = api_name
+        self._api_valid = False
+        self._api_name = api_name
         self.dll = None
-        self.rp1210c = True
+        self._rp1210c = True
 
     def getDLL(self) -> CDLL:
         """
@@ -753,7 +754,7 @@ class RP1210API:
         """
         try:
             try:
-                path = self.api_name + ".dll"
+                path = self._api_name + ".dll"
                 dll = cdll.LoadLibrary(path)
             except WindowsError:
                 # Try "DLL installed in wrong directory" band-aid
@@ -762,8 +763,7 @@ class RP1210API:
             self.setDLL(dll)
             return dll
         except Exception: # RIP
-            self.api_valid = False
-            self.rp1210c = False
+            self._api_valid = False
             return None
 
     def isValid(self) -> bool:
@@ -775,7 +775,7 @@ class RP1210API:
         True = DLL loaded, False = DLL failed to load
         """
         self.getDLL()
-        return self.api_valid
+        return self._api_valid
 
     def conformsToRP1210C(self) -> bool:
         """
@@ -788,7 +788,7 @@ class RP1210API:
         self.getDLL()
         if not self.isValid():
             return False
-        return self.rp1210c
+        return self._rp1210c
 
     def setDLL(self, dll : CDLL):
         """Sets the CDLL used to call RP1210 API functions."""
@@ -796,11 +796,11 @@ class RP1210API:
             self.dll = dll
             if self.dll: # check it's not None
                 self.__init_functions()
-                self.api_valid = True
+                self._api_valid = True
             else:
-                self.api_valid = False
+                self._api_valid = False
         except OSError:
-            self.api_valid = False
+            self._api_valid = False
 
     def ClientConnect(self, DeviceID : int, Protocol = b"J1939:Baud=Auto", TxBufferSize = 0, 
                             RcvBufferSize = 0, isAppPacketizingincomingMsgs = 0) -> int:
@@ -830,19 +830,22 @@ class RP1210API:
         """
         return self.getDLL().RP1210_ClientDisconnect(ClientID)
 
-    def SendMessage(self, ClientID : int, ClientMessage : str, MessageSize : int) -> int:
+    def SendMessage(self, ClientID : int, ClientMessage : str, MessageSize = 0) -> int:
         """
         Send a message to the databus your adapter is connected to.
         - ClientID = clientID you got from ClientConnect
         - ClientMessage = message you want to send
-        - MessageSize = message size in bytes (including identifier, checksum, etc)
+        - MessageSize = message size in bytes (including qualifier bytes like timestamp)
+            - Will default to len(ClientMessage) if MessageSize = 0
         
-        Use a Message class provided with this package (e.g. J1939Message) to generate arguments
-        fpchClientMessage and nMessageSize.
+        Use a Message class provided with this package (e.g. J1939Message) to generate the
+        message. Or just do it yourself, I'm not the boss of you.
 
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
         """
+        if MessageSize == 0:
+            MessageSize = len(ClientMessage)
         return self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
 
     def ReadMessage(self, ClientID : int, RxBuffer : bytes, BufferSize = 0, 
@@ -937,7 +940,7 @@ class RP1210API:
         this function will return 128 (ERR_DLL_NOT_INITIALIZED).
         """
         self.getDLL()   # set rp1210c flag
-        if not self.rp1210c:
+        if not self._rp1210c:
             return 128
         return self.getDLL().RP1210_ReadDetailedVersion(ClientID, APIVersionBuffer, 
                                                         DLLVersionBuffer, FWVersionBuffer)
@@ -955,7 +958,7 @@ class RP1210API:
         this function will return empty strings.
         """
         self.getDLL()   # set rp1210c flag
-        if not self.rp1210c:
+        if not self._rp1210c:
             return ("", "", "")
         APIVersionInfo = create_string_buffer(17)
         DLLVersionInfo = create_string_buffer(17)
@@ -1006,9 +1009,16 @@ class RP1210API:
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
         """
         Calls RP1210_SendCommand.
+
+        MessageSize will automatically be set to len(ClientCommand) if it is left 0.
         
-        You really want the RP1210C documentation for this one.
+        You really want to read the RP1210C documentation for this one.
         """
+        if MessageSize == 0:
+            if ClientCommand == b"":
+                MessageSize = 0
+            else:
+                MessageSize = len(ClientCommand)
         return self.getDLL().RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize)
 
     def __init_functions(self):
@@ -1027,14 +1037,14 @@ class RP1210API:
             self.dll.RP1210_GetLastErrorMsg.argtypes = [c_short, POINTER(c_int32), c_char_p, c_short]
             self.dll.RP1210_Ioctl.argtypes = [c_short, c_long, c_void_p, c_void_p]
         except Exception: # RP1210C functions not supported
-            self.rp1210c = False
+            self._rp1210c = False
 
     def __get_dll_path_aux(self) -> str:
         """
         Some adapter vendors (looking at you, Actia) install their drivers in the wrong directory.
         This function returns the dll path in that directory.
         """
-        return os.path.join(os.environ["WINDIR"], self.api_name + ".dll")
+        return os.path.join(os.environ["WINDIR"], self._api_name + ".dll")
 
     def __dla2_clientid_fix(self, clientID) -> int:
         """
