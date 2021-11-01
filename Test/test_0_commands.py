@@ -4,7 +4,7 @@ Tests command strings for basic correctness, following the RP1210C standard.
 Doesn't test commands on an adapter.
 """
 
-from RP1210C import Commands
+from RP1210C import Commands, sanitize_msg_param
 
 def test_reset():
     assert Commands.reset() == b''
@@ -57,3 +57,12 @@ def test_setCANFilters():
     assert cmd == b'\x00\xFF\x00\xFF\x0F\xFF\x00\xFF\x0F'
     cmd = Commands.setCANFilters(type_ext, mask, header)
     assert cmd == b'\x01\xFF\x00\xFF\x0F\xFF\x00\xFF\x0F'
+
+def test_generic_command():
+    commands = [0x00FF0F00FF0F, 0xDEADBEEF, b'ajsdhgkjfshgh', "2143251345325"]
+    for command in commands:
+        assert Commands.generic(command) == sanitize_msg_param(command)
+
+def test_echoTx():
+    assert Commands.echoTx(False) == b'\x00'
+    assert Commands.echoTx(True) == b'\x01'

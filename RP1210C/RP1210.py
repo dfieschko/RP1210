@@ -5,7 +5,6 @@ import os
 import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
-from tkinter.constants import E
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",

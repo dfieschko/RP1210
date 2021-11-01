@@ -5,6 +5,50 @@ Each function in this file returns a value that can be used for ClientCommand.
 """
 from RP1210C import sanitize_msg_param
 
+RP1210_COMMANDS = {
+    0 : "Reset_Device",
+    3 : "Set_All_Filters_States_to_Pass",
+    4 : "Set_Message_Filtering_For_J1939",
+    5 : "Set_Message_Filtering_For_CAN",
+    7 : "Set_Message_Filtering_For_J1708",
+    8 : "Set_Message_Filtering_For_J1850",
+    9 : "Set_Message_Filtering_For_ISO15765",
+    14 : "Generic_Driver_Command",
+    15 : "Set_J1708_Mode",
+    16 : "Echo_Transmitted_Messages",
+    17 : "Set_All_Filters_States_to_Discard",
+    18 : "Set_Message_Receive",
+    19 : "Protect_J1939_Address",
+    20 : "Set_Broadcast_For_J1708",
+    21 : "Set_Broadcast_For_CAN",
+    22 : "Set_Broadcast_For_J1939",
+    23 : "Set_Broadcast_For_J1850",
+    24 : "Set_J1708_Filter_Type",
+    25 : "Set_J1939_Filter_Type",
+    26 : "Set_CAN_Filter_Type",
+    27 : "Set_J1939_Interpacket_Time",
+    28 : "SetMaxErrorMsgSize",
+    29 : "Disallow_Further_Connections",
+    30 : "Set_J1850_Filter_Type",
+    31 : "Release_J1939_Address",
+    32 : "Set_ISO15765_Filter_Type",
+    33 : "Set_Broadcast_For_ISO15765",
+    34 : "Set_ISO15765_Flow_Control",
+    35 : "Clear_ISO15765_Flow_Control",
+    37 : "Set_J1939_Baud",
+    38 : "Set_ISO15765_Baud",
+    215 : "Set_BlockTimeout",
+    305 : "Set_J1708_Baud",
+    39 : "Flush_Tx_Rx_Buffers",
+    41 : "Set_Broadcast_For_KWP2000",
+    42 : "Set_Broadcast_For_ISO9141",
+    45 : "Get_Protocol_Connection_Speed",
+    46 : "Set_ISO9141KWP2000_Mode",
+    47 : "Set_CAN_Baud",
+    48 : "Get_Wireless_State"}
+"""Mnemonics for RP1210_SendCommand commands. Follows ordering of table in section 21.4."""
+
+
 J1939_FILTERS = {
     "PGN" : 0x01,
     "SOURCE" : 0x04,
@@ -40,6 +84,17 @@ A dict of CAN type codes, as defined in the RP1210C standard.
 - "STANDARD_CAN_IS015765_EXTENDED" : 0x02
 - "EXTENDED_CAN_IS015765_EXTENDED" : 0x03
 - "STANDARD_MIXED_CAN_IS015765" : 0x04
+"""
+
+ECHO_MODES = {
+    "ECHO_OFF" : 0x00,
+    "ECHO_ON" : 0x01
+}
+"""
+Dict for echo modes, used in commmand ECHO_TRANSMITTED_MESSAGES (echoTx())
+
+- ECHO_OFF : 0x00
+- ECHO_ON : 0x01
 """
 
 def reset():
@@ -104,17 +159,29 @@ def setCANFilters(can_type, mask, header) -> bytes:
     ret_val += sanitize_msg_param(header, 4)
     return ret_val
 
-def generic():
+def generic(ClientCommand, num_bytes = 0, byteorder = 'big') -> bytes:
     """
-    Generic Driver Command (14) 
-    """
-    #TODO
+    Generic Driver Command (14)
 
-def echoTx():
+    Args:
+    - ClientCommand - the bytes/buffer to be sent to the drivers.
+    - size = size of ClientCommand. Leave 0 to automatically size to len(ClientCommand).
+    - byteorder = big endian ('big') or little endian ('little')
+    """
+    return sanitize_msg_param(ClientCommand, num_bytes, byteorder)
+
+def echoTx(echo = True):
     """
     Set Echo Transmitted Messages (16)
+
+    Args:
+    - Echo on/off (bool) - False for no echo, True for echo.
     """
-    #TODO
+    if echo:
+        msg = ECHO_MODES["ECHO_ON"]
+    else:
+        msg = ECHO_MODES["ECHO_OFF"]
+    return sanitize_msg_param(msg, 1)
 
 def setAllFiltersToDiscard():
     """
