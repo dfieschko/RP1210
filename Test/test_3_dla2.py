@@ -118,6 +118,45 @@ def test_SendCommand_claim_j1939_address():
     assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
     api.ClientDisconnect(clientID)
 
+def test_SendCommand_claim_and_release_j1939_address():
+    api = RP1210.RP1210API(API_NAME)
+    deviceID = 100
+    command_id = 19
+    address = 10
+    name = 24
+    command_params = Commands.protectJ1939Address(address, name)
+    assert len(command_params) == 10
+    # make sure we're disconnected
+    disconnect()
+    # connect to adapter
+    clientID = api.ClientConnect(deviceID, b"J1939:Baud=500")
+    assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
+    # send claim command
+    ret_val = api.SendCommand(command_id, clientID, command_params)
+    assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
+    # release command
+    command_params = Commands.releaseJ1939Address(address)
+    command_id = Commands.COMMAND_IDS["RELEASE_J1939_ADDRESS"]
+    ret_val = api.SendCommand(command_id, clientID, command_params)
+    assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
+    api.ClientDisconnect(clientID)
+
+def test_SendCommand_release_unclaimed_j1939_address():
+    api = RP1210.RP1210API(API_NAME)
+    deviceID = 100
+    address = 10
+    # make sure we're disconnected
+    disconnect()
+    # connect to adapter
+    clientID = api.ClientConnect(deviceID, b"J1939:Baud=500")
+    assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
+    # release command
+    command_params = Commands.releaseJ1939Address(address)
+    command_id = Commands.COMMAND_IDS["RELEASE_J1939_ADDRESS"]
+    ret_val = api.SendCommand(command_id, clientID, command_params)
+    assert RP1210.translateErrorCode(ret_val) == "ERR_ADDRESS_RELEASE_FAILED"
+    api.ClientDisconnect(clientID)
+
 def test_SendMessage():
     """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
     disconnect()

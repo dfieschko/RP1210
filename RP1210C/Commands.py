@@ -5,47 +5,47 @@ Each function in this file returns a value that can be used for ClientCommand.
 """
 from RP1210C import sanitize_msg_param
 
-RP1210_COMMANDS = {
-    0 : "Reset_Device",
-    3 : "Set_All_Filters_States_to_Pass",
-    4 : "Set_Message_Filtering_For_J1939",
-    5 : "Set_Message_Filtering_For_CAN",
-    7 : "Set_Message_Filtering_For_J1708",
-    8 : "Set_Message_Filtering_For_J1850",
-    9 : "Set_Message_Filtering_For_ISO15765",
-    14 : "Generic_Driver_Command",
-    15 : "Set_J1708_Mode",
-    16 : "Echo_Transmitted_Messages",
-    17 : "Set_All_Filters_States_to_Discard",
-    18 : "Set_Message_Receive",
-    19 : "Protect_J1939_Address",
-    20 : "Set_Broadcast_For_J1708",
-    21 : "Set_Broadcast_For_CAN",
-    22 : "Set_Broadcast_For_J1939",
-    23 : "Set_Broadcast_For_J1850",
-    24 : "Set_J1708_Filter_Type",
-    25 : "Set_J1939_Filter_Type",
-    26 : "Set_CAN_Filter_Type",
-    27 : "Set_J1939_Interpacket_Time",
-    28 : "SetMaxErrorMsgSize",
-    29 : "Disallow_Further_Connections",
-    30 : "Set_J1850_Filter_Type",
-    31 : "Release_J1939_Address",
-    32 : "Set_ISO15765_Filter_Type",
-    33 : "Set_Broadcast_For_ISO15765",
-    34 : "Set_ISO15765_Flow_Control",
-    35 : "Clear_ISO15765_Flow_Control",
-    37 : "Set_J1939_Baud",
-    38 : "Set_ISO15765_Baud",
-    215 : "Set_BlockTimeout",
-    305 : "Set_J1708_Baud",
-    39 : "Flush_Tx_Rx_Buffers",
-    41 : "Set_Broadcast_For_KWP2000",
-    42 : "Set_Broadcast_For_ISO9141",
-    45 : "Get_Protocol_Connection_Speed",
-    46 : "Set_ISO9141KWP2000_Mode",
-    47 : "Set_CAN_Baud",
-    48 : "Get_Wireless_State"}
+COMMAND_IDS = {
+    "RESET_DEVICE" : 0,
+    "SET_ALL_FILTERS_STATES_TO_PASS" : 3,
+    "SET_MESSAGE_FILTERING_FOR_J1939" : 4,
+    "SET_MESSAGE_FILTERING_FOR_CAN" : 5,
+    "SET_MESSAGE_FILTERING_FOR_J1708" : 7,
+    "SET_MESSAGE_FILTERING_FOR_J1850" : 8,
+    "SET_MESSAGE_FILTERING_FOR_ISO15765" : 9,
+    "GENERIC_DRIVER_COMMAND" : 14,
+    "SET_J1708_MODE" : 15,
+    "ECHO_TRANSMITTED_MESSAGES" : 16,
+    "SET_ALL_FILTERS_STATES_TO_DISCARD" : 17,
+    "SET_MESSAGE_RECEIVE" : 18,
+    "PROTECT_J1939_ADDRESS" : 19,
+    "SET_BROADCAST_FOR_J1708" : 20,
+    "SET_BROADCAST_FOR_CAN" : 21,
+    "SET_BROADCAST_FOR_J1939" : 22,
+    "SET_BROADCAST_FOR_J1850" : 23,
+    "SET_J1708_FILTER_TYPE" : 24,
+    "SET_J1939_FILTER_TYPE" : 25,
+    "SET_CAN_FILTER_TYPE" : 26,
+    "SET_J1939_INTERPACKET_TIME" : 27,
+    "SET_MAX_ERROR_MSG_SIZE" : 28,
+    "DISALLOW_FURTHER_CONNECTIONS" : 29,
+    "SET_J1850_FILTER_TYPE" : 30,
+    "RELEASE_J1939_ADDRESS" : 31,
+    "SET_ISO15765_FILTER_TYPE" : 32,
+    "SET_BROADCAST_FOR_ISO15765" : 33,
+    "SET_ISO15765_FLOW_CONTROL" : 34,
+    "CLEAR_ISO15765_FLOW_CONTROL" : 35,
+    "SET_J1939_BAUD" : 37,
+    "SET_ISO15765_BAUD" : 38,
+    "SET_BLOCKTIMEOUT" : 215,
+    "SET_J1708_BAUD" : 305,
+    "FLUSH_TX_RX_BUFFERS" : 39,
+    "SET_BROADCAST_FOR_KWP2000" : 41,
+    "SET_BROADCAST_FOR_ISO9141" : 42,
+    "GET_PROTOCOL_CONNECTION_SPEED" : 45,
+    "SET_ISO9141KWP2000_MODE" : 46,
+    "SET_CAN_BAUD" : 47,
+    "GET_WIRELESS_STATE" : 48}
 """Mnemonics for RP1210_SendCommand commands. Follows ordering of table in section 21.4."""
 
 
@@ -95,6 +95,16 @@ Dict for echo modes, used in commmand ECHO_TRANSMITTED_MESSAGES (echoTx())
 
 - ECHO_OFF : 0x00
 - ECHO_ON : 0x01
+"""
+
+RECEIVE_MODES = {
+    "RECEIVE_ON" : 0x01,
+    "RECEIVE_OFF" : 0x00
+}
+"""
+Dict for receive modes, used in command SET_MESSAGE_RECEIVE
+- RECEIVE_ON : 0x01
+- RECEIVE_ OFF : 0x00
 """
 
 def reset():
@@ -170,7 +180,7 @@ def generic(ClientCommand, num_bytes = 0, byteorder = 'big') -> bytes:
     """
     return sanitize_msg_param(ClientCommand, num_bytes, byteorder)
 
-def echoTx(echo = True):
+def echoTx(echo = True) -> bytes:
     """
     Set Echo Transmitted Messages (16)
 
@@ -186,16 +196,25 @@ def echoTx(echo = True):
 def setAllFiltersToDiscard():
     """
     Set All Filter States to Discard (17)
-    """
-    #TODO
 
-def setMessageReceive():
+    Returns empty byte string (this command needs no extra data).
+    """
+    return b''
+
+def setMessageReceive(receive_messages = True) -> bytes:
     """
     Set Message Receive (18)
-    """
-    #TODO
 
-def protectJ1939Address(address_to_claim, network_mgt_name, blocking = True):
+    Args:
+    - Receive on/off : True = RECEIVE_ON, False = RECEIVE_OFF.
+    """
+    if receive_messages:
+        msg = RECEIVE_MODES["RECEIVE_ON"]
+    else:
+        msg = RECEIVE_MODES["RECEIVE_OFF"]
+    return sanitize_msg_param(msg, 1)
+
+def protectJ1939Address(address_to_claim, network_mgt_name, blocking = True) -> bytes:
     """
     Protect J1939 Address (19) (10 bytes)
 
@@ -216,6 +235,19 @@ def protectJ1939Address(address_to_claim, network_mgt_name, blocking = True):
     else:
         status = sanitize_msg_param(2, 1) # RETURN_BEFORE_COMPLETION
     return addr + name + status
+
+def releaseJ1939Address(address) -> bytes:
+    """
+    Release a J1939 Address (31)
+
+    Args:
+    - Address (1 byte) - the address to release.
+
+    This doesn't do anything special with the J1939 bus. All it does is tell your adapter not to
+    use this address anymore.
+    """
+    return sanitize_msg_param(address, 1)
+    
 
 def setCANBroadcastList():
     """
@@ -256,12 +288,6 @@ def setMaxErrorMsgSize():
 def disallowConnections():
     """
     Disallow Further Client Connections (29)
-    """
-    #TODO
-
-def releaseJ1939Address():
-    """
-    Release a J1939 Address (31)
     """
     #TODO
 

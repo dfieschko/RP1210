@@ -66,3 +66,15 @@ def test_generic_command():
 def test_echoTx():
     assert Commands.echoTx(False) == b'\x00'
     assert Commands.echoTx(True) == b'\x01'
+
+def test_setAllFiltersToDiscard():
+    assert Commands.setAllFiltersToDiscard() == b''
+
+def test_setMessageReceive():
+    assert Commands.setMessageReceive(True) == b'\x01'
+    assert Commands.setMessageReceive(False) == b'\x00'
+
+def test_releaseJ1939Address():
+    commands = [0x0F, "11", 41, b'\x23']
+    for command in commands:
+        assert Commands.releaseJ1939Address(command) == sanitize_msg_param(command)

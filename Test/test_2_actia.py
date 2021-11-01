@@ -159,7 +159,7 @@ def test_disconnected_GetErrorMsg():
 
 def test_disconnected_SendCommand():
     rp1210 = RP1210.RP1210Interface(API_NAME)
-    for command in Commands.RP1210_COMMANDS:
+    for command in RP1210.RP1210_COMMANDS:
         assert rp1210.api.SendCommand(command, 0) in RP1210.RP1210_ERRORS
 
 def test_disconnected_GetHardwareStatus():
