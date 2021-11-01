@@ -282,7 +282,7 @@ class RP1210Device:
         return ret_str
          
 
-class RP1210Interface(ConfigParser):
+class RP1210Config(ConfigParser):
     """
     Reads & stores Vendor API information. Child of ConfigParser. Use RP121032Parser to get an
     RP1210 API name to feed to this class.
@@ -291,7 +291,7 @@ class RP1210Interface(ConfigParser):
     As such, it is embarrassingly long.
 
     This class holds an instance of RP1210API, which you can use to call RP1210 functions.
-        nexiq = RP1210Interface("NULN2R32")
+        nexiq = RP1210Config("NULN2R32")
          clientID = nexiq.api.ClientConnect(args)
 
     You can use str(this_object) to generate a string to display in your Vendors dropdown.

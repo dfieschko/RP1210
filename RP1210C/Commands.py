@@ -46,7 +46,14 @@ COMMAND_IDS = {
     "SET_ISO9141KWP2000_MODE" : 46,
     "SET_CAN_BAUD" : 47,
     "GET_WIRELESS_STATE" : 48}
-"""Mnemonics for RP1210_SendCommand commands. Follows ordering of table in section 21.4."""
+"""
+Mnemonics for RP1210_SendCommand commands. Follows ordering of table in section 21.4.
+
+key:item orders are swapped from RP1210_COMMANDS in RP1210.py.
+
+Example:
+    command_id = Commands.COMMAND_IDS["PROTECT_J1939_ADDRESS"]
+"""
 
 
 J1939_FILTERS = {
@@ -107,9 +114,12 @@ Dict for receive modes, used in command SET_MESSAGE_RECEIVE
 - RECEIVE_ OFF : 0x00
 """
 
-def reset():
+def resetDevice():
     """
     Reset Device (0) (0 bytes)
+
+    The RP1210_RESET_DEVICE only works if only one client is connected to the adapter, and does
+    the exact same thing as if you called the function ClientDisconnect.
 
     Returns empty byte string (this command needs no extra data).
     """

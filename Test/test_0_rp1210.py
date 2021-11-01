@@ -80,7 +80,7 @@ def test_RP1210Interface_InvalidAPIName():
     """
     api_name = "CHUNGLEBUNGUS"
     assert api_name not in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Interface(api_name)
+    rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.isValid() == False
     assert str(rp1210) == api_name + " - (Vendor Name Missing) - (drivers invalid)"
     assert rp1210.getAPIName() == api_name
@@ -116,7 +116,7 @@ def test_RP1210Interface_InvalidAPIName():
 def test_InvalidAPIName_Devices_Protocols():
     api_name = "CHUNGLEBUNGUS"
     assert api_name not in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Interface(api_name)
+    rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.getDevices() == []
     assert rp1210.getProtocolIDs() == []
     assert rp1210.getProtocol(3) == None
@@ -144,14 +144,14 @@ def test_Invalid_Protocol():
 def test_InvalidAPIName_load_dll():
     api_name = "CHUNGLEBUNGUS"
     assert api_name not in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Interface(api_name)
+    rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.api.getDLL() == None
     assert rp1210.api.isValid() == False
 
 def test_InvalidAPIName_conforms_to_rp1210C():
     api_name = "CHUNGLEBUNGUS"
     assert api_name not in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Interface(api_name)
+    rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.api.conformsToRP1210C() == False
 
 def test_RP1210Interface_NEMESIS():
@@ -162,7 +162,7 @@ def test_RP1210Interface_NEMESIS():
     """
     api_name = "CMNSIM32"
     assert api_name in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Interface(api_name)
+    rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.isValid() == False
     assert str(rp1210) == api_name + " - Cummins Inc. NEMESIS Mock RP1210 Driver - (drivers invalid)"
     devices = rp1210.getDevices()

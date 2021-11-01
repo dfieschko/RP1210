@@ -19,16 +19,34 @@ def test_dla2_drivers_begin():
     messagebox.showinfo("Connect your DLA2 adapter!", 
                         "Connect your DLA2 adapter, then hit OK to continue.\nDon't connect the adapter to a CAN bus!")
 
+
+# DON'T ADD ANY TESTS BEFORE THIS POINT!
+
+def test_reset():
+    disconnect()
+    api = RP1210.RP1210API(API_NAME)
+    clientID = api.ClientConnect(100, b"J1939:Baud=500")
+    ret_val = api.SendCommand(0, clientID)
+    assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
+
+def test_reset_too_many_connections():
+    disconnect()
+    api = RP1210.RP1210API(API_NAME)
+    clientID = api.ClientConnect(100, b"J1939:Baud=500")
+    api.ClientConnect(100, b"J1939:Baud=500")
+    ret_val = api.SendCommand(0, clientID)
+    assert RP1210.translateErrorCode(ret_val) == "ERR_MULTIPLE_CLIENTS_CONNECTED"
+
 def test_dla2_drivers_installed():
     assert API_NAME in RP1210.getAPINames()
-    dla2 = RP1210.RP1210Interface(API_NAME)
+    dla2 = RP1210.RP1210Config(API_NAME)
     assert dla2.isValid()
     assert dla2.api.getDLL() != None
     assert dla2.api.isValid()
 
 def test_ClientConnect():
     """Tests RP1210_ClientConnect with DLA 2.0 adapter connected."""
-    dla2 = RP1210.RP1210Interface(API_NAME)
+    dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDevices()[0]
     if dla2.CANAutoBaud():
         protocol_str = J1939.getJ1939ProtocolString(protocol=1, Baud="Auto")
@@ -38,7 +56,7 @@ def test_ClientConnect():
     assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
 
 def test_ClientConnect_overflow():
-    dla2 = RP1210.RP1210Interface(API_NAME)
+    dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDevices()[0]
     if dla2.CANAutoBaud():
         protocol_str = J1939.getJ1939ProtocolString(protocol=1, Baud="Auto")
@@ -53,7 +71,7 @@ def test_ClientConnect_overflow():
     
 def test_ClientDisconnect():
     """This test calls RP1210_ClientDisconnect for each of the ClientConnect attempts in the test above."""
-    dla2 = RP1210.RP1210Interface(API_NAME)
+    dla2 = RP1210.RP1210Config(API_NAME)
     for x in range (0, 12):
         ret_val = dla2.api.ClientDisconnect(x)
         assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
@@ -65,7 +83,7 @@ def test_ClientConnect_Disconnect_j1939_speeds():
     """
     Tests ClientConnect and ClientDisconnect with all possible J1939 speeds.
     """
-    dla2 = RP1210.RP1210Interface(API_NAME)
+    dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDevices()[0]
     # make sure we're disconnected
     disconnect()
@@ -176,3 +194,21 @@ def test_SendMessage():
     ret_val = api.SendMessage(clientID, message)
     assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
     api.ClientDisconnect(clientID)
+
+def test_setMessageReceive():
+    api = RP1210.RP1210API(API_NAME)
+    deviceID = 100
+    protocol = J1939.getJ1939ProtocolString(1, "500")
+    disconnect()
+    # connect
+    clientID = api.ClientConnect(deviceID, protocol)
+    # command id and command data
+    cmd_id = Commands.COMMAND_IDS["SET_MESSAGE_RECEIVE"]
+    assert cmd_id == 18
+    cmd_data = Commands.setMessageReceive(True)
+    # test with valid clientID
+    ret_val = api.SendCommand(cmd_id, clientID, cmd_data)
+    assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
+    # test with invalid clientID
+    ret_val = api.SendCommand(cmd_id, 255, cmd_data)
+    assert RP1210.translateErrorCode(ret_val) == "ERR_INVALID_CLIENT_ID"

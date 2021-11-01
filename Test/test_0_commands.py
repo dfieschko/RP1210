@@ -7,7 +7,7 @@ Doesn't test commands on an adapter.
 from RP1210C import Commands, sanitize_msg_param
 
 def test_reset():
-    assert Commands.reset() == b''
+    assert Commands.resetDevice() == b''
 
 def test_setAllFiltersToPass():
     assert Commands.setAllFiltersToPass() == b''
