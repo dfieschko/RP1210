@@ -6,10 +6,10 @@ Each function in this file returns a value that can be used for ClientCommand.
 from RP1210C import sanitize_msg_param
 
 J1939_FILTERS = {
-    "PGN" : 1,
-    "SOURCE" : 4,
-    "DEST" : 8,
-    "DESTINATION" : 8
+    "PGN" : 0x01,
+    "SOURCE" : 0x04,
+    "DEST" : 0x08,
+    "DESTINATION" : 0x08
 }
 """
 A dict of valid J1939 filter parameters.
@@ -26,19 +26,39 @@ Example (this will set the filter for both source and destination addresses):
 - "DESTINATION" => 8
 """
 
+CAN_TYPES = {
+    "STANDARD_CAN" : 0x00,
+    "EXTENDED_CAN" : 0x01,
+    "STANDARD_CAN_IS015765_EXTENDED" : 0x02,
+    "EXTENDED_CAN_IS015765_EXTENDED" : 0x03,
+    "STANDARD_MIXED_CAN_IS015765" : 0x04
+}
+"""
+A dict of CAN type codes, as defined in the RP1210C standard.
+- "STANDARD_CAN" : 0x00
+- "EXTENDED_CAN" : 0x01
+- "STANDARD_CAN_IS015765_EXTENDED" : 0x02
+- "EXTENDED_CAN_IS015765_EXTENDED" : 0x03
+- "STANDARD_MIXED_CAN_IS015765" : 0x04
+"""
+
 def reset():
     """
     Reset Device (0) (0 bytes)
+
+    Returns empty byte string (this command needs no extra data).
     """
     return b''
 
 def setAllFiltersToPass():
     """
     Set All Filter States to Pass (3) (0 bytes)
+
+    Returns empty byte string (this command needs no extra data).
     """
     return b''
 
-def setJ1939Filters(filter_flag : int, pgn = 0, source = 0, dest = 0):
+def setJ1939Filters(filter_flag : int, pgn = 0, source = 0, dest = 0) -> bytes:
     """
     Set Message Filtering for J1939 (4) (7 bytes)
 
@@ -66,11 +86,23 @@ def setJ1939Filters(filter_flag : int, pgn = 0, source = 0, dest = 0):
     return ret_val 
 
 
-def setCANFilters():
+def setCANFilters(can_type, mask, header) -> bytes:
     """
     Set Message Filtering for CAN (5)
+
+    Args:
+    - CAN Type (1 byte) - 0x00 for STANDARD_CAN, 0x01 for EXTENDED_CAN.
+        - See dict CAN_TYPES for other types.
+    - Mask (4 bytes) - a bitwise mask that indicates which bits in the header need to be matched.
+        - Big endian; "1" means a value is important; "0" means a value is unimportant.
+    - Header (4 bytes) - "Indicates what value is required for each bit of interest".
+
+    This is one of those functions that you're going to want the RP1210C documentation for.
     """
-    #TODO
+    ret_val = sanitize_msg_param(can_type, 1)
+    ret_val += sanitize_msg_param(mask, 4)
+    ret_val += sanitize_msg_param(header, 4)
+    return ret_val
 
 def generic():
     """

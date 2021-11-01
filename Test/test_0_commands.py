@@ -45,3 +45,15 @@ def test_setJ1939Filters():
     assert Commands.setJ1939Filters(SOURCE, source=0xAB) == b'\x04\x00\x00\x00\x00\xAB\x00'
     assert Commands.setJ1939Filters(DEST, dest=0xCD) == b'\x08\x00\x00\x00\x00\x00\xCD'
     assert Commands.setJ1939Filters(PGN+SOURCE, pgn=0x0EF123, source=0xAB) == b'\x05\x23\xF1\x0E\x00\xAB\x00'
+
+def test_setCANFilters():
+    type_std = Commands.CAN_TYPES["STANDARD_CAN"]
+    assert type_std == 0x00
+    type_ext = Commands.CAN_TYPES["EXTENDED_CAN"]
+    assert type_ext == 0x01
+    mask = 0b11111111000000001111111100001111 # 0xFF00FF0F
+    header = 0b11111111000000001111111100001111 # 0xFF00FF0F
+    cmd = Commands.setCANFilters(type_std, mask, header)
+    assert cmd == b'\x00\xFF\x00\xFF\x0F\xFF\x00\xFF\x0F'
+    cmd = Commands.setCANFilters(type_ext, mask, header)
+    assert cmd == b'\x01\xFF\x00\xFF\x0F\xFF\x00\xFF\x0F'
