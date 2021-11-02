@@ -1,4 +1,4 @@
-# RP1210C.py
+# RP1210
 A Python module for interacting with RP1210 adapter drivers, following the RP1210C standard.
 Contributions welcome!
 
