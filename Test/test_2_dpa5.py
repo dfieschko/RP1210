@@ -1,4 +1,4 @@
-from RP1210C import RP1210, Commands
+import RP1210
 from ctypes import create_string_buffer
 
 API_NAME = "DGDPA5MA"
@@ -165,5 +165,5 @@ def test_disconnected_RemainingFunctions():
     read_array_in = create_string_buffer(64)
     assert rp1210.api.ReadMessage(0, read_array_in) <= 0
     assert not read_array_in.value
-    assert not rp1210.api.ReadDirect(0).value
+    assert not rp1210.api.ReadDirect(0)
     assert rp1210.api.ReadDetailedVersionDirect(0) == ("", "", "")

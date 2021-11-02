@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 import os
-from RP1210C import RP1210
-import RP1210C
+from RP1210 import sanitize_msg_param
+import RP1210
 
 def delete_file(path : str):
     if os.path.exists(path):
@@ -171,29 +171,29 @@ def test_RP1210Interface_NEMESIS():
 
 def test_sanitize_msg_param():
     """Tests sanitize_msg_param()"""
-    assert RP1210C.sanitize_msg_param(0) == b'\x00'
-    assert RP1210C.sanitize_msg_param("0") == b'\x00'
-    assert RP1210C.sanitize_msg_param(b'0') == b'\x00'
-    assert RP1210C.sanitize_msg_param(b'\x00') == b'\x00'
-    assert RP1210C.sanitize_msg_param(16) == b'\x10'
-    assert RP1210C.sanitize_msg_param(0x10) == b'\x10'
-    assert RP1210C.sanitize_msg_param("16") == b'\x10'
-    assert RP1210C.sanitize_msg_param(b'16') == b'\x10'
-    assert RP1210C.sanitize_msg_param(b'\x10') == b'\x10'
-    assert RP1210C.sanitize_msg_param(0, 2) == b'\x00\x00'
-    assert RP1210C.sanitize_msg_param("0", 2) == b'\x00\x00'
-    assert RP1210C.sanitize_msg_param(b'0', 2) == b'\x00\x00'
-    assert RP1210C.sanitize_msg_param(b'\x00', 2) == b'\x00\x00'
-    assert RP1210C.sanitize_msg_param(0xDEADBEEF, 4, 'little') == b'\xEF\xBE\xAD\xDE'
-    assert RP1210C.sanitize_msg_param(0xDEADBEEF, 4, 'big') == b'\xDE\xAD\xBE\xEF'
-    assert RP1210C.sanitize_msg_param(0xDEADBEEF, 4) == b'\xDE\xAD\xBE\xEF'
-    assert RP1210C.sanitize_msg_param(0xDEADBEEFEE, 5) == b'\xDE\xAD\xBE\xEF\xEE'
-    assert RP1210C.sanitize_msg_param(0xDEADBEEF, 6, 'little') == b'\xEF\xBE\xAD\xDE\x00\x00'
-    assert RP1210C.sanitize_msg_param(0xDEADBEEF, 6, 'big') == b'\x00\x00\xDE\xAD\xBE\xEF'
+    assert sanitize_msg_param(0) == b'\x00'
+    assert sanitize_msg_param("0") == b'\x00'
+    assert sanitize_msg_param(b'0') == b'\x00'
+    assert sanitize_msg_param(b'\x00') == b'\x00'
+    assert sanitize_msg_param(16) == b'\x10'
+    assert sanitize_msg_param(0x10) == b'\x10'
+    assert sanitize_msg_param("16") == b'\x10'
+    assert sanitize_msg_param(b'16') == b'\x10'
+    assert sanitize_msg_param(b'\x10') == b'\x10'
+    assert sanitize_msg_param(0, 2) == b'\x00\x00'
+    assert sanitize_msg_param("0", 2) == b'\x00\x00'
+    assert sanitize_msg_param(b'0', 2) == b'\x00\x00'
+    assert sanitize_msg_param(b'\x00', 2) == b'\x00\x00'
+    assert sanitize_msg_param(0xDEADBEEF, 4, 'little') == b'\xEF\xBE\xAD\xDE'
+    assert sanitize_msg_param(0xDEADBEEF, 4, 'big') == b'\xDE\xAD\xBE\xEF'
+    assert sanitize_msg_param(0xDEADBEEF, 4) == b'\xDE\xAD\xBE\xEF'
+    assert sanitize_msg_param(0xDEADBEEFEE, 5) == b'\xDE\xAD\xBE\xEF\xEE'
+    assert sanitize_msg_param(0xDEADBEEF, 6, 'little') == b'\xEF\xBE\xAD\xDE\x00\x00'
+    assert sanitize_msg_param(0xDEADBEEF, 6, 'big') == b'\x00\x00\xDE\xAD\xBE\xEF'
     for x in range(0, 0xFFFF):
-        assert x == int.from_bytes(RP1210C.sanitize_msg_param(x), 'big')
-        assert x == int.from_bytes(RP1210C.sanitize_msg_param(x, 2, 'little'), 'little')
-        assert x == int.from_bytes(RP1210C.sanitize_msg_param(str(x)), 'big')
-        assert x == int.from_bytes(RP1210C.sanitize_msg_param(str(x), 2, 'little'), 'little')
-    assert RP1210C.sanitize_msg_param(1234567) == b'\x12\xD6\x87'
-    assert RP1210C.sanitize_msg_param(0x12345) == b'\x01\x23\x45'
+        assert x == int.from_bytes(sanitize_msg_param(x), 'big')
+        assert x == int.from_bytes(sanitize_msg_param(x, 2, 'little'), 'little')
+        assert x == int.from_bytes(sanitize_msg_param(str(x)), 'big')
+        assert x == int.from_bytes(sanitize_msg_param(str(x), 2, 'little'), 'little')
+    assert sanitize_msg_param(1234567) == b'\x12\xD6\x87'
+    assert sanitize_msg_param(0x12345) == b'\x01\x23\x45'

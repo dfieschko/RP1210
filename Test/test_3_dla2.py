@@ -5,7 +5,8 @@ a device.
 This is done on the DLA 2.0 adapter because it has the ability to be powered from
 the PC's USB port.
 """
-from RP1210C import J1939, RP1210, Commands
+from RP1210 import J1939, Commands
+import RP1210
 from tkinter import messagebox
 
 def disconnect():

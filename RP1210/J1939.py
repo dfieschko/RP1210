@@ -14,8 +14,7 @@ J1939 classes:
 - J1939MessageParser
 """
 
-from RP1210C import sanitize_msg_param
-from RP1210C.RP1210 import RP1210API
+from RP1210 import sanitize_msg_param
 
 
 def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) -> bytes:

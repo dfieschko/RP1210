@@ -1,4 +1,4 @@
-from RP1210C import J1939, Commands, sanitize_msg_param
+from RP1210 import J1939, Commands, sanitize_msg_param
 
 def test_format_default():
     assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"

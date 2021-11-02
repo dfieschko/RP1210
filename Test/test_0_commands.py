@@ -4,7 +4,7 @@ Tests command strings for basic correctness, following the RP1210C standard.
 Doesn't test commands on an adapter.
 """
 
-from RP1210C import Commands, sanitize_msg_param
+from RP1210 import Commands, sanitize_msg_param
 
 def test_reset():
     assert Commands.resetDevice() == b''
