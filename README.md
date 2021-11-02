@@ -1,4 +1,4 @@
-# RP1210C.py
+# RP1210
 A Python module for interacting with RP1210 adapter drivers, following the RP1210C standard.
 Contributions welcome!
 
@@ -20,10 +20,13 @@ Official RP1210C documentation can be purchased from TMC at this link ($37.50 at
     https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP
 
 ## Examples
+```
+pip install rp1210
+```
 
 ```python
 # importing modules
-from RP1210C import RP1210, J1939, Commands
+from RP1210 import RP1210, J1939, Commands
 ```
 
 ```python
