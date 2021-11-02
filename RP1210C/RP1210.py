@@ -349,6 +349,17 @@ class RP1210Config(ConfigParser):
             return "(Vendor Name Missing)"
         return self.get("VendorInformation", "Name")
 
+    def getDescription(self) -> str:
+        """
+        Returns 'Name' field from VendorInformation section.
+
+        Will return "(Vendor Name Missing)" if the 'Name' field isn't found.
+
+        This is a copy of getName(), since I personally think the name section is more like a
+        description.
+        """
+        return self.getName()
+
     def getAddress1(self) -> str:
         """
         Returns 'Address1' field from VendorInformation section.
@@ -634,6 +645,13 @@ class RP1210Config(ConfigParser):
         except (ValueError, KeyError):
             return False
 
+    def autoBaudEnabled(self) -> bool:
+        """
+        Returns the CANAutoBaud field in VendorInformation.
+        
+        Copy of CANAutoBaud() function.
+        """
+
     def getDevice(self, deviceID : int) -> RP1210Device:
         """
         Returns RP1210Device object matching deviceID.
@@ -646,7 +664,21 @@ class RP1210Config(ConfigParser):
         except Exception:
             return None
 
-    def getDevices(self) -> int:
+    def getDevices(self) -> list[RP1210Device]:
+        """
+        Returns a list of RP1210Device objects read from this file.
+        """
+        try:
+            deviceList = [] #type: list[RP1210Device]
+            deviceIDs = self.getDeviceIDs()
+            for id in deviceIDs:
+                section = self["DeviceInformation" + str(id)]
+                deviceList.append(RP1210Device(section))
+            return deviceList
+        except Exception:
+            return []
+
+    def getDeviceIDs(self) -> int:
         """Returns list of DeviceIDs described in .ini file."""
         try:
             devices = []
@@ -661,8 +693,6 @@ class RP1210Config(ConfigParser):
         Returns RP1210Protocol object matching protocol arg.
 
         protocol can be a string or an int.
-        - int will try to find a match in ProtocolInformation sections.
-        - str will try to find a match in 
 
         Returns None if the protocol isn't found.
         """
@@ -674,9 +704,9 @@ class RP1210Config(ConfigParser):
                 if not protocol in self.getProtocols():
                     return None
                 for pid in self.getProtocolIDs():
-                    prot = self.getProtocol(pid)
-                    if prot.getString() == protocol:
-                        return prot
+                    p = self.getProtocol(pid)
+                    if p.getString() == protocol:
+                        return p
         except Exception:
             return None
 
@@ -886,7 +916,7 @@ class RP1210API:
         size = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
         if size < 0: # errored out
             return create_string_buffer(0)
-        return create_string_buffer(RxBuffer[:size]) # this is kind of gross
+        return create_string_buffer(RxBuffer[:size]).value # this is kind of gross
 
     def ReadVersion(self, DLLMajorVersionBuffer : bytes, 
                         DLLMinorVersionBuffer : bytes,

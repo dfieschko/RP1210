@@ -37,7 +37,7 @@ def test_RP1210Interface():
     assert rp1210.getNumberOfSessions() == 1
     assert rp1210.getCANFormatsSupported() == []
     assert rp1210.getJ1939FormatsSupported() == []
-    assert rp1210.getDevices() == [1, 2, 3]
+    assert rp1210.getDeviceIDs() == [1, 2, 3]
     assert rp1210.getProtocolIDs() == [1, 2, 3]
     assert rp1210.getProtocols() == ["CAN", "J1708", "J1939"]
 
@@ -49,7 +49,7 @@ def test_Devices():
     """
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Config(API_NAME)
-    deviceIDs = rp1210.getDevices()
+    deviceIDs = rp1210.getDeviceIDs()
     assert deviceIDs == [1, 2, 3]
     device1 = rp1210.getDevice(1)
     assert device1.getID() == 1

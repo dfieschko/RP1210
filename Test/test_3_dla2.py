@@ -47,7 +47,7 @@ def test_dla2_drivers_installed():
 def test_ClientConnect():
     """Tests RP1210_ClientConnect with DLA 2.0 adapter connected."""
     dla2 = RP1210.RP1210Config(API_NAME)
-    deviceID = dla2.getDevices()[0]
+    deviceID = dla2.getDeviceIDs()[0]
     if dla2.CANAutoBaud():
         protocol_str = J1939.getJ1939ProtocolString(protocol=1, Baud="Auto")
     else:
@@ -57,7 +57,7 @@ def test_ClientConnect():
 
 def test_ClientConnect_overflow():
     dla2 = RP1210.RP1210Config(API_NAME)
-    deviceID = dla2.getDevices()[0]
+    deviceID = dla2.getDeviceIDs()[0]
     if dla2.CANAutoBaud():
         protocol_str = J1939.getJ1939ProtocolString(protocol=1, Baud="Auto")
     else:
@@ -84,7 +84,7 @@ def test_ClientConnect_Disconnect_j1939_speeds():
     Tests ClientConnect and ClientDisconnect with all possible J1939 speeds.
     """
     dla2 = RP1210.RP1210Config(API_NAME)
-    deviceID = dla2.getDevices()[0]
+    deviceID = dla2.getDeviceIDs()[0]
     # make sure we're disconnected
     disconnect()
     # get valid baud rates
