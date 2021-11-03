@@ -35,7 +35,7 @@ def test_RP1210Interface():
     assert rp1210.getDebugMode() == 1
     assert rp1210.getDebugFileSize() == 1024
     assert rp1210.getNumberOfSessions() == 1
-    assert rp1210.CANAutoBaud() == True
+    assert rp1210.getCANAutoBaud() == True
     assert rp1210.getCANFormatsSupported() == [4, 5]
     assert rp1210.getJ1939FormatsSupported() == [1, 2]
     assert rp1210.getDeviceIDs() == [1, 2]
@@ -68,7 +68,7 @@ def test_Protocols():
     rp1210 = RP1210.RP1210Config(API_NAME)
     protocolIDs = rp1210.getProtocolIDs()
     assert protocolIDs == [100,101,102,103,104,105,106,107,108,109,110,111]
-    assert rp1210.getProtocols() == ["J1939", "J1708", "CAN", "J1850_104K", "J1850_416K", "PLC", "ISO15765",
+    assert rp1210.getProtocolNames() == ["J1939", "J1708", "CAN", "J1850_104K", "J1850_416K", "PLC", "ISO15765",
                                     "ISO14230", "ISO9141", "J2284", "IESCAN", "J1850"]
     assert rp1210.getProtocol("J1939").getString() == "J1939"
     protocol1 = rp1210.getProtocol(100)

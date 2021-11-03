@@ -144,7 +144,7 @@ def getAPINames(rp121032_path = None) -> list[str]:
     A function for reading API names from RP121032.ini. Returns a list of strings.
 
     Just call getAPINames() to get the API names. Then you can initialize
-    an RP1210Interface object using one of the API names.
+    an RP1210Config object using one of the API names.
 
     You can provide your own path to RP121032.ini, or let it find it on its own.
 
@@ -332,7 +332,7 @@ class RP1210Device:
 
 class RP1210Config(ConfigParser):
     """
-    Reads & stores Vendor API information. Child of ConfigParser. Use RP121032Parser to get an
+    Reads & stores Vendor API information. Child of ConfigParser. Use getAPINames() to get an
     RP1210 API name to feed to this class.
 
     This class has functions for reading EVERY SINGLE data field defined in the RP1210C standard.
@@ -500,7 +500,7 @@ class RP1210Config(ConfigParser):
 
     def getVersion(self) -> str:
         """
-        Returns the 'Version' field in VendorInformation section.
+        Returns the 'Version' field from VendorInformation section.
         
         Returns empty string if Version field isn't found.
         """
@@ -511,9 +511,22 @@ class RP1210Config(ConfigParser):
         except (ValueError, KeyError):
             return ""
 
+    def getAutoDetectCapable(self) -> bool:
+        """
+        Returns the 'AutoDetectCapable' field from VendorInformation section.
+
+        Returns False if the field isn't found.
+        """
+        if not self.has_option("VendorInformation", "AutoDetectCapable"):
+            return False
+        try:
+            return self.getboolean("VendorInformation", "AutoDetectCapable")
+        except (ValueError, KeyError):
+            return False
+
     def autoDetectCapable(self) -> bool:
         """
-        Returns the 'AutoDetectCapable' field in VendorInformation section.
+        Returns the 'AutoDetectCapable' field from VendorInformation section.
 
         Returns False if the field isn't found.
         """
@@ -669,7 +682,7 @@ class RP1210Config(ConfigParser):
         """
         Returns the 'J1939FormatsSupported' list in VendorInformation section.
 
-        These numbers correspond with the CAN Formats described in section 12.8 of the RP1210C 
+        These numbers correspond with the J1939 Formats described in section 12 of the RP1210C 
         documentation.
 
         Returns an empty list if the field isn't found.
@@ -684,7 +697,7 @@ class RP1210Config(ConfigParser):
         except Exception:
             return []
 
-    def CANAutoBaud(self) -> bool:
+    def getCANAutoBaud(self) -> bool:
         """Returns the CANAutoBaud field in VendorInformation."""
         if not self.has_option("VendorInformation", "CANAutoBaud"):
             return False
@@ -697,8 +710,9 @@ class RP1210Config(ConfigParser):
         """
         Returns the CANAutoBaud field in VendorInformation.
         
-        Copy of CANAutoBaud() function.
+        Duplicate of CANAutoBaud() function.
         """
+        return self.getCANAutoBaud()
 
     def getDevice(self, deviceID : int) -> RP1210Device:
         """
@@ -726,7 +740,7 @@ class RP1210Config(ConfigParser):
         except Exception:
             return []
 
-    def getDeviceIDs(self) -> int:
+    def getDeviceIDs(self) -> list[int]:
         """Returns list of DeviceIDs described in .ini file."""
         try:
             devices = []
@@ -749,7 +763,7 @@ class RP1210Config(ConfigParser):
                 section = self["ProtocolInformation" + str(protocol)]
                 return RP1210Protocol(section)
             if isinstance(protocol, str):
-                if not protocol in self.getProtocols():
+                if not protocol in self.getProtocolNames():
                     return None
                 for pid in self.getProtocolIDs():
                     p = self.getProtocol(pid)
@@ -757,8 +771,23 @@ class RP1210Config(ConfigParser):
                         return p
         except Exception:
             return None
+    
+    def getProtocols(self) -> list[RP1210Protocol]:
+        """
+        Returns a list of RP1210Protocol objects generated from .ini file.
+        
+        Returns an empty list if protocol objects couldn't be generated.
+        """
+        try:
+            names = self.getProtocolNames()
+            protocols = [] # type: list[RP1210Protocol]
+            for name in names:
+                protocols.append(self.getProtocol(name))
+            return protocols
+        except Exception:
+            return []
 
-    def getProtocols(self) -> list[str]:
+    def getProtocolNames(self) -> list[str]:
         """
         Returns a list of protocol Strings.
 

@@ -97,7 +97,14 @@ def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = -1,
         return b"J1939" # default to protocol format 2, default channel
 
 def getJ1939ProtocolDescription(protocol : int) -> str:
-    """Returns a description of the protocol selected with protocol arg."""
+    """
+    Returns a description of the protocol selected with protocol arg.
+    
+    Feed the result of RP1210Config.getJ1939FormatsSupported() into this function to get a description of what
+    the format means.
+
+    Honestly, I don't see anyone ever using this function.
+    """
     if protocol == 1:
         return "Variable J1939 baud rate. Select 125, 250, 500, 1000, or Auto."
     elif protocol == 2:

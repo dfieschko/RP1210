@@ -26,7 +26,7 @@ def test_RP1210Interface():
     assert rp1210.getVendorURL() == "http://inline.cummins.com"
     assert rp1210.getVersion() == ""
     assert rp1210.autoDetectCapable() == False
-    assert rp1210.CANAutoBaud() == True
+    assert rp1210.getCANAutoBaud() == True
     assert rp1210.getTimeStampWeight() == 1000
     assert rp1210.getMessageString() == "CMNSI632_RP1210_MSG"
     assert rp1210.getErrorString() == "CMNSI632_RP1210_ERROR"
@@ -137,7 +137,7 @@ def test_Protocols():
     rp1210 = RP1210.RP1210Config(API_NAME)
     protocolIDs = rp1210.getProtocolIDs()
     assert protocolIDs == [1,2,3,4]
-    assert rp1210.getProtocols() == ["ISO15765", "J1939", "J1708", "CAN"]
+    assert rp1210.getProtocolNames() == ["ISO15765", "J1939", "J1708", "CAN"]
     assert rp1210.getProtocol("J1939").getString() == "J1939"
     protocol = rp1210.getProtocol(1)
     assert protocol.getDescription() == "ISO15765"

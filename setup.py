@@ -22,4 +22,9 @@ setup(
     'Programming Language :: Python :: 3.9',
     'Operating System :: Microsoft :: Windows'
   ],
+  project_urls = {
+    'Wiki' : 'https://github.com/dfieschko/RP1210/wiki',
+    'Issues' : 'https://github.com/dfieschko/RP1210/issues',
+    'Discussions' : 'https://github.com/dfieschko/RP1210/discussions'
+  }
 )

@@ -49,7 +49,7 @@ def test_ClientConnect():
     """Tests RP1210_ClientConnect with DLA 2.0 adapter connected."""
     dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDeviceIDs()[0]
-    if dla2.CANAutoBaud():
+    if dla2.getCANAutoBaud():
         protocol_str = J1939.getJ1939ProtocolString(protocol=1, Baud="Auto")
     else:
         protocol_str = J1939.getJ1939ProtocolString(protocol=2)
@@ -59,7 +59,7 @@ def test_ClientConnect():
 def test_ClientConnect_overflow():
     dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDeviceIDs()[0]
-    if dla2.CANAutoBaud():
+    if dla2.getCANAutoBaud():
         protocol_str = J1939.getJ1939ProtocolString(protocol=1, Baud="Auto")
     else:
         protocol_str = J1939.getJ1939ProtocolString(protocol=2)

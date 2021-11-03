@@ -26,7 +26,7 @@ def test_RP1210Interface():
     assert rp1210.getVendorURL() == "www.nexiq.com"
     assert rp1210.getVersion() == "2.8.0.2"
     assert rp1210.autoDetectCapable() == True
-    assert rp1210.CANAutoBaud() == True
+    assert rp1210.getCANAutoBaud() == True
     assert rp1210.getTimeStampWeight() == 1
     assert rp1210.getMessageString() == "DMUX32 MESSAGE"
     assert rp1210.getErrorString() == "DMUX32 ERROR"
@@ -88,7 +88,7 @@ def test_Protocols_CAN_J1939():
     rp1210 = RP1210.RP1210Config(API_NAME)
     protocolIDs = rp1210.getProtocolIDs()
     assert protocolIDs == [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27]
-    assert rp1210.getProtocols() == ["J1939", "CAN", "ISO15765", "J2284", "J1708", "ALDL", "ALDL9600",
+    assert rp1210.getProtocolNames() == ["J1939", "CAN", "ISO15765", "J2284", "J1708", "ALDL", "ALDL9600",
                                     "OBDII", "KW2000", "ISO9141", "J1850PWM", "J1850VPW", "J1850", 
                                     "ATEC160BAUD", "ISO14230", "J1850_416k", "J1850_104k", "HINOCLUSTER", 
                                     "IESCAN", "HUMMER_ALDL", "NULL", "KWP2000", "HUMMER_ALDL_ALT", "SW_CAN", 

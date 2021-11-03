@@ -96,7 +96,7 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getVendorURL() == ""
     assert rp1210.getVersion() == ""
     assert rp1210.autoDetectCapable() == False
-    assert rp1210.CANAutoBaud() == False
+    assert rp1210.getCANAutoBaud() == False
     assert rp1210.getTimeStampWeight() == None
     assert rp1210.getMessageString() == ""
     assert rp1210.getErrorString() == ""
@@ -109,7 +109,7 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getCANFormatsSupported() == []
     assert rp1210.getJ1939FormatsSupported() == []
     assert rp1210.getDeviceIDs() == []
-    assert rp1210.getProtocols() == []
+    assert rp1210.getProtocolNames() == []
     assert rp1210.getProtocolIDs() == []
     assert rp1210.isValid() == False
 

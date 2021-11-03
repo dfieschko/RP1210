@@ -26,7 +26,7 @@ def test_RP1210Interface():
     assert rp1210.getVendorURL() == "www.JPROFleetProducts.com"
     assert rp1210.getVersion() == "4"
     assert rp1210.autoDetectCapable() == True
-    assert rp1210.CANAutoBaud() == True
+    assert rp1210.getCANAutoBaud() == True
     assert rp1210.getTimeStampWeight() == 1000
     assert rp1210.getMessageString() == "NSICAN_READ_NOTIFY"
     assert rp1210.getErrorString() == "NSICAN_SEND_NOTIFY"
@@ -63,7 +63,7 @@ def test_Protocols():
     rp1210 = RP1210.RP1210Config(API_NAME)
     protocolIDs = rp1210.getProtocolIDs()
     assert protocolIDs == [51,52,53,54,55,56,58,59,60,61,62,63]
-    assert rp1210.getProtocols() == ["CAN", "J1939", "J1708", "IESCAN", "J1850", "J1850_104k", "ISO15765",
+    assert rp1210.getProtocolNames() == ["CAN", "J1939", "J1708", "IESCAN", "J1850", "J1850_104k", "ISO15765",
                                     "J2284", "ISO9141", "KWP2000", "KW2000", "NULL"]
     assert rp1210.getProtocol("J1939").getString() == "J1939"
     protocol1 = rp1210.getProtocol(51)
