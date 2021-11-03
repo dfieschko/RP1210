@@ -4,6 +4,8 @@ pip install rp1210
 A Python module for interacting with RP1210 adapter drivers, following the RP1210C standard.
 Contributions welcome!
 
+Documentation and examples are in [this repo's wiki](https://github.com/dfieschko/RP1210/wiki).
+
 This module was written and tested with Python 3.9, 32-bit. Older Python versions have not been
 tested and may not be supported. 32-bit Python is required because RP1210 drivers are all 32-bit,
 and can thus only be loaded with 32-bit Python. A 64-bit implementation via
