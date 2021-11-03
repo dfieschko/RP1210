@@ -212,15 +212,18 @@ class RP1210Protocol:
         self.section = section
 
     def __str__(self) -> str:
+        """Returns a string that can be used in a protocol selection combo box."""
         return self.getString() + " - " + self.getDescription()
 
-    def getDescription(self):
+    def getDescription(self) -> str:
+        """Returns ProtocolDescription parameter."""
         try:
             return self.section["ProtocolDescription"]
         except Exception:
             return ""
 
-    def getSpeed(self):
+    def getSpeed(self) -> list[str]:
+        """Returns ProtocolSpeed parameters as a list of strings."""
         try:
             speeds = []
             print(self.section["ProtocolSpeed"])
@@ -231,19 +234,22 @@ class RP1210Protocol:
         except Exception:
             return []
 
-    def getString(self):
+    def getString(self) -> str:
+        """Returns ProtocolString parameter."""
         try:
             return self.section["ProtocolString"]
         except Exception:
             return ""
 
-    def getParams(self):
+    def getParams(self) -> str:
+        """Returns ProtocolParams parameter."""
         try:
             return self.section["ProtocolParams"]
         except Exception:
             return ""
 
-    def getDevices(self):
+    def getDevices(self) -> list[int]:
+        """Returns a list of device IDs supported by this protocol."""
         try:
             devices = []
             section_list = str(self.section["Devices"]).split(',')
@@ -270,43 +276,50 @@ class RP1210Device:
     def __init__(self,  section : dict) -> None:
         self.section = section
 
-    def getID(self):
+    def getID(self) -> int:
+        """Returns DeviceID parameter as int."""
         try:
             return int(self.section["DeviceID"])
         except Exception:
             return -1
 
-    def getDescription(self):
+    def getDescription(self) -> str:
+        """Returns DeviceDescription parameter."""
         try:
             return self.section["DeviceDescription"]
         except Exception:
             return ""
 
-    def getName(self):
+    def getName(self) -> str:
+        """Returns DeviceName parameter."""
         try:
             return self.section["DeviceName"]
         except Exception:
             return ""
 
-    def getParams(self):
+    def getParams(self) -> str:
+        """Returns DeviceParams parameter as a string."""
         try:
             return self.section["DeviceParams"]
         except Exception:
             return ""
     
-    def getMultiCANChannels(self):
+    def getMultiCANChannels(self) -> int:
+        """Returns MultiCANChannels parameter as int."""
         try:
             return int(self.section["MultiCANChannels"])
         except Exception:
             return 0
 
-    def getMultiJ1939Channels(self):
+    def getMultiJ1939Channels(self) -> int:
+        """Returns MultiJ1939Channels parameter as int."""
         try:
             return int(self.section["MultiJ1939Channels"])
         except Exception:
             return 0
 
     def __str__(self):
+        """Returns a string that can be used in a device selection combo box."""
         ret_str = ""
         if self.getID() == -1:
             ret_str += "(Invalid Device)"
