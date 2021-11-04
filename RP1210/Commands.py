@@ -3,6 +3,7 @@ Generate ClientCommand inputs for RP1210_SendCommand.
 
 Each function in this file returns a value that can be used for ClientCommand.
 """
+from typing import Literal
 from RP1210 import sanitize_msg_param
 
 COMMAND_IDS = {
@@ -259,15 +260,19 @@ def releaseJ1939Address(address) -> bytes:
     return sanitize_msg_param(address, 1)
     
 
-def setCANBroadcastList():
+def setBroadcastList(function : Literal[1, 2, 3, 4, 5]) -> bytes:
     """
-    Set Broadcast List for CAN (21)
-    """
-    #TODO
+    A catch-all function for each RP1210_Set_Broadcast_For_XXX command, since each one takes
+    the same type of ClientCommand argument.
 
-def setJ1939BroadcastList():
-    """
-    Set Broadcast List for J1939 (22)
+    Function codes:
+    - 1 = ADD_LIST
+    - 2 = VIEW_B_LIST
+    - 3 = DESTROY_LIST
+    - 4 = REMOVE_ENTRY
+    - 5 = LIST_LENGTH
+
+    This function applies for protocols J1708, CAN, J1939, J1850, ISO15765, ISO9141, and KWP2000.
     """
     #TODO
 

@@ -15,6 +15,7 @@ J1939 classes:
 """
 
 from RP1210 import sanitize_msg_param
+from RP1210.RP1210C import RP1210API
 
 
 def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) -> bytes:
@@ -47,7 +48,7 @@ def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) ->
         data = sanitize_msg_param(data)
     return pgn + priority + source + destination + data
 
-def toJ1939Request(pgn_requested, source, destination = 255, priority = 6):
+def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> bytes:
     """
     Formats a J1939 request message. This puts out a request for the specified PGN, and will prompt
     other devices on the network to respond.
@@ -60,10 +61,39 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6):
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
     return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
 
+def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
+                function : int, function_instance : int, ecu_instance : int, mfg_code : int, id : int) -> bytes:
+    def add_bits(name, val, num_bits):
+        mask = (1 << num_bits) - 1
+        value = int.from_bytes(sanitize_msg_param(val), (num_bits + 7) // 8)
+        return (name << num_bits) + (value & mask)
+    name = 0b0
+    # arbitrary address (1 bit)
+    name = add_bits(name, arbitrary_address, 1)
+    # industry group (3 bits)
+    name = add_bits(name, industry_group, 3)
+    # vehicle system instance (4 bits)
+    name = add_bits(name, system_instance, 4)
+    # vehicle system (7 bits)
+    name = add_bits(name, system, 7)
+    # reserved bit
+    name = add_bits(name, 1, 1)
+    # function (8 bits)
+    name = add_bits(name, function, 8)
+    # function instance (5 bits)
+    name = add_bits(name, function_instance, 5)
+    # ecu instance (3 bits)
+    name = add_bits(name, ecu_instance, 3)
+    # manufacturer code (11 bits)
+    name = add_bits(name, mfg_code, 11)
+    # identity number (21 bits)
+    name = add_bits(name, id, 21)
+    return sanitize_msg_param(name)
+
 def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = -1,
                         SampleLocation = 95, SJW = 1,
                         PROP_SEG = 1, PHASE_SEG1 = 2, PHASE_SEG2 = 1,
-                        TSEG1 = 2, TSEG2 = 1, SampleTimes = 1) -> str:
+                        TSEG1 = 2, TSEG2 = 1, SampleTimes = 1) -> bytes:
     """
     Generates fpchProtocol string for ClientConnect function. The default values you see above
     were made up on the spot and shouldn't necessarily be used.
@@ -173,3 +203,26 @@ class J1939MessageParser():
         """Returns message data (0 - 1785 bytes) as bytes."""
         loc = 10 + self.echo_offset
         return self.msg[loc:]
+
+class J1939API:
+    """
+    A wrapper for RP1210API w/ functions to handle J1939 messages.
+
+    Initialize the class with an already-instantiated RP1210API object, or provide it with an
+    API name (from getAPINames()) to have it make its own.
+
+    RP1210API can be accessed through the api class member, e.g.:
+        ```
+        j1939 = J1939API("NULN2R32")
+        clientID = j1939.api.ClientConnect(1)
+        ```
+    """
+    def __init__(self, api) -> None:
+        if isinstance(api, RP1210API):
+            self.api = api
+        elif isinstance(api, str):
+            self.api = RP1210API(api)
+        else:
+            raise TypeError("Invalid argument type for J1939API - should be RP1210API or str. ", api)
+
+    #TODO
