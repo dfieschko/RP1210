@@ -13,3 +13,4 @@ Official RP1210C documentation can be purchased from TMC at this link ($37.50 at
 """
 
 from RP1210.RP1210C import RP1210_ERRORS, RP1210_COMMANDS, RP1210API, RP1210Config, RP1210Device, RP1210Protocol, getAPINames, translateErrorCode, sanitize_msg_param
+from RP1210 import Commands, J1939
