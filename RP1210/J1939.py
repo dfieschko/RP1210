@@ -15,8 +15,6 @@ J1939 classes:
 """
 
 from RP1210 import sanitize_msg_param
-from RP1210.RP1210C import RP1210API
-
 
 def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) -> bytes:
     """
@@ -203,26 +201,3 @@ class J1939MessageParser():
         """Returns message data (0 - 1785 bytes) as bytes."""
         loc = 10 + self.echo_offset
         return self.msg[loc:]
-
-class J1939API:
-    """
-    A wrapper for RP1210API w/ functions to handle J1939 messages.
-
-    Initialize the class with an already-instantiated RP1210API object, or provide it with an
-    API name (from getAPINames()) to have it make its own.
-
-    RP1210API can be accessed through the api class member, e.g.:
-        ```
-        j1939 = J1939API("NULN2R32")
-        clientID = j1939.api.ClientConnect(1)
-        ```
-    """
-    def __init__(self, api) -> None:
-        if isinstance(api, RP1210API):
-            self.api = api
-        elif isinstance(api, str):
-            self.api = RP1210API(api)
-        else:
-            raise TypeError("Invalid argument type for J1939API - should be RP1210API or str. ", api)
-
-    #TODO

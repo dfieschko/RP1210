@@ -11,12 +11,8 @@ read the official RP1210C documentation from TMC.
 Official RP1210C documentation can be purchased from TMC at this link ($37.50 at time of writing):
     https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP
 """
-# Modules
-from RP1210 import RP1210C, Commands, J1939
-# RP1210C
-from RP1210C import RP1210_ERRORS, RP1210_COMMANDS
-from RP1210C import RP1210API, RP1210Config, RP1210Device, RP1210Protocol
-from RP1210C import getAPINames, translateErrorCode, sanitize_msg_param
-# J1939
-from J1939 import J1939API, J1939MessageParser
-from J1939 import toJ1939Message, toJ1939Request, getJ1939ProtocolString, getJ1939ProtocolDescription
+# Import everything from RP1210.py
+from RP1210.RP1210 import *
+# Import other modules (not necessary in 3.9)
+from RP1210 import Commands, J1939
+
