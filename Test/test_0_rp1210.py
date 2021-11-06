@@ -10,9 +10,9 @@ def delete_file(path : str):
 def create_file(path : str) -> ConfigParser:
     """creates an empty file."""
     parser = ConfigParser()
-    file = open(path, 'w')
-    parser.clear()
-    parser.write(file)
+    with open(path, 'w') as file:
+        parser.clear()
+        parser.write(file)
     return parser
 
 def test_getAPINames():
@@ -49,8 +49,8 @@ def test_getAPINames_invalid():
     path = "getAPINames_invalid.ini"
     parser = create_file(path)
     parser.add_section("[")
-    file = open(path, 'w')
-    parser.write(file)
+    with open(path, 'w') as file:
+        parser.write(file)
     # test output
     assert RP1210.getAPINames(path) == []
 
@@ -185,6 +185,9 @@ def test_sanitize_msg_param_str():
      assert sanitize_msg_param("0", 2) == b'\x00\x00'
      assert sanitize_msg_param("") == b''
      assert sanitize_msg_param("", 4) == b'\x00\x00\x00\x00'
+     assert sanitize_msg_param("Boogity") == b"Boogity"
+     assert sanitize_msg_param("Boogity", 4, 'little') == b'ytig'
+
      for x in range(0, 0xFFFF):
         assert x == int.from_bytes(sanitize_msg_param(str(x)), 'big')
         assert x == int.from_bytes(sanitize_msg_param(str(x), 2, 'little'), 'little')

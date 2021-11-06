@@ -105,3 +105,17 @@ def test_command_claimAddress():
     blocking = False
     command = Commands.protectJ1939Address(address, name, blocking)
     assert command == b"\x01\x00\x00\x00\x00\x00\x23\xF0\x79\x02"
+
+def test_toJ1939Name():
+    # arbitrary address (1 bit)
+    # industry group (3 bits)
+    # vehicle system instance (4 bits)
+    # vehicle system (7 bits)
+    # reserved bit (1 bit)
+    # function (8 bits)
+    # function instance (5 bits)
+    # ecu instance (3 bits)
+    # manufacturer code (11 bits)
+    # identity number (21 bits)
+    """TODO"""
+    

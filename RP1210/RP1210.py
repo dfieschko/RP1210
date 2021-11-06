@@ -184,7 +184,7 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
     elif isinstance(param, str): # string to bytes
         if param == "": # check for empty string
             return b'' + b'\x00' * num_bytes
-        return sanitize_msg_param(int(param), num_bytes, byteorder)
+        return sanitize_msg_param(str.encode(param, 'utf8'), num_bytes, byteorder)
     elif isinstance(param, bytes):
         try:    # decode from UTF-8
             return sanitize_msg_param(int(param.decode('utf8')), num_bytes, byteorder)
