@@ -312,7 +312,7 @@ def setFilterType(filter_type = Literal[0, 1]):
     val = sanitize_msg_param(filter_type, 1)
     if not val in [b'\x00', b'\x01']:
         raise ValueError("filter_type must be 0 (FILTER_INCLUSIVE) or 1 (FILTER_EXCLUSIVE)")
-    return 
+    return val
 
 def setJ1939InterpacketTime():
     """
