@@ -56,7 +56,6 @@ Example:
     command_id = Commands.COMMAND_IDS["PROTECT_J1939_ADDRESS"]
 """
 
-
 J1939_FILTERS = {
     "PGN" : 0x01,
     "SOURCE" : 0x04,
@@ -114,6 +113,14 @@ Dict for receive modes, used in command SET_MESSAGE_RECEIVE
 - RECEIVE_ON : 0x01
 - RECEIVE_ OFF : 0x00
 """
+
+BROADCAST_FUNCTIONS = {
+    "ADD_LIST" : 1,
+    "VIEW_B_LIST" : 2,
+    "DESTROY_LIST" : 3,
+    "REMOVE_ENTRY" : 4,
+    "LIST_LENGTH" : 5
+}
 
 def resetDevice():
     """
@@ -191,7 +198,7 @@ def generic(ClientCommand, num_bytes = 0, byteorder = 'big') -> bytes:
     """
     return sanitize_msg_param(ClientCommand, num_bytes, byteorder)
 
-def echoTx(echo = True) -> bytes:
+def setEcho(echo = True) -> bytes:
     """
     Set Echo Transmitted Messages (16)
 
@@ -260,7 +267,7 @@ def releaseJ1939Address(address) -> bytes:
     return sanitize_msg_param(address, 1)
     
 
-def setBroadcastList(function : Literal[1, 2, 3, 4, 5]) -> bytes:
+def setBroadcastList(function : Literal[1, 2, 3, 4, 5], command) -> bytes:
     """
     A catch-all function for each RP1210_Set_Broadcast_For_XXX command, since each one takes
     the same type of ClientCommand argument.
@@ -272,21 +279,40 @@ def setBroadcastList(function : Literal[1, 2, 3, 4, 5]) -> bytes:
     - 4 = REMOVE_ENTRY
     - 5 = LIST_LENGTH
 
+    Param command is equivalent to fpchClientCommand[1..n] input to RP1210_SendCommand.
+
+    This function is mostly useful for building the following functions:
+    - addBroadcastList
+    - viewBroadcastList
+    - destroyBroadcastList
+    - removeBroadcastEntry
+    - getBroadcastListLength
+
     This function applies for protocols J1708, CAN, J1939, J1850, ISO15765, ISO9141, and KWP2000.
     """
-    #TODO
+    ret_val = sanitize_msg_param(function, 1)
+    ret_val += sanitize_msg_param(command)
 
-def setJ1939FilterType():
-    """
-    Set J1939 Filter Type (25)
-    """
-    #TODO
 
-def setCANFilterType():
+def setFilterType(filter_type = Literal[0, 1]):
     """
-    Set CAN Filter Type (26)
+    Set Filter Type
+
+    filter_type:
+    - 0 = FILTER_INCLUSIVE
+    - 1 = FILTER_EXCLUSIVE
+
+    Used for:
+    - RP1210_Set_J1708_Filter_Type (24)
+    - RP1210_Set_J1939_Filter_Type (25)
+    - RP1210_Set_CAN_Filter_Type (26)
+    - RP1210_Set_J1850_Filter_Type (30)
+    - RP1210_Set_IS015765_Filter_Type (32)
     """
-    #TODO
+    val = sanitize_msg_param(filter_type, 1)
+    if not val in [b'\x00', b'\x01']:
+        raise ValueError("filter_type must be 0 (FILTER_INCLUSIVE) or 1 (FILTER_EXCLUSIVE)")
+    return 
 
 def setJ1939InterpacketTime():
     """

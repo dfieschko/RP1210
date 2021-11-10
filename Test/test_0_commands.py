@@ -64,8 +64,8 @@ def test_generic_command():
         assert Commands.generic(command) == sanitize_msg_param(command)
 
 def test_echoTx():
-    assert Commands.echoTx(False) == b'\x00'
-    assert Commands.echoTx(True) == b'\x01'
+    assert Commands.setEcho(False) == b'\x00'
+    assert Commands.setEcho(True) == b'\x01'
 
 def test_setAllFiltersToDiscard():
     assert Commands.setAllFiltersToDiscard() == b''
