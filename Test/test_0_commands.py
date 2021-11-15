@@ -89,11 +89,68 @@ def test_setFilterType():
     assert Commands.setFilterType(1) == b'\x01'
 
 def test_setJ1939InterpacketTime():
-    clientID = 3
     time = 200
-    assert Commands.setJ1939InterpacketTime(clientID, time) == b'\x03\xC8\x00\x00\x00'
+    assert Commands.setJ1939InterpacketTime(time) == b'\xC8\x00\x00\x00'
     time = 2000
-    assert Commands.setJ1939InterpacketTime(clientID, time) == b'\x03\xD0\x07\x00\x00'
+    assert Commands.setJ1939InterpacketTime(time) == b'\xD0\x07\x00\x00'
     time = 500000 # 0x07 A1 20
-    assert Commands.setJ1939InterpacketTime(clientID, time) == b'\x03\x20\xA1\x07\x00'
+    assert Commands.setJ1939InterpacketTime(time) == b'\x20\xA1\x07\x00'
 
+def test_setMaxErrorMsgSize():
+    assert Commands.setMaxErrorMsgSize(81) == b'\x51\x00'
+    assert Commands.setMaxErrorMsgSize(65535) == b'\xFF\xFF'
+    assert Commands.setMaxErrorMsgSize(2122) == b'\x4A\x08'
+
+def test_disallowConnections():
+    assert Commands.disallowConnections() == b''
+
+def test_flushBuffers():
+    assert Commands.flushBuffers() == b''
+
+def test_getConnectionSpeed():
+    assert Commands.getConnectionSpeed() == b''
+
+def test_setCANBaud():
+    for baud_code in [0, b'\x00', 9600, 9.6, '9600', '9.6k']:
+        assert Commands.setCANBaud(baud_code, False) == b'\x00\x00'
+        assert Commands.setCANBaud(baud_code, True) == b'\x01\x00'
+    for baud_code in [1, b'\x01', 19200, 19.2, '19200', '19.2k']:
+        assert Commands.setCANBaud(baud_code, False) == b'\x00\x01'
+        assert Commands.setCANBaud(baud_code, True) == b'\x01\x01'
+    for baud_code in [2, b'\x02', 38400, 38.4, '38400', '38.4k']:
+        assert Commands.setCANBaud(baud_code, False) == b'\x00\x02'
+        assert Commands.setCANBaud(baud_code, True) == b'\x01\x02'
+    for baud_code in [3, b'\x03', 57600, 57.6, '57600', '57.6k']:
+        assert Commands.setCANBaud(baud_code, False) == b'\x00\x03'
+        assert Commands.setCANBaud(baud_code, True) == b'\x01\x03'
+    for baud_code in [4, b'\x04', 125000, 125, '125', '125k', '125000']:
+        assert Commands.setCANBaud(baud_code, False) == b'\x00\x04'
+        assert Commands.setCANBaud(baud_code, True) == b'\x01\x04'
+    for baud_code in [5, b'\x05', 250000, 250, '250', '250k', '250000']:
+        assert Commands.setCANBaud(baud_code, False) == b'\x00\x05'
+        assert Commands.setCANBaud(baud_code, True) == b'\x01\x05'
+    for baud_code in [6, b'\x06', 500000, 500, '500', '500k', '500000']:
+        assert Commands.setCANBaud(baud_code, False) == b'\x00\x06'
+        assert Commands.setCANBaud(baud_code, True) == b'\x01\x06'
+    for baud_code in [7, b'\x07', 1000000, 1000, '1000', '1000000', '1000k']:
+        assert Commands.setCANBaud(baud_code, False) == b'\x00\x07'
+        assert Commands.setCANBaud(baud_code, True) == b'\x01\x07'
+
+def test_setJ1939Baud():
+    for baud_code in [4, b'\x04', 125000, 125, '125', '125k', '125000']:
+        assert Commands.setJ1939Baud(baud_code, False) == b'\x00\x04'
+        assert Commands.setJ1939Baud(baud_code, True) == b'\x01\x04'
+    for baud_code in [5, b'\x05', 250000, 250, '250', '250k', '250000']:
+        assert Commands.setJ1939Baud(baud_code, False) == b'\x00\x05'
+        assert Commands.setJ1939Baud(baud_code, True) == b'\x01\x05'
+    for baud_code in [6, b'\x06', 500000, 500, '500', '500k', '500000']:
+        assert Commands.setJ1939Baud(baud_code, False) == b'\x00\x06'
+        assert Commands.setJ1939Baud(baud_code, True) == b'\x01\x06'
+    for baud_code in [7, b'\x07', 1000000, 1000, '1000', '1000000', '1000k']:
+        assert Commands.setJ1939Baud(baud_code, False) == b'\x00\x07'
+        assert Commands.setJ1939Baud(baud_code, True) == b'\x01\x07'
+
+def test_setBlockingTimeout():
+    for x in range(255):
+        for y in range(255):
+            assert Commands.setBlockingTimeout(x, y) == sanitize_msg_param(x, 1) + sanitize_msg_param(y, 1)

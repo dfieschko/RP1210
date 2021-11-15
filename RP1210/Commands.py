@@ -116,10 +116,23 @@ Dict for receive modes, used in command SET_MESSAGE_RECEIVE
 
 BROADCAST_FUNCTIONS = {
     "ADD_LIST" : 1,
-    "VIEW_B_LIST" : 2,
+    "VIEW_LIST" : 2,
     "DESTROY_LIST" : 3,
     "REMOVE_ENTRY" : 4,
     "LIST_LENGTH" : 5
+}
+"""
+Dict for different broadcast functions.
+
+- ADD_LIST : 1
+- VIEW_LIST : 2
+- DESTROY_LIST : 3
+- REMOVE_ENTRY : 4
+- LIST_LENGTH : 5
+"""
+
+BAUD_RATES = {
+
 }
 
 def resetDevice():
@@ -319,62 +332,124 @@ def setFilterType(filter_type = Literal[0, 1]):
     #     raise ValueError("filter_type must be 0 (FILTER_INCLUSIVE) or 1 (FILTER_EXCLUSIVE)")
     return val
 
-def setJ1939InterpacketTime(clientID : int, time_in_ms : int):
+def setJ1939InterpacketTime(time_in_ms : int):
     """
     Set J1939 Broadcast Interpacket Timing (27)
 
     Args:
-    - clientID - your client ID
     - time_in_ms - interpacket time in milliseconds (unsigned 32-bit int)
     """
-    ret_val = sanitize_msg_param(clientID, 1)
-    ret_val += sanitize_msg_param(time_in_ms, 4, 'little')
-    return ret_val
+    return sanitize_msg_param(time_in_ms, 4, 'little')
 
-def setMaxErrorMsgSize():
+def setMaxErrorMsgSize(msg_size : int):
     """
     Set Max Error Message Return Size (28)
+
+    Args:
+    - msg_size - value in bytes for how large error messages are allowed to be.
+        - Should be between 81 and 65535
     """
-    #TODO
+    return sanitize_msg_param(msg_size, 2, 'little')
 
 def disallowConnections():
     """
     Disallow Further Client Connections (29)
-    """
-    #TODO
 
-def setJ1939Baud():
+    There is no data required for this command, so this function will return b''
+    """
+    return b''
+
+def setJ1939Baud(baud_code : int, wait_for_msg = True):
     """
     Set J1939 Baud Rate (37)
-    """
-    #TODO
 
-def setBlockingTimeout():
+    Args:
+    - baud_code - code that corresponds w/ desired baud rate
+        - 125k = 4
+        - 250k = 5
+        - 500k = 6
+        - 1000k = 7
+    - wait_for_msg - should we apply the baud change after the current message is finished, or
+                    apply the change right away?
+    """
+    # translate codes if applicable
+    if baud_code in [125000, 125, '125', '125k', '125000']:
+        baud_code = 0x04
+    elif baud_code in [250000, 250, '250', '250k', '250000']:
+        baud_code = 0x05
+    elif baud_code in [500000, 500, '500', '500k', '500000']:
+        baud_code = 0x06
+    elif baud_code in [1000000, 1000, '1000', '1000000', '1000k']:
+        baud_code = 0x07
+    # check wait_for_msg flag
+    if wait_for_msg:
+        wait_msg = b'\x01'
+    else:
+        wait_msg = b'\x00'
+    # return value
+    return wait_msg + sanitize_msg_param(baud_code, 1)
+
+
+def setBlockingTimeout(block1 : int, block2 : int):
     """
     Set Blocking Timeout (215)
     """
-    #TODO
+    return sanitize_msg_param(block1, 1) + sanitize_msg_param(block2, 1)
 
-def flushRxTxBuffers():
+def flushBuffers():
     """
     Flush the Send/Receive Buffers (39)
+
+    There is no data required for this command, so this function will return b''
     """
-    #TODO
+    return b''
 
 def getConnectionSpeed():
     """
     What Speed Did the VDA Connect? (45)
-    """
-    #TODO
 
-def getWirelessState():
+    There is no data required for this command, so this function will return b''
     """
-    Is the VDA operating in a wireless mode? (48)
-    """
-    #TODO
+    return b''
 
-def setCANBaud():
+def setCANBaud(baud_code : int, wait_for_msg = True):
     """
     Set CAN Baud Rate (47)
+
+    Args:
+    - baud_code - code that corresponds w/ desired baud rate
+        - 9600 = 0
+        - 19200 = 1
+        - 38400 = 2
+        - 57600 = 3
+        - 125k = 4
+        - 250k = 5
+        - 500k = 6
+        - 1000k = 7
+    - wait_for_msg - should we apply the baud change after the current message is finished, or
+                    apply the change right away?
     """
-    #TODO
+    # translate codes if applicable
+    if baud_code in [9600, 9.6, '9600', '9.6k']:
+        baud_code = 0x00
+    elif baud_code in [19200, 19.2, '19200', '19.2k']:
+        baud_code = 0x01
+    elif baud_code in [38400, 38.4, '38400', '38.4k']:
+        baud_code = 0x02
+    elif baud_code in [57600, 57.6, '57600', '57.6k']:
+        baud_code = 0x03
+    elif baud_code in [125000, 125, '125', '125k', '125000']:
+        baud_code = 0x04
+    elif baud_code in [250000, 250, '250', '250k', '250000']:
+        baud_code = 0x05
+    elif baud_code in [500000, 500, '500', '500k', '500000']:
+        baud_code = 0x06
+    elif baud_code in [1000000, 1000, '1000', '1000000', '1000k']:
+        baud_code = 0x07
+    # check wait_for_msg flag
+    if wait_for_msg:
+        wait_msg = b'\x01'
+    else:
+        wait_msg = b'\x00'
+    # return value
+    return wait_msg + sanitize_msg_param(baud_code, 1)
