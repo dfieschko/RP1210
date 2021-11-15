@@ -3,6 +3,7 @@ Generate ClientCommand inputs for RP1210_SendCommand.
 
 Each function in this file returns a value that can be used for ClientCommand.
 """
+from typing import Literal
 from RP1210 import sanitize_msg_param
 
 COMMAND_IDS = {
@@ -54,7 +55,6 @@ key:item orders are swapped from RP1210_COMMANDS in RP1210.py.
 Example:
     command_id = Commands.COMMAND_IDS["PROTECT_J1939_ADDRESS"]
 """
-
 
 J1939_FILTERS = {
     "PGN" : 0x01,
@@ -113,6 +113,27 @@ Dict for receive modes, used in command SET_MESSAGE_RECEIVE
 - RECEIVE_ON : 0x01
 - RECEIVE_ OFF : 0x00
 """
+
+BROADCAST_FUNCTIONS = {
+    "ADD_LIST" : 1,
+    "VIEW_LIST" : 2,
+    "DESTROY_LIST" : 3,
+    "REMOVE_ENTRY" : 4,
+    "LIST_LENGTH" : 5
+}
+"""
+Dict for different broadcast functions.
+
+- ADD_LIST : 1
+- VIEW_LIST : 2
+- DESTROY_LIST : 3
+- REMOVE_ENTRY : 4
+- LIST_LENGTH : 5
+"""
+
+BAUD_RATES = {
+
+}
 
 def resetDevice():
     """
@@ -190,7 +211,7 @@ def generic(ClientCommand, num_bytes = 0, byteorder = 'big') -> bytes:
     """
     return sanitize_msg_param(ClientCommand, num_bytes, byteorder)
 
-def echoTx(echo = True) -> bytes:
+def setEcho(echo = True) -> bytes:
     """
     Set Echo Transmitted Messages (16)
 
@@ -259,80 +280,176 @@ def releaseJ1939Address(address) -> bytes:
     return sanitize_msg_param(address, 1)
     
 
-def setCANBroadcastList():
+def setBroadcastList(function : Literal[1, 2, 3, 4, 5], command) -> bytes:
     """
-    Set Broadcast List for CAN (21)
-    """
-    #TODO
+    A catch-all function for each RP1210_Set_Broadcast_For_XXX command, since each one takes
+    the same type of ClientCommand argument.
 
-def setJ1939BroadcastList():
-    """
-    Set Broadcast List for J1939 (22)
-    """
-    #TODO
+    Function codes:
+    - 1 = ADD_LIST
+    - 2 = VIEW_B_LIST
+    - 3 = DESTROY_LIST
+    - 4 = REMOVE_ENTRY
+    - 5 = LIST_LENGTH
 
-def setJ1939FilterType():
-    """
-    Set J1939 Filter Type (25)
-    """
-    #TODO
+    Param command is equivalent to fpchClientCommand[1..n] input to RP1210_SendCommand.
 
-def setCANFilterType():
-    """
-    Set CAN Filter Type (26)
-    """
-    #TODO
+    This function is mostly useful for building the following functions:
+    - addBroadcastList
+    - viewBroadcastList
+    - destroyBroadcastList
+    - removeBroadcastEntry
+    - getBroadcastListLength
 
-def setJ1939InterpacketTime():
+    This function applies for protocols J1708, CAN, J1939, J1850, ISO15765, ISO9141, and KWP2000.
+    """
+    func = sanitize_msg_param(function, 1)
+    # if not func in [b'\x01', b'\x02', b'\x03', b'\x04', b'\x05']:
+    #     raise ValueError("function must be one of:", "ADD_LIST (1)", "VIEW_B_LIST (2)", 
+    #                         "DESTROY_LIST (3)", "REMOVE_ENTRY (4)", "LIST_LENGTH (5")
+    ret_val = func
+    ret_val += sanitize_msg_param(command)
+    return ret_val
+
+
+def setFilterType(filter_type = Literal[0, 1]):
+    """
+    Set Filter Type
+
+    filter_type:
+    - 0 = FILTER_INCLUSIVE
+    - 1 = FILTER_EXCLUSIVE
+
+    Used for:
+    - RP1210_Set_J1708_Filter_Type (24)
+    - RP1210_Set_J1939_Filter_Type (25)
+    - RP1210_Set_CAN_Filter_Type (26)
+    - RP1210_Set_J1850_Filter_Type (30)
+    - RP1210_Set_IS015765_Filter_Type (32)
+    """
+    val = sanitize_msg_param(filter_type, 1)
+    # if not val in [b'\x00', b'\x01']:
+    #     raise ValueError("filter_type must be 0 (FILTER_INCLUSIVE) or 1 (FILTER_EXCLUSIVE)")
+    return val
+
+def setJ1939InterpacketTime(time_in_ms : int):
     """
     Set J1939 Broadcast Interpacket Timing (27)
-    """
-    #TODO
 
-def setMaxErrorMsgSize():
+    Args:
+    - time_in_ms - interpacket time in milliseconds (unsigned 32-bit int)
+    """
+    return sanitize_msg_param(time_in_ms, 4, 'little')
+
+def setMaxErrorMsgSize(msg_size : int):
     """
     Set Max Error Message Return Size (28)
+
+    Args:
+    - msg_size - value in bytes for how large error messages are allowed to be.
+        - Should be between 81 and 65535
     """
-    #TODO
+    return sanitize_msg_param(msg_size, 2, 'little')
 
 def disallowConnections():
     """
     Disallow Further Client Connections (29)
-    """
-    #TODO
 
-def setJ1939Baud():
+    There is no data required for this command, so this function will return b''
+    """
+    return b''
+
+def setJ1939Baud(baud_code : int, wait_for_msg = True):
     """
     Set J1939 Baud Rate (37)
-    """
-    #TODO
 
-def setBlockingTimeout():
+    Args:
+    - baud_code - code that corresponds w/ desired baud rate
+        - 125k = 4
+        - 250k = 5
+        - 500k = 6
+        - 1000k = 7
+    - wait_for_msg - should we apply the baud change after the current message is finished, or
+                    apply the change right away?
+    """
+    # translate codes if applicable
+    if baud_code in [125000, 125, '125', '125k', '125000']:
+        baud_code = 0x04
+    elif baud_code in [250000, 250, '250', '250k', '250000']:
+        baud_code = 0x05
+    elif baud_code in [500000, 500, '500', '500k', '500000']:
+        baud_code = 0x06
+    elif baud_code in [1000000, 1000, '1000', '1000000', '1000k']:
+        baud_code = 0x07
+    # check wait_for_msg flag
+    if wait_for_msg:
+        wait_msg = b'\x01'
+    else:
+        wait_msg = b'\x00'
+    # return value
+    return wait_msg + sanitize_msg_param(baud_code, 1)
+
+
+def setBlockingTimeout(block1 : int, block2 : int):
     """
     Set Blocking Timeout (215)
     """
-    #TODO
+    return sanitize_msg_param(block1, 1) + sanitize_msg_param(block2, 1)
 
-def flushRxTxBuffers():
+def flushBuffers():
     """
     Flush the Send/Receive Buffers (39)
+
+    There is no data required for this command, so this function will return b''
     """
-    #TODO
+    return b''
 
 def getConnectionSpeed():
     """
     What Speed Did the VDA Connect? (45)
-    """
-    #TODO
 
-def getWirelessState():
+    There is no data required for this command, so this function will return b''
     """
-    Is the VDA operating in a wireless mode? (48)
-    """
-    #TODO
+    return b''
 
-def setCANBaud():
+def setCANBaud(baud_code : int, wait_for_msg = True):
     """
     Set CAN Baud Rate (47)
+
+    Args:
+    - baud_code - code that corresponds w/ desired baud rate
+        - 9600 = 0
+        - 19200 = 1
+        - 38400 = 2
+        - 57600 = 3
+        - 125k = 4
+        - 250k = 5
+        - 500k = 6
+        - 1000k = 7
+    - wait_for_msg - should we apply the baud change after the current message is finished, or
+                    apply the change right away?
     """
-    #TODO
+    # translate codes if applicable
+    if baud_code in [9600, 9.6, '9600', '9.6k']:
+        baud_code = 0x00
+    elif baud_code in [19200, 19.2, '19200', '19.2k']:
+        baud_code = 0x01
+    elif baud_code in [38400, 38.4, '38400', '38.4k']:
+        baud_code = 0x02
+    elif baud_code in [57600, 57.6, '57600', '57.6k']:
+        baud_code = 0x03
+    elif baud_code in [125000, 125, '125', '125k', '125000']:
+        baud_code = 0x04
+    elif baud_code in [250000, 250, '250', '250k', '250000']:
+        baud_code = 0x05
+    elif baud_code in [500000, 500, '500', '500k', '500000']:
+        baud_code = 0x06
+    elif baud_code in [1000000, 1000, '1000', '1000000', '1000k']:
+        baud_code = 0x07
+    # check wait_for_msg flag
+    if wait_for_msg:
+        wait_msg = b'\x01'
+    else:
+        wait_msg = b'\x00'
+    # return value
+    return wait_msg + sanitize_msg_param(baud_code, 1)

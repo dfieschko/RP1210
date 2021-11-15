@@ -37,20 +37,19 @@ def test_toJ1939Message_empty():
     assert J1939.toJ1939Message(0, 0, 0, 0, b'') == bytes(6)
     assert J1939.toJ1939Message(b'', b'', b'', b'', b'') == bytes(6)
     assert J1939.toJ1939Message('', '', '', '', b'') == bytes(6)
-    assert J1939.toJ1939Message('0', '0', '0', '0', b'') == bytes(6)
 
 def test_toJ1939Message():
     """test toJ1939Message()"""
     pgn = 0x00FEEE
-    pri = "3"
-    sa = "2"
+    pri = 3
+    sa = 2
     da = 0x0E
     data = 0xDEADBEEF
     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
     assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
     pgn = 0x0AACCC
-    pri = "0"
-    sa = "22"
+    pri = 0
+    sa = 22
     da = 0x1E
     data = 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF0000
     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
@@ -105,3 +104,17 @@ def test_command_claimAddress():
     blocking = False
     command = Commands.protectJ1939Address(address, name, blocking)
     assert command == b"\x01\x00\x00\x00\x00\x00\x23\xF0\x79\x02"
+
+def test_toJ1939Name():
+    # arbitrary address (1 bit)
+    # industry group (3 bits)
+    # vehicle system instance (4 bits)
+    # vehicle system (7 bits)
+    # reserved bit (1 bit)
+    # function (8 bits)
+    # function instance (5 bits)
+    # ecu instance (3 bits)
+    # manufacturer code (11 bits)
+    # identity number (21 bits)
+    """TODO"""
+    

@@ -9,6 +9,8 @@ from RP1210 import J1939, Commands
 import RP1210
 from tkinter import messagebox
 
+TEST_ENABLED = False
+
 def disconnect():
     api = RP1210.RP1210API(API_NAME)
     for clientID in range(0, 15):
@@ -17,6 +19,8 @@ def disconnect():
 API_NAME = "DLAUSB32"
 
 def test_dla2_drivers_begin():
+    if not TEST_ENABLED:
+        return
     messagebox.showinfo("Connect your DLA2 adapter!", 
                         "Connect your DLA2 adapter, then hit OK to continue.\nDon't connect the adapter to a CAN bus!")
 
@@ -24,6 +28,8 @@ def test_dla2_drivers_begin():
 # DON'T ADD ANY TESTS BEFORE THIS POINT!
 
 def test_reset():
+    if not TEST_ENABLED:
+        return
     disconnect()
     api = RP1210.RP1210API(API_NAME)
     clientID = api.ClientConnect(100, b"J1939:Baud=500")
@@ -31,6 +37,8 @@ def test_reset():
     assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
 
 def test_reset_too_many_connections():
+    if not TEST_ENABLED:
+        return
     disconnect()
     api = RP1210.RP1210API(API_NAME)
     clientID = api.ClientConnect(100, b"J1939:Baud=500")
@@ -39,6 +47,8 @@ def test_reset_too_many_connections():
     assert RP1210.translateErrorCode(ret_val) == "ERR_MULTIPLE_CLIENTS_CONNECTED"
 
 def test_dla2_drivers_installed():
+    if not TEST_ENABLED:
+        return
     assert API_NAME in RP1210.getAPINames()
     dla2 = RP1210.RP1210Config(API_NAME)
     assert dla2.isValid()
@@ -47,6 +57,8 @@ def test_dla2_drivers_installed():
 
 def test_ClientConnect():
     """Tests RP1210_ClientConnect with DLA 2.0 adapter connected."""
+    if not TEST_ENABLED:
+        return
     dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDeviceIDs()[0]
     if dla2.getCANAutoBaud():
@@ -57,6 +69,8 @@ def test_ClientConnect():
     assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
 
 def test_ClientConnect_overflow():
+    if not TEST_ENABLED:
+        return
     dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDeviceIDs()[0]
     if dla2.getCANAutoBaud():
@@ -72,6 +86,8 @@ def test_ClientConnect_overflow():
     
 def test_ClientDisconnect():
     """This test calls RP1210_ClientDisconnect for each of the ClientConnect attempts in the test above."""
+    if not TEST_ENABLED:
+        return
     dla2 = RP1210.RP1210Config(API_NAME)
     for x in range (0, 12):
         ret_val = dla2.api.ClientDisconnect(x)
@@ -84,6 +100,8 @@ def test_ClientConnect_Disconnect_j1939_speeds():
     """
     Tests ClientConnect and ClientDisconnect with all possible J1939 speeds.
     """
+    if not TEST_ENABLED:
+        return
     dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDeviceIDs()[0]
     # make sure we're disconnected
@@ -105,6 +123,8 @@ def test_ClientConnect_Disconnect_j1939_speeds():
 
 def test_SendMessage_no_address_claimed():
     """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
+    if not TEST_ENABLED:
+        return
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
     protocol = J1939.getJ1939ProtocolString(1, "500")
@@ -120,6 +140,8 @@ def test_SendMessage_no_address_claimed():
 
 def test_SendCommand_claim_j1939_address():
     """Test SendCommand function w/ command "Protect_J1939_Address" (19)"""
+    if not TEST_ENABLED:
+        return
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
     command_id = 19
@@ -138,6 +160,8 @@ def test_SendCommand_claim_j1939_address():
     api.ClientDisconnect(clientID)
 
 def test_SendCommand_claim_and_release_j1939_address():
+    if not TEST_ENABLED:
+        return
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
     command_id = 19
@@ -161,6 +185,8 @@ def test_SendCommand_claim_and_release_j1939_address():
     api.ClientDisconnect(clientID)
 
 def test_SendCommand_release_unclaimed_j1939_address():
+    if not TEST_ENABLED:
+        return
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
     address = 10
@@ -178,6 +204,8 @@ def test_SendCommand_release_unclaimed_j1939_address():
 
 def test_SendMessage():
     """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
+    if not TEST_ENABLED:
+        return
     disconnect()
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
@@ -197,6 +225,8 @@ def test_SendMessage():
     api.ClientDisconnect(clientID)
 
 def test_setMessageReceive():
+    if not TEST_ENABLED:
+        return
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
     protocol = J1939.getJ1939ProtocolString(1, "500")

@@ -16,7 +16,6 @@ J1939 classes:
 
 from RP1210 import sanitize_msg_param
 
-
 def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) -> bytes:
     """
     Converts args to J1939 message suitable for RP1210_SendMessage function.
@@ -34,20 +33,15 @@ def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) ->
     Arguments can be strings, ints, or bytes. This function will decode UTF-8 characters in strings
     to base-10 ints, so don't provide it with letters or special characters. If you want to send it
     0xFF, send it as an int and not "FF".
-
-    Set argument sanitize to False if you don't want to sanitize arguments. This means
-    you must provide them as bytes, but might save a bit of CPU time.
     """
-    # sanitize inputs ~ convert to bytes
-    if sanitize:
-        pgn = sanitize_msg_param(pgn, 3, 'little')
-        priority = sanitize_msg_param(priority, 1)
-        source = sanitize_msg_param(source, 1)
-        destination = sanitize_msg_param(destination, 1)
-        data = sanitize_msg_param(data)
-    return pgn + priority + source + destination + data
+    ret_val = sanitize_msg_param(pgn, 3, 'little')
+    ret_val += sanitize_msg_param(priority, 1)
+    ret_val += sanitize_msg_param(source, 1)
+    ret_val += sanitize_msg_param(destination, 1)
+    ret_val += sanitize_msg_param(data)
+    return ret_val
 
-def toJ1939Request(pgn_requested, source, destination = 255, priority = 6):
+def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> bytes:
     """
     Formats a J1939 request message. This puts out a request for the specified PGN, and will prompt
     other devices on the network to respond.
@@ -60,10 +54,39 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6):
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
     return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
 
+def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
+                function : int, function_instance : int, ecu_instance : int, mfg_code : int, id : int) -> bytes:
+    def add_bits(name, val, num_bits):
+        mask = (1 << num_bits) - 1
+        value = int.from_bytes(sanitize_msg_param(val), (num_bits + 7) // 8)
+        return (name << num_bits) + (value & mask)
+    name = 0b0
+    # arbitrary address (1 bit)
+    name = add_bits(name, arbitrary_address, 1)
+    # industry group (3 bits)
+    name = add_bits(name, industry_group, 3)
+    # vehicle system instance (4 bits)
+    name = add_bits(name, system_instance, 4)
+    # vehicle system (7 bits)
+    name = add_bits(name, system, 7)
+    # reserved bit
+    name = add_bits(name, 1, 1)
+    # function (8 bits)
+    name = add_bits(name, function, 8)
+    # function instance (5 bits)
+    name = add_bits(name, function_instance, 5)
+    # ecu instance (3 bits)
+    name = add_bits(name, ecu_instance, 3)
+    # manufacturer code (11 bits)
+    name = add_bits(name, mfg_code, 11)
+    # identity number (21 bits)
+    name = add_bits(name, id, 21)
+    return sanitize_msg_param(name)
+
 def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = -1,
                         SampleLocation = 95, SJW = 1,
                         PROP_SEG = 1, PHASE_SEG1 = 2, PHASE_SEG2 = 1,
-                        TSEG1 = 2, TSEG2 = 1, SampleTimes = 1) -> str:
+                        TSEG1 = 2, TSEG2 = 1, SampleTimes = 1) -> bytes:
     """
     Generates fpchProtocol string for ClientConnect function. The default values you see above
     were made up on the spot and shouldn't necessarily be used.
