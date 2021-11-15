@@ -290,8 +290,13 @@ def setBroadcastList(function : Literal[1, 2, 3, 4, 5], command) -> bytes:
 
     This function applies for protocols J1708, CAN, J1939, J1850, ISO15765, ISO9141, and KWP2000.
     """
-    ret_val = sanitize_msg_param(function, 1)
+    func = sanitize_msg_param(function, 1)
+    # if not func in [b'\x01', b'\x02', b'\x03', b'\x04', b'\x05']:
+    #     raise ValueError("function must be one of:", "ADD_LIST (1)", "VIEW_B_LIST (2)", 
+    #                         "DESTROY_LIST (3)", "REMOVE_ENTRY (4)", "LIST_LENGTH (5")
+    ret_val = func
     ret_val += sanitize_msg_param(command)
+    return ret_val
 
 
 def setFilterType(filter_type = Literal[0, 1]):
@@ -310,15 +315,21 @@ def setFilterType(filter_type = Literal[0, 1]):
     - RP1210_Set_IS015765_Filter_Type (32)
     """
     val = sanitize_msg_param(filter_type, 1)
-    if not val in [b'\x00', b'\x01']:
-        raise ValueError("filter_type must be 0 (FILTER_INCLUSIVE) or 1 (FILTER_EXCLUSIVE)")
+    # if not val in [b'\x00', b'\x01']:
+    #     raise ValueError("filter_type must be 0 (FILTER_INCLUSIVE) or 1 (FILTER_EXCLUSIVE)")
     return val
 
-def setJ1939InterpacketTime():
+def setJ1939InterpacketTime(clientID : int, time_in_ms : int):
     """
     Set J1939 Broadcast Interpacket Timing (27)
+
+    Args:
+    - clientID - your client ID
+    - time_in_ms - interpacket time in milliseconds (unsigned 32-bit int)
     """
-    #TODO
+    ret_val = sanitize_msg_param(clientID, 1)
+    ret_val += sanitize_msg_param(time_in_ms, 4, 'little')
+    return ret_val
 
 def setMaxErrorMsgSize():
     """

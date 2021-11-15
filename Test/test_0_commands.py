@@ -75,6 +75,25 @@ def test_setMessageReceive():
     assert Commands.setMessageReceive(False) == b'\x00'
 
 def test_releaseJ1939Address():
-    commands = [0x0F, "11", 41, b'\x23']
+    commands = [0x0F, 11, 41, b'\x23']
     for command in commands:
         assert Commands.releaseJ1939Address(command) == sanitize_msg_param(command)
+
+def test_setBroadcastList():
+    assert Commands.setBroadcastList(1, b'test') == b'\x01' + b'test'
+    assert Commands.setBroadcastList(2, 0xDEADBEEF) == b'\x02' + b'\xDE\xAD\xBE\xEF'
+    assert Commands.setBroadcastList(3, b'Bingus') == b'\x03' + b'Bingus'
+
+def test_setFilterType():
+    assert Commands.setFilterType(0) == b'\x00'
+    assert Commands.setFilterType(1) == b'\x01'
+
+def test_setJ1939InterpacketTime():
+    clientID = 3
+    time = 200
+    assert Commands.setJ1939InterpacketTime(clientID, time) == b'\x03\xC8\x00\x00\x00'
+    time = 2000
+    assert Commands.setJ1939InterpacketTime(clientID, time) == b'\x03\xD0\x07\x00\x00'
+    time = 500000 # 0x07 A1 20
+    assert Commands.setJ1939InterpacketTime(clientID, time) == b'\x03\x20\xA1\x07\x00'
+

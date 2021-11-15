@@ -33,18 +33,13 @@ def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) ->
     Arguments can be strings, ints, or bytes. This function will decode UTF-8 characters in strings
     to base-10 ints, so don't provide it with letters or special characters. If you want to send it
     0xFF, send it as an int and not "FF".
-
-    Set argument sanitize to False if you don't want to sanitize arguments. This means
-    you must provide them as bytes, but might save a bit of CPU time.
     """
-    # sanitize inputs ~ convert to bytes
-    if sanitize:
-        pgn = sanitize_msg_param(pgn, 3, 'little')
-        priority = sanitize_msg_param(priority, 1)
-        source = sanitize_msg_param(source, 1)
-        destination = sanitize_msg_param(destination, 1)
-        data = sanitize_msg_param(data)
-    return pgn + priority + source + destination + data
+    ret_val = sanitize_msg_param(pgn, 3, 'little')
+    ret_val += sanitize_msg_param(priority, 1)
+    ret_val += sanitize_msg_param(source, 1)
+    ret_val += sanitize_msg_param(destination, 1)
+    ret_val += sanitize_msg_param(data)
+    return ret_val
 
 def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> bytes:
     """

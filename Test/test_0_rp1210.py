@@ -170,27 +170,23 @@ def test_RP1210Interface_NEMESIS():
     assert str(device) == str(device.getID()) + " - " + device.getDescription()
 
 def test_sanitize_msg_param_bytes():
-    assert sanitize_msg_param(b'0') == b'\x00'
+    assert sanitize_msg_param(b'0') == b'0'
     assert sanitize_msg_param(b'\x00') == b'\x00'
-    assert sanitize_msg_param(b'16') == b'\x10'
+    assert sanitize_msg_param(b'16') == b'16'
     assert sanitize_msg_param(b'\x10') == b'\x10'
-    assert sanitize_msg_param(b'0', 2) == b'\x00\x00'
+    assert sanitize_msg_param(b'0', 2) == b'\x000'
     assert sanitize_msg_param(b'\x00', 2) == b'\x00\x00'
     assert sanitize_msg_param(b'') == b''
     assert sanitize_msg_param(b'', 4) == b'\x00\x00\x00\x00'
     
 def test_sanitize_msg_param_str():
-     assert sanitize_msg_param("0") == b'\x00'
-     assert sanitize_msg_param("16") == b'\x10'
-     assert sanitize_msg_param("0", 2) == b'\x00\x00'
+     assert sanitize_msg_param("0") == b'0'
+     assert sanitize_msg_param("16") == b'16'
+     assert sanitize_msg_param("0", 2) == b'\x000'
      assert sanitize_msg_param("") == b''
      assert sanitize_msg_param("", 4) == b'\x00\x00\x00\x00'
      assert sanitize_msg_param("Boogity") == b"Boogity"
      assert sanitize_msg_param("Boogity", 4, 'little') == b'ytig'
-
-     for x in range(0, 0xFFFF):
-        assert x == int.from_bytes(sanitize_msg_param(str(x)), 'big')
-        assert x == int.from_bytes(sanitize_msg_param(str(x), 2, 'little'), 'little')
 
 def test_sanitize_msg_param_int():
     assert sanitize_msg_param(0) == b'\x00'

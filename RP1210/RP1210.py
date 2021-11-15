@@ -186,19 +186,17 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
             return b'' + b'\x00' * num_bytes
         return sanitize_msg_param(str.encode(param, 'utf8'), num_bytes, byteorder)
     elif isinstance(param, bytes):
-        try:    # decode from UTF-8
-            return sanitize_msg_param(int(param.decode('utf8')), num_bytes, byteorder)
-        except ValueError: # not in utf8 format
-            # check if we need to add padding
-            if len(param) < num_bytes:
-                padding = b'\x00' * (num_bytes - len(param))
-            else:
-                padding = b''
-            # add padding before or after, depending on endianness
-            if byteorder == 'big':
-                return padding + param
-            else:
-                return param + padding
+         # convert to int, run sanitize_msg_param again
+        if num_bytes == 0:
+            if param == b'': # len == 1 for b'', but we don't want to return b'\x00'
+                return b''
+            num_bytes = len(param)
+        if byteorder == 'little':
+            param2 = param[::-1]
+        else:
+            param2 = param
+        val = int.from_bytes(param2[:num_bytes], byteorder)
+        return sanitize_msg_param(val, num_bytes, byteorder)
     
 
 class RP1210Protocol:

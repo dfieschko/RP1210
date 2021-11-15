@@ -37,20 +37,19 @@ def test_toJ1939Message_empty():
     assert J1939.toJ1939Message(0, 0, 0, 0, b'') == bytes(6)
     assert J1939.toJ1939Message(b'', b'', b'', b'', b'') == bytes(6)
     assert J1939.toJ1939Message('', '', '', '', b'') == bytes(6)
-    assert J1939.toJ1939Message('0', '0', '0', '0', b'') == bytes(6)
 
 def test_toJ1939Message():
     """test toJ1939Message()"""
     pgn = 0x00FEEE
-    pri = "3"
-    sa = "2"
+    pri = 3
+    sa = 2
     da = 0x0E
     data = 0xDEADBEEF
     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
     assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
     pgn = 0x0AACCC
-    pri = "0"
-    sa = "22"
+    pri = 0
+    sa = 22
     da = 0x1E
     data = 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF0000
     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
