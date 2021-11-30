@@ -16,7 +16,7 @@ J1939 classes:
 
 from RP1210 import sanitize_msg_param
 
-def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) -> bytes:
+def toJ1939Message(pgn, priority, source, destination, data) -> bytes:
     """
     Converts args to J1939 message suitable for RP1210_SendMessage function.
 
@@ -30,9 +30,9 @@ def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) ->
     - Destination Address (1 byte)
     - Message Data (0 - 1785 byes)
 
-    Arguments can be strings, ints, or bytes. This function will decode UTF-8 characters in strings
-    to base-10 ints, so don't provide it with letters or special characters. If you want to send it
-    0xFF, send it as an int and not "FF".
+    Arguments can be strings, ints, or bytes. This function will parse strings as UTF-8 characters,
+    so don't provide it with letters or special characters unless that's what you mean to send.
+    If you want to send it 0xFF, send it as an int and not "FF".
     """
     ret_val = sanitize_msg_param(pgn, 3, 'little')
     ret_val += sanitize_msg_param(priority, 1)
@@ -163,7 +163,11 @@ class J1939MessageParser():
 
     def isRequest(self) -> bool:
         """Returns true if PGN matches J1939 Request PGN."""
-        return self.getPGN() == 0x00EA00
+        return self.getPGN() == 0xEA00
+
+    def isDM1(self) -> bool:
+        """Returns true if PGN matches DM1 message PGN."""
+        return self.getPGN() == 0xFECA
 
     def getTimestamp(self) -> int:
         """Returns timestamp (4 bytes) as int."""

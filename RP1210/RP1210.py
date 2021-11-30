@@ -843,7 +843,7 @@ class RP1210API:
         self._api_valid = False
         self._api_name = api_name
         self.dll = None
-        self._rp1210c = True
+        self._conforms_to_rp1210c = True
 
     def getDLL(self) -> CDLL:
         """
@@ -897,7 +897,7 @@ class RP1210API:
         self.getDLL()
         if not self.isValid():
             return False
-        return self._rp1210c
+        return self._conforms_to_rp1210c
 
     def setDLL(self, dll : CDLL):
         """Sets the CDLL used to call RP1210 API functions."""
@@ -981,9 +981,9 @@ class RP1210API:
             ret_val = (ret_val - 0x10000)
         return ret_val
 
-    def ReadDirect(self, ClientID : int, BufferSize = 512, BlockOnRead = 0) -> bytes:
+    def ReadDirect(self, ClientID : int, BufferSize = 512, BlockOnRead = 0):
         """
-        Calls ReadMessage, but generates and returns its own RxBuffer as an array of c_chars.
+        Calls ReadMessage, but generates and returns its own RxBuffer as bytes.
         - ClientID = clientID you got from ClientConnect
         - BufferSize = the size of the buffer in bytes. Defaults to 512.
         - BlockOnRead = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
@@ -995,8 +995,8 @@ class RP1210API:
         RxBuffer = create_string_buffer(BufferSize)
         size = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
         if size < 0: # errored out
-            return create_string_buffer(0)
-        return create_string_buffer(RxBuffer[:size]).value # this is kind of gross
+            return b''
+        return create_string_buffer(RxBuffer[:size]).raw # this is kind of gross
 
     def ReadVersion(self, DLLMajorVersionBuffer : bytes, 
                         DLLMinorVersionBuffer : bytes,
@@ -1049,7 +1049,7 @@ class RP1210API:
         this function will return 128 (ERR_DLL_NOT_INITIALIZED).
         """
         self.getDLL()   # set rp1210c flag
-        if not self._rp1210c:
+        if not self._conforms_to_rp1210c:
             return 128
         return self.getDLL().RP1210_ReadDetailedVersion(ClientID, APIVersionBuffer, 
                                                         DLLVersionBuffer, FWVersionBuffer)
@@ -1067,7 +1067,7 @@ class RP1210API:
         this function will return empty strings.
         """
         self.getDLL()   # set rp1210c flag
-        if not self._rp1210c:
+        if not self._conforms_to_rp1210c:
             return ("", "", "")
         APIVersionInfo = create_string_buffer(17)
         DLLVersionInfo = create_string_buffer(17)
@@ -1146,7 +1146,7 @@ class RP1210API:
             self.dll.RP1210_GetLastErrorMsg.argtypes = [c_short, POINTER(c_int32), c_char_p, c_short]
             self.dll.RP1210_Ioctl.argtypes = [c_short, c_long, c_void_p, c_void_p]
         except Exception: # RP1210C functions not supported
-            self._rp1210c = False
+            self._conforms_to_rp1210c = False
 
     def __get_dll_path_aux(self) -> str:
         """
