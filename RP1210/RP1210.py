@@ -342,8 +342,8 @@ class RP1210Config(ConfigParser):
     As such, it is embarrassingly long.
 
     This class holds an instance of RP1210API, which you can use to call RP1210 functions.
-        nexiq = RP1210Config("NULN2R32")
-         clientID = nexiq.api.ClientConnect(args)
+    - `nexiq = RP1210Config("NULN2R32")`
+    - `clientID = nexiq.api.ClientConnect(args)`
 
     You can use str(this_object) to generate a string to display in your Vendors dropdown.
     """
@@ -1168,4 +1168,104 @@ class RP1210API:
     
     def __is_valid_clientid(self, clientID) -> bool:
         return clientID in RP1210_ERRORS or (0 <= clientID < 128)
+
+class RP1210VendorList:
+    """
+    Loads and stores a list of all RP1210 adapter vendors specified in RP121032.ini.
+    
+    Also points to a specific RP1210Config, and a device within that RP1210Config. This feature is
+    intended to be used with a couple of combo boxes that allow for the selection of RP1210 vendors
+    and devices.
+
+    - Access the RP1210Config object that is currently being pointed to with `getVendor()`.
+    - Access the RP1210API object that is currently being pointed to with with `getAPI()`.
+    - Set vendor index with `setVendorIndex()`.
+    - Set device index with `setDeviceIndex()`. This is NOT deviceID!
+    - If you have a vendor name but not index, use `getVendorIndex(api_name)` to find the index.
+    """
+    def __init__(self):
+        super().__init__()
+        self.vendors = [] #type: list[RP1210Config]
+        self.vendorIndex = 0
+        self.deviceIndex = 0
+        self.populate()
+
+    def populate(self) -> None:
+        """
+        Populates vendors from RP121032.ini. Initializes an RP1210Config object for each vendor name
+        that is found.
+        """
+        self.vendors.clear()
+        api_list = getAPINames()
+        try:
+            for api_name in api_list:
+                try:
+                    self.vendors.append(RP1210Config(api_name))
+                except Exception:
+                    pass
+        except Exception:
+            self.vendors = []
+
+    def getList(self) -> list[RP1210Config]:
+        """Returns list of stored RP1210Config objects."""
+        return self.vendors
+    
+    def getAPI(self) -> RP1210API:
+        """Returns RP1210API object pointed to by current vendor index and device index."""
+        return self.getCurrentVendor().getAPI()
+
+    def setVendorIndex(self, index : int):
+        self.vendorIndex = index
+
+    def setDeviceIndex(self, index : int):
+        self.deviceIndex = index
+
+    def getVendor(self, index : int) -> RP1210Config:
+        """Returns RP1210Config object in vendor list at specified index."""
+        try:
+            return self.vendors[index]
+        except Exception:
+            return None
+
+    def getVendorIndex(self, api_name : str) -> int:
+        """
+        Returns index of vendor in list, given vendor's api name.
+
+        Returns 0 (start of list) if vendor is not found in list.
+        """
+        index = 0
+        try:
+            for vendor in self.vendors:
+                if vendor.getAPIName() == api_name:
+                    return index
+                index += 1
+        except Exception:
+            pass
+        # if no matching vendor found in list:
+        return 0
+
+    def getCurrentVendor(self) -> RP1210Config:
+        """
+        Returns RP1210Config object pointed to by vendor_index.
+        """
+        try:
+            return self.vendors[self.vendorIndex]
+        except Exception:
+            return None
+
+    def getCurrentDevice(self) -> RP1210Device:
+        """
+        Returns RP1210Device object pointed to by device_index.
+        """
+        try:
+            return self.getCurrentVendor().getDevices()[self.deviceIndex]
+        except IndexError: # check for index out of bounds
+            # if DeviceList holds zero devices, throw a bigger exception
+            if len(self.getCurrentVendor().getDevices()) == 0:
+                return None
+            # if index is out of bounds, reset it to position 0
+            self.deviceIndex = 0
+            return self.getCurrentDevice()
+        except Exception:
+            return None
 
