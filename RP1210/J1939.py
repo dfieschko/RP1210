@@ -200,3 +200,60 @@ class J1939MessageParser():
         """Returns message data (0 - 1785 bytes) as bytes."""
         loc = 10 + self.echo_offset
         return self.msg[loc:]
+
+
+def isDMRequestPGN(pgn) -> bool:
+    """
+    Checks if PGN matches Diagnostic Message Request PGN.
+
+    Returns True if pgn is 0xEA00 (DM request PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xEA\x00'
+
+def isDM1MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM1 (active DTC) Message PGN.
+
+    Returns True if pgn is 0xFECA (DM1 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xCA'
+
+def isDM2MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM2 (previously active DTC) Message PGN.
+    
+    Returns True if pgn is 0xFECB (DM2 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xCB'
+
+def isDM3MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM3 (clear previously active DTCs) Message PGN.
+
+    Returns True if pgn is 0xFECC (DM3 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xCC'
+
+def isDM4MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM4 (freeze frame parameters) Message PGN.
+    
+    Returns True if pgn is 0xFECD (DM4 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xCD'
+
+def isDM11MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM11 (clear active DTCs) Message PGN.
+    
+    Returns True if pgn is 0xFED3 (DM11 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xD3'
+
+def isDM12MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM12 (emission-related active DTCs) Message PGN.
+    
+    Returns True if pgn is 0xFED4 (DM12 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xD4'
