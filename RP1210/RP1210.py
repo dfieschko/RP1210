@@ -5,6 +5,8 @@ import os
 import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
+from typing import Literal
+from RP1210 import Commands
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -160,44 +162,6 @@ def getAPINames(rp121032_path = None) -> list[str]:
         return parser["RP1210Support"]["APIImplementations"].split(",")
     except Exception:
         return []
-
-def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> bytes:
-    """
-    'Sanitizes' (converts to bytes) a message parameter.
-
-    Defaults to big-endianness and whatever the size of param is.
-
-    This function is meant for internal use in message/protocol files; it's only public because
-    I didn't want to copy/paste it a bunch of times.
-    """
-    if isinstance(param, int): # int to bytes
-        if num_bytes == 0:
-            num_bytes = (param.bit_length() + 7) // 8
-            if param == 0: # don't cut it off if the input is zero
-                num_bytes = 1
-        return param.to_bytes(num_bytes, byteorder)
-    elif isinstance(param, bool):
-        if param:
-            return sanitize_msg_param(1, num_bytes, byteorder)
-        else:
-            return sanitize_msg_param(0, num_bytes, byteorder)
-    elif isinstance(param, str): # string to bytes
-        if param == "": # check for empty string
-            return b'' + b'\x00' * num_bytes
-        return sanitize_msg_param(str.encode(param, 'utf8'), num_bytes, byteorder)
-    elif isinstance(param, bytes):
-         # convert to int, run sanitize_msg_param again
-        if num_bytes == 0:
-            if param == b'': # len == 1 for b'', but we don't want to return b'\x00'
-                return b''
-            num_bytes = len(param)
-        if byteorder == 'little':
-            param2 = param[::-1]
-        else:
-            param2 = param
-        val = int.from_bytes(param2[:num_bytes], byteorder)
-        return sanitize_msg_param(val, num_bytes, byteorder)
-    
 
 class RP1210Protocol:
     """
@@ -922,7 +886,7 @@ class RP1210API:
         - Tx and Rcv buffer sizes default to 8K when given an argument of 0.
         - Don't mess with argument nisAppPacketizingincomingMsgs.
 
-        Returns nDeviceID. 0 to 127 means connection was successful; >127 means it failed.
+        Returns clientID. 0 to 127 means connection was successful; >127 means it failed.
 
         Use function translateClientID() to translate nClientID to an error message.
         """
@@ -1269,3 +1233,210 @@ class RP1210VendorList:
         except Exception:
             return None
 
+    def getDeviceID(self) -> int:
+        return self.getCurrentDevice().getID()
+
+class RP1210Client(RP1210VendorList):
+    """
+    Stores a list of all adapter vendors and devices read from .ini files (child of VendorList) and
+    handles connection with an adapter.
+    """
+
+    def __init__(self) -> None:
+        self.clientID = 128 # DLL_NOT_INITIALIZED
+
+    def connect(self, protocol = b"J1939:Baud=Auto") -> int:
+        """
+        Calls ClientConnect w/ specified protocol string, then stores resultant clientID.
+
+        Returns clientID; will return -1 if there's an error.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        try:
+            # if vendor .ini file is invalid, don't try to connect
+            if not self.getCurrentVendor().isValid():
+                return -1
+            deviceID = self.getDeviceID()
+            self.clientID = self.getAPI().ClientConnect(deviceID, protocol)
+            return self.clientID
+        except Exception:
+            return -1
+
+    def command(self, CommandNumber, ClientCommand = b"", MessageSize = 0) -> int:
+        """
+        Calls RP1210_SendCommand with current clientID.
+
+        MessageSize will default to len(ClientCommand) if it is left 0.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        try:
+            return self.getAPI().SendCommand(CommandNumber, self.clientID, ClientCommand, MessageSize)
+        except Exception:
+            return -1
+
+    def getClientID(self) -> int:
+        """
+        Returns clientID received from ClientConnect command (which you call via `connect()`).
+
+        If `connect()` has not yet been called, will default to 128 (DLL_NOT_INITIALIZED).
+
+        Will return -1 if there was an error calling ClientConnect.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        return self.clientID
+
+    ############
+    # COMMANDS #
+    ############
+
+    def resetDevice(self) -> int:
+        """
+        Reset Device (0) (0 bytes)
+
+        RP1210_RESET_DEVICE only works if only one client is connected to the adapter, and does
+        the exact same thing as if you called the function ClientDisconnect.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        return self.command(0)
+    
+    def setAllFiltersToPass(self) -> int:
+        """
+        Set All Filter States to Pass (3) (0 bytes)
+        """
+        return self.command(3)
+
+    def setJ1939Filters(self, filter_flag : int, pgn = 0, source = 0, dest = 0) -> int:
+        """
+        Set Message Filtering for J1939 (4) (7 bytes)
+
+        Args:
+        - Filter flag (1 byte) - filter flag integer/bytecode.
+            - FILTER_PGN (1), FILTER_SOURCE (2), FILTER_DESTINATION (4)
+            - J1939_FILTERS dict is available for convenience.
+        - PGN (3 bytes) - the PGN that needs to be filtered.
+        - Source Address (1 byte) - the source address that needs to be filtered.
+        - Destination Address (1 byte) - the destination address that needs to be filtered.
+
+        Args pgn, source, and dest only do anything if they are set with filter_flag. If they aren't,
+        they will be ignored.
+
+        You can specifiy filter_flag and keyword arguments instead of entering useless values for
+        pgn, source, or dest.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 4
+        cmd_data = Commands.setJ1939Filters(filter_flag, pgn, source, dest)
+        cmd_size = 7
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setCANFilters(self, can_type, mask, header) -> int:
+        """
+        Set Message Filtering for CAN (5) (9 bytes)
+
+        Args:
+        - CAN Type (1 byte) - 0x00 for STANDARD_CAN, 0x01 for EXTENDED_CAN.
+            - See dict CAN_TYPES for other types.
+        - Mask (4 bytes) - a bitwise mask that indicates which bits in the header need to be matched.
+            - Big endian; "1" means a value is important; "0" means a value is unimportant.
+        - Header (4 bytes) - "Indicates what value is required for each bit of interest".
+
+        This is one of those functions that you're going to want the RP1210C documentation for.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 5
+        cmd_data = Commands.setCANFilters(can_type, mask, header)
+        cmd_size = 9
+        return self.command(cmd_num, cmd_data, cmd_size)
+        
+    def setEcho(self, echo_on = True) -> int:
+        """
+        Set Echo Transmitted Messages (16) (1 byte)
+
+        Args:
+        - Echo on/off (bool) - False for no echo, True for echo.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 16
+        cmd_data = Commands.setEcho(echo_on)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setAllFiltersToDiscard(self) -> int:
+        """
+        Set All Filter States to Discard (17) (0 bytes)
+        """
+        return self.command(17)
+
+    def setMessageReceive(self, receive_messages = True) -> int:
+        """
+        Set Message Receive (18)
+
+        Args:
+        - Receive on/off : True = RECEIVE_ON, False = RECEIVE_OFF.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 18
+        cmd_data = Commands.setMessageReceive(receive_messages)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def protectJ1939Address(self, address_to_claim, network_mgt_name, blocking = True) -> bytes:
+        """
+        Protect J1939 Address (19) (10 bytes)
+
+        This command claims an address on the J1939 bus.
+        - address_to_claim (1 byte) - 8-bit address to claim on the J1939 bus.
+        - network_mgt_name (8 bytes) - 8-byte name of client on network (this is you!)
+            - See J1939 network management standard!
+            - Lowest name takes priority if two devices try to claim the same address
+        - blocking (bool) - True will block until done, False will return before completion
+
+        This function automatically sanitizes str, int, and bytes inputs. str are parsed as 10-bit
+        decimals! Use byte strings (b"message") if you want to pass utf-8 characters.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 19
+        cmd_data = Commands.protectJ1939Address(address_to_claim, network_mgt_name, blocking)
+        cmd_size = 10
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def releaseJ1939Address(self, address) -> int:
+        """
+        Release a J1939 Address (31)
+
+        Args:
+        - Address (1 byte) - the address to release.
+
+        This doesn't do anything special with the J1939 bus. All it does is tell your adapter not to
+        use this address anymore.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 31
+        cmd_data = Commands.releaseJ1939Address(address)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setJ1939FilterType(self, filter_type = Literal[0, 1]) -> int:
+        """
+        Set Filter Type (1 byte)
+
+        filter_type:
+        - 0 = FILTER_INCLUSIVE
+        - 1 = FILTER_EXCLUSIVE
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 25
+        cmd_data = Commands.setFilterType(filter_type)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)

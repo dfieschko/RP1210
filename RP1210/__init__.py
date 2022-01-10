@@ -13,6 +13,7 @@ Official RP1210C documentation can be purchased from TMC at this link ($37.50 at
 """
 # Import everything from RP1210.py
 from RP1210.RP1210 import *
+from RP1210.functions import *
 # Import other modules (not necessary in 3.9)
 from RP1210 import Commands, J1939
 
