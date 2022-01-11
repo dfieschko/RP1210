@@ -1202,7 +1202,7 @@ class RP1210VendorList:
                     return index
                 index += 1
         except Exception:
-            pass
+            return 0
         # if no matching vendor found in list:
         return 0
 
