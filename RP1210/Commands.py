@@ -4,7 +4,7 @@ Generate ClientCommand inputs for RP1210_SendCommand.
 Each function in this file returns a value that can be used for ClientCommand.
 """
 from typing import Literal
-from functions import sanitize_msg_param
+from RP1210 import sanitize_msg_param
 
 COMMAND_IDS = {
     "RESET_DEVICE" : 0,

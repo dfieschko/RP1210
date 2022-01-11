@@ -9,7 +9,7 @@ from RP1210 import J1939, Commands
 import RP1210
 from tkinter import messagebox
 
-TEST_ENABLED = False
+TEST_ENABLED = True
 
 def disconnect():
     api = RP1210.RP1210API(API_NAME)

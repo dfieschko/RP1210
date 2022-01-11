@@ -943,7 +943,7 @@ class RP1210API:
             ret_val = (ret_val - 0x10000)
         return ret_val
 
-    def ReadDirect(self, ClientID : int, BufferSize = 512, BlockOnRead = 0):
+    def ReadDirect(self, ClientID : int, BufferSize = 256, BlockOnRead = 0):
         """
         Calls ReadMessage, but generates and returns its own RxBuffer as bytes.
         - ClientID = clientID you got from ClientConnect
@@ -958,7 +958,8 @@ class RP1210API:
         size = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
         if size < 0: # errored out
             return b''
-        return create_string_buffer(RxBuffer[:size]).raw # this is kind of gross
+        # return create_string_buffer(RxBuffer[:size]).raw # this is kind of gross
+        return RxBuffer.value
 
     def ReadVersion(self, DLLMajorVersionBuffer : bytes, 
                         DLLMinorVersionBuffer : bytes,
