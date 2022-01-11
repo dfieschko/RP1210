@@ -392,7 +392,10 @@ def setJ1939Baud(baud_code : int, wait_for_msg = True):
 
 def setBlockingTimeout(block1 : int, block2 : int):
     """
-    Set Blocking Timeout (215)
+    Set Blocking Timeout (215) (2 bytes)
+
+    Block 1 and block 2 are multiplied together to determine the final blocking time in
+    milliseconds. Set either block to 0 for infinite time.
     """
     return sanitize_msg_param(block1, 1) + sanitize_msg_param(block2, 1)
 

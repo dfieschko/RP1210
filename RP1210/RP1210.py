@@ -226,7 +226,6 @@ class RP1210Protocol:
         except Exception:
             return []
 
-
 class RP1210Device:
     """
     Stores information for an RP1210 device, e.g. info stored in DeviceInformationXXX sections.
@@ -296,7 +295,6 @@ class RP1210Device:
             ret_str += " - " + self.getDescription()
         return ret_str
          
-
 class RP1210Config(ConfigParser):
     """
     Reads & stores Vendor API information. Child of ConfigParser. Use getAPINames() to get an
@@ -1428,7 +1426,7 @@ class RP1210Client(RP1210VendorList):
 
     def setJ1939FilterType(self, filter_type = Literal[0, 1]) -> int:
         """
-        Set Filter Type (1 byte)
+        RP1210_Set_J1939_Filter_Type (25) (1 byte)
 
         filter_type:
         - 0 = FILTER_INCLUSIVE
@@ -1440,3 +1438,114 @@ class RP1210Client(RP1210VendorList):
         cmd_data = Commands.setFilterType(filter_type)
         cmd_size = 1
         return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setCANFilterType(self, filter_type = Literal[0, 1]) -> int:
+        """
+        RP1210_Set_CAN_Filter_Type (26) (1 byte)
+
+        filter_type:
+        - 0 = FILTER_INCLUSIVE
+        - 1 = FILTER_EXCLUSIVE
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 26
+        cmd_data = Commands.setFilterType(filter_type)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setJ1939InterpacketTime(self, time_in_ms : int) -> int:
+        """
+        Set J1939 Broadcast Interpacket Timing (27) (4 bytes)
+
+        Args:
+        - time_in_ms - interpacket time in milliseconds (unsigned 32-bit int)
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 27
+        cmd_data = Commands.setJ1939InterpacketTime(time_in_ms)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setMaxErrorMsgSize(self, msg_size : int) -> int:
+        """
+        Set Max Error Message Return Size (28) (2 bytes)
+
+        Args:
+        - msg_size - value in bytes for how large error messages are allowed to be.
+            - Should be between 81 and 65535
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 28
+        cmd_data = Commands.setMaxErrorMsgSize(msg_size)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def disallowConnections(self) -> int:
+        """
+        Disallow Further Client Connections (29) (0 bytes)
+        """
+        return self.command(29)
+
+    def setJ1939Baud(self, baud_code : int, wait_for_msg = True) -> int:
+        """
+        Set J1939 Baud Rate (37)
+
+        Args:
+        - baud_code - code that corresponds w/ desired baud rate
+            - 125k = 4
+            - 250k = 5
+            - 500k = 6
+            - 1000k = 7
+        - wait_for_msg - should we apply the baud change after the current message is finished, or
+                        apply the change right away?
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 37
+        cmd_data = Commands.setJ1939Baud(baud_code, wait_for_msg)
+        cmd_size = 2
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setBlockingTimeout(self, block1 : int, block2 : int) -> int:
+        """
+        Set Blocking Timeout (215) (2 bytes)
+
+        Block 1 and block 2 are multiplied together to determine the final blocking time in
+        milliseconds. Set either block to 0 for infinite time.
+        """
+        cmd_num = 215
+        cmd_data = Commands.setJ1939Baud(block1, block2)
+        cmd_size = 2
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def flushBuffers(self) -> int:
+        """
+        Flush the Send/Receive Buffers (39) (0 bytes)
+        """
+        return self.command(39)
+
+    def setCANBaud(self, baud_code : int, wait_for_msg = True):
+        """
+        Set CAN Baud Rate (47) (2 bytes)
+
+        Args:
+        - baud_code - code that corresponds w/ desired baud rate
+            - 9600 = 0
+            - 19200 = 1
+            - 38400 = 2
+            - 57600 = 3
+            - 125k = 4
+            - 250k = 5
+            - 500k = 6
+            - 1000k = 7
+        - wait_for_msg - should we apply the baud change after the current message is finished, or
+                        apply the change right away?
+        """
+        cmd_num = 47
+        cmd_data = Commands.setCANBaud(baud_code, wait_for_msg)
+        cmd_size = 2
+        return self.command(cmd_num, cmd_data, cmd_size)
+
