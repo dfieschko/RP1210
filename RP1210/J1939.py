@@ -165,9 +165,33 @@ class J1939MessageParser():
         """Returns true if PGN matches J1939 Request PGN."""
         return self.getPGN() == 0xEA00
 
+    def isDMRequest(self) -> bool:
+        """Returns true if PGN matches Diagnostic Message Request PGN."""
+        return self.getPGN() == 0xEA00
+
     def isDM1(self) -> bool:
-        """Returns true if PGN matches DM1 message PGN."""
+        """Returns true if PGN matches DM1 (active DTC) PGN."""
         return self.getPGN() == 0xFECA
+    
+    def isDM2(self) -> bool:
+        """Returns true if PGN matches DM2 (previously active DTC) PGN."""
+        return self.getPGN() == 0xFECB
+    
+    def isDM3(self) -> bool:
+        """Returns true if PGN matches DM3 (clear previously active DTCs) PGN."""
+        return self.getPGN() == 0xFECC
+
+    def isDM4(self) -> bool:
+        """Returns true if PGN matches DM4 (freeze frame parameters) PGN."""
+        return self.getPGN() == 0xFECD
+
+    def isDM11(self) -> bool:
+        """Returns true if PGN matches DM11 (clear active DTCs) PGN."""
+        return self.getPGN() == 0xFED3
+
+    def isDM12(self) -> bool:
+        """Returns true if PGN matches DM12 (emission-related active DTCs) PGN."""
+        return self.getPGN() == 0xFED4
 
     def getTimestamp(self) -> int:
         """Returns timestamp (4 bytes) as int."""
