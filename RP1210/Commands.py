@@ -312,7 +312,7 @@ def setBroadcastList(function : Literal[1, 2, 3, 4, 5], command) -> bytes:
     return ret_val
 
 
-def setFilterType(filter_type = Literal[0, 1]):
+def setFilterType(filter_type : Literal[0, 1]):
     """
     Set Filter Type (1 byte)
 

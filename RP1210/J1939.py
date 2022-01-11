@@ -56,6 +56,12 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> by
 
 def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
                 function : int, function_instance : int, ecu_instance : int, mfg_code : int, id : int) -> bytes:
+    """
+    Each J1939-compliant ECU needs its own 64-bit name. This function is meant to help generate such
+    a name based on the component bytes that make it up.
+
+    TODO: This function has not been tested.
+    """
     def add_bits(name, val, num_bits):
         mask = (1 << num_bits) - 1
         value = int.from_bytes(sanitize_msg_param(val), (num_bits + 7) // 8)

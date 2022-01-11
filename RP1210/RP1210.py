@@ -1165,26 +1165,57 @@ class RP1210VendorList:
                 try:
                     self.vendors.append(RP1210Config(api_name))
                 except Exception:
+                    # skip this API if its .ini file can't be parsed
                     pass
         except Exception:
             self.vendors = []
 
     def getList(self) -> list[RP1210Config]:
         """Returns list of stored RP1210Config objects."""
-        return self.vendors
+        try:
+            return self.vendors
+        except Exception:
+            return []
     
     def getAPI(self) -> RP1210API:
-        """Returns RP1210API object pointed to by current vendor index and device index."""
-        return self.getCurrentVendor().getAPI()
+        """
+        Returns RP1210API object pointed to by current vendor index and device index.
+        
+        Returns None on error.
+        """
+        try:
+            return self.getCurrentVendor().getAPI()
+        except Exception:
+            return None
 
     def setVendorIndex(self, index : int):
+        """
+        Set index of current vendor.
+        """
         self.vendorIndex = index
+        self.deviceIndex = 0
+
+    def setVendor(self, api_name : str):
+        """
+        Sets current vendor by api_name (e.g. NULN2R32).
+
+        Will set index to 0 if api_name is not found in RP121032.ini.
+        """
+        index = self.getVendorIndex(api_name)
+        self.setVendorIndex(index)
 
     def setDeviceIndex(self, index : int):
+        """
+        Set index of current device.
+        """
         self.deviceIndex = index
 
     def getVendor(self, index : int) -> RP1210Config:
-        """Returns RP1210Config object in vendor list at specified index."""
+        """
+        Returns RP1210Config object in vendor list at specified index.
+        
+        Will return None on error.
+        """
         try:
             return self.vendors[index]
         except Exception:
@@ -1210,6 +1241,8 @@ class RP1210VendorList:
     def getCurrentVendor(self) -> RP1210Config:
         """
         Returns RP1210Config object pointed to by vendor_index.
+
+        Will return None on error.
         """
         try:
             return self.vendors[self.vendorIndex]
@@ -1219,11 +1252,13 @@ class RP1210VendorList:
     def getCurrentDevice(self) -> RP1210Device:
         """
         Returns RP1210Device object pointed to by device_index.
+
+        Will return None on error.
         """
         try:
             return self.getCurrentVendor().getDevices()[self.deviceIndex]
         except IndexError: # check for index out of bounds
-            # if DeviceList holds zero devices, throw a bigger exception
+            # if DeviceList holds zero devices, there's a bigger issue
             if len(self.getCurrentVendor().getDevices()) == 0:
                 return None
             # if index is out of bounds, reset it to position 0
@@ -1233,7 +1268,15 @@ class RP1210VendorList:
             return None
 
     def getDeviceID(self) -> int:
-        return self.getCurrentDevice().getID()
+        """
+        Returns DeviceID of current device.
+
+        Returns -1 if current device's DeviceID field is invalid.
+        """
+        try:
+            return self.getCurrentDevice().getID()
+        except Exception:
+            return -1
 
 class RP1210Client(RP1210VendorList):
     """
@@ -1243,6 +1286,7 @@ class RP1210Client(RP1210VendorList):
 
     def __init__(self) -> None:
         self.clientID = 128 # DLL_NOT_INITIALIZED
+        super().__init__()
 
     def connect(self, protocol = b"J1939:Baud=Auto") -> int:
         """
@@ -1425,7 +1469,7 @@ class RP1210Client(RP1210VendorList):
         cmd_size = 1
         return self.command(cmd_num, cmd_data, cmd_size)
 
-    def setJ1939FilterType(self, filter_type = Literal[0, 1]) -> int:
+    def setJ1939FilterType(self, filter_type : Literal[0, 1]) -> int:
         """
         RP1210_Set_J1939_Filter_Type (25) (1 byte)
 
@@ -1440,7 +1484,7 @@ class RP1210Client(RP1210VendorList):
         cmd_size = 1
         return self.command(cmd_num, cmd_data, cmd_size)
 
-    def setCANFilterType(self, filter_type = Literal[0, 1]) -> int:
+    def setCANFilterType(self, filter_type : Literal[0, 1]) -> int:
         """
         RP1210_Set_CAN_Filter_Type (26) (1 byte)
 
