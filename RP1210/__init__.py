@@ -27,6 +27,7 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
             if param == 0: # don't cut it off if the input is zero
                 num_bytes = 1
         return param.to_bytes(num_bytes, byteorder)
+    # the bool case is already covered by the int case, so it has been commented out.
     # elif isinstance(param, bool):
     #     if param:
     #         return sanitize_msg_param(1, num_bytes, byteorder)
