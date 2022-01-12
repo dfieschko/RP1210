@@ -1169,12 +1169,18 @@ class RP1210VendorList:
             self.vendors = []
 
     def getList(self) -> list[RP1210Config]:
-        """Returns list of stored RP1210Config objects."""
+        """
+        Returns list of stored RP1210Config objects (e.g. list of vendors).
+        """
         try:
             return self.vendors
         except Exception:
             return []
-    
+
+    def getVendorList(self) -> list[RP1210Config]:
+        """Same as getList()."""
+        return self.getList()
+
     def getAPI(self) -> RP1210API:
         """
         Returns RP1210API object pointed to by current vendor index and device index.
@@ -1185,6 +1191,20 @@ class RP1210VendorList:
             return self.getCurrentVendor().getAPI()
         except Exception:
             return None
+
+    def numVendors(self):
+        """Returns number of vendors stored in vendor list."""
+        try:
+            return len(self.vendors)
+        except Exception:
+            return 0
+
+    def numDevices(self):
+        """Returns number of devices supported by current vendor."""
+        try:
+            return len(self.getCurrentVendor().getDevices())
+        except Exception:
+            return 0
 
     def setVendorIndex(self, index : int):
         """
@@ -1208,6 +1228,31 @@ class RP1210VendorList:
         """
         self.deviceIndex = index
 
+    def setDevice(self, deviceID): 
+        """
+        Sets current device to device matching deviceID.
+        """
+        index = self.getDeviceIndex(deviceID)
+        self.setDeviceIndex(index)
+
+    def getDeviceIndex(self, deviceID = -1) -> int:
+        """
+        Returns index of device matching deviceID. Returns 0 if no match is found.
+
+        Returns current device index if no deviceID is provided.
+        """
+        if deviceID == -1:
+            return self.deviceIndex
+        index = 0
+        try:
+            for device in self.getCurrentVendor().getDevices():
+                if device.getID() == deviceID:
+                    return index
+                index = index + 1
+        except Exception:
+            return 0
+        return 0
+
     def getVendor(self, index : int) -> RP1210Config:
         """
         Returns RP1210Config object in vendor list at specified index.
@@ -1219,12 +1264,16 @@ class RP1210VendorList:
         except Exception:
             return None
 
-    def getVendorIndex(self, api_name : str) -> int:
+    def getVendorIndex(self, api_name = "") -> int:
         """
         Returns index of vendor in list, given vendor's api name.
 
+        If API name is left blank, will return current vendor index instead.
+
         Returns 0 (start of list) if vendor is not found in list.
         """
+        if api_name == "":
+            return self.vendorIndex
         index = 0
         try:
             for vendor in self.vendors:
@@ -1310,19 +1359,19 @@ class RP1210Client(RP1210VendorList):
         """
         Calls ClientConnect w/ specified protocol string, then stores resultant clientID.
 
-        Returns clientID; will return -1 if there's an error.
+        Returns clientID; will return 128 (ERR_DLL_NOT_INITIALIZED) if there's an error.
 
         TODO: This function has not yet been rigorously tested.
         """
         try:
             # if vendor .ini file is invalid, don't try to connect
             if not self.getCurrentVendor().isValid():
-                return -1
+                return 128 # DLL_NOT_INITIALIZED
             deviceID = self.getDeviceID()
             self.clientID = self.getAPI().ClientConnect(deviceID, protocol)
             return self.clientID
         except Exception:
-            return -1
+            return 128 # DLL_NOT_INITIALIZED
 
     def disconnect(self) -> int:
         """
@@ -1357,6 +1406,9 @@ class RP1210Client(RP1210VendorList):
 
         Output still includes leading 4 timestamp bytes, if applicable.
 
+        Unlike most of the other functions in this module, this function WILL throw an exception
+        if the relevant RP1210API isn't able to be initialized!
+
         TODO: This function has not yet been rigorously tested.
         """
         return self.getAPI().ReadDirect(self.clientID, buffer_size, blocking)
@@ -1376,7 +1428,10 @@ class RP1210Client(RP1210VendorList):
 
         TODO: This function has not yet been rigorously tested.
         """
-        return self.getAPI().SendMessage(self.clientID, message, msg_size)
+        try:
+            return self.getAPI().SendMessage(self.clientID, message, msg_size)
+        except Exception:
+            return 128 # DLL_NOT_INITIALIZED
 
     #####################
     # COMMAND FUNCTIONS #
