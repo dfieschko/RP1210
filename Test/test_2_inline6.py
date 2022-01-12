@@ -14,7 +14,7 @@ def test_RP1210Interface():
     assert rp1210.isValid() == True
     assert str(rp1210) == API_NAME + " - Cummins Inc. INLINE6"
     assert rp1210.getAPIName() == API_NAME
-    assert rp1210.getName() == "Cummins Inc. INLINE6"
+    assert rp1210.getName() == "Cummins Inc. INLINE6" == rp1210.getDescription()
     assert rp1210.getAddress1() == "1460 N National Rd"
     assert rp1210.getAddress2() == ""
     assert rp1210.getCity() == "Columbus"
@@ -25,8 +25,8 @@ def test_RP1210Interface():
     assert rp1210.getFax() == ""
     assert rp1210.getVendorURL() == "http://inline.cummins.com"
     assert rp1210.getVersion() == ""
-    assert rp1210.autoDetectCapable() == False
-    assert rp1210.getCANAutoBaud() == True
+    assert rp1210.autoDetectCapable() == False == rp1210.getAutoDetectCapable()
+    assert rp1210.getCANAutoBaud() == True == rp1210.autoBaudEnabled()
     assert rp1210.getTimeStampWeight() == 1000
     assert rp1210.getMessageString() == "CMNSI632_RP1210_MSG"
     assert rp1210.getErrorString() == "CMNSI632_RP1210_ERROR"

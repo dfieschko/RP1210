@@ -10,7 +10,7 @@ import RP1210
 from tkinter import messagebox
 import pytest
 
-TEST_ENABLED = False
+TEST_ENABLED = True
 SKIP_REASON = "DLA tests w/ adapter connected are disabled."
 
 def disconnect():

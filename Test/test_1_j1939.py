@@ -94,6 +94,7 @@ def test_J1939MessageParser_Request():
     assert parser.getSource() == 2
     assert parser.getDestination() == 255
     assert parser.getData() == b'\xEE\xFE\x00'
+    assert parser.isEcho() == False
 
 def test_command_claimAddress():
     address = 0x0F

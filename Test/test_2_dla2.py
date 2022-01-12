@@ -14,7 +14,7 @@ def test_RP1210Interface():
     assert rp1210.isValid() == True
     assert str(rp1210) == API_NAME + " - Noregon Systems Inc., DLA+ 2.0 Adapter"
     assert rp1210.getAPIName() == API_NAME
-    assert rp1210.getName() == "Noregon Systems Inc., DLA+ 2.0 Adapter"
+    assert rp1210.getName() == "Noregon Systems Inc., DLA+ 2.0 Adapter" == rp1210.getDescription()
     assert rp1210.getAddress1() == "7009 Albert Pick Rd."
     assert rp1210.getAddress2() == ""
     assert rp1210.getCity() == "Greensboro"
@@ -25,8 +25,8 @@ def test_RP1210Interface():
     assert rp1210.getFax() == ""
     assert rp1210.getVendorURL() == "www.JPROFleetProducts.com"
     assert rp1210.getVersion() == "4"
-    assert rp1210.autoDetectCapable() == True
-    assert rp1210.getCANAutoBaud() == True
+    assert rp1210.autoDetectCapable() == True == rp1210.getAutoDetectCapable()
+    assert rp1210.getCANAutoBaud() == True == rp1210.autoBaudEnabled()
     assert rp1210.getTimeStampWeight() == 1000
     assert rp1210.getMessageString() == "NSICAN_READ_NOTIFY"
     assert rp1210.getErrorString() == "NSICAN_SEND_NOTIFY"

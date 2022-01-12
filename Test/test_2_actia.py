@@ -14,7 +14,7 @@ def test_RP1210Interface():
     assert rp1210.isValid() == True
     assert str(rp1210) == API_NAME + " - I+ME ACTIA GmbH"
     assert rp1210.getAPIName() == API_NAME
-    assert rp1210.getName() == "I+ME ACTIA GmbH"
+    assert rp1210.getName() == "I+ME ACTIA GmbH" == rp1210.getDescription()
     assert rp1210.getAddress1() == ""
     assert rp1210.getAddress2() == ""
     assert rp1210.getCity() == ""
@@ -25,7 +25,8 @@ def test_RP1210Interface():
     assert rp1210.getFax() == ""
     assert rp1210.getVendorURL() == ""
     assert rp1210.getVersion() == ""
-    assert rp1210.autoDetectCapable() == False
+    assert rp1210.autoDetectCapable() == False == rp1210.getAutoDetectCapable()
+    assert rp1210.getCANAutoBaud() == False == rp1210.autoBaudEnabled()
     assert rp1210.getTimeStampWeight() == 100
     assert rp1210.getMessageString() == "IME RP1210 Interrupt BasicXS"
     assert rp1210.getErrorString() == "IME RP1210 Error BasicXS"

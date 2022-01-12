@@ -15,7 +15,7 @@ def test_RP1210Interface():
     assert rp1210.isValid() == True
     assert str(rp1210) == API_NAME + " - NEXIQ Technologies USB-Link 2"
     assert rp1210.getAPIName() == API_NAME
-    assert rp1210.getName() == "NEXIQ Technologies USB-Link 2"
+    assert rp1210.getName() == "NEXIQ Technologies USB-Link 2" == rp1210.getDescription()
     assert rp1210.getAddress1() == "2950 Waterview"
     assert rp1210.getAddress2() == ""
     assert rp1210.getCity() == "Rochester Hills"
@@ -26,8 +26,8 @@ def test_RP1210Interface():
     assert rp1210.getFax() == "(248)293-8211"
     assert rp1210.getVendorURL() == "www.nexiq.com"
     assert rp1210.getVersion() == "2.8.0.2"
-    assert rp1210.autoDetectCapable() == True
-    assert rp1210.getCANAutoBaud() == True
+    assert rp1210.autoDetectCapable() == True == rp1210.getAutoDetectCapable()
+    assert rp1210.getCANAutoBaud() == True == rp1210.autoBaudEnabled()
     assert rp1210.getTimeStampWeight() == 1
     assert rp1210.getMessageString() == "DMUX32 MESSAGE"
     assert rp1210.getErrorString() == "DMUX32 ERROR"
@@ -113,6 +113,12 @@ def test_Protocols_CAN_J1939():
     assert protocol26.getParams() == ""
     assert protocol26.getDevices() == [1, 2, 3]
     assert protocol26.getSpeed() == ["50","125"]
+    protocol = rp1210.getProtocol("J1939")
+    assert protocol1.getDescription() == "SAE J1939 Protocol"
+    assert protocol1.getString() == "J1939"
+    assert protocol1.getParams() == ""
+    assert protocol1.getDevices() == [1, 2, 3]
+    assert protocol1.getSpeed() == ["250","500","666","1000","Auto"]
 
 def test_load_DLL():
     """

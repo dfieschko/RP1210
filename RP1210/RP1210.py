@@ -494,13 +494,10 @@ class RP1210Config(ConfigParser):
         Returns the 'AutoDetectCapable' field from VendorInformation section.
 
         Returns False if the field isn't found.
+
+        This function is a duplicate of getAutoDetectCapable().
         """
-        if not self.has_option("VendorInformation", "AutoDetectCapable"):
-            return False
-        try:
-            return self.getboolean("VendorInformation", "AutoDetectCapable")
-        except (ValueError, KeyError):
-            return False
+        return self.getAutoDetectCapable()
 
     def getTimeStampWeight(self) -> float:
         """
@@ -617,10 +614,10 @@ class RP1210Config(ConfigParser):
 
         Returns 1 (default value) if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "NumberOfSessions"):
+        if not self.has_option("VendorInformation", "NumberOfRTSCTSSessions"):
             return 1
         try:
-            return self.getint("VendorInformation", "NumberOfSessions")
+            return self.getint("VendorInformation", "NumberOfRTSCTSSessions")
         except (ValueError, KeyError):
             return 1
 

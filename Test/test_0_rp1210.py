@@ -119,6 +119,7 @@ def test_InvalidAPIName_Devices_Protocols():
     rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.getDeviceIDs() == []
     assert rp1210.getProtocolIDs() == []
+    assert rp1210.getProtocol() == None
     assert rp1210.getProtocol(3) == None
     assert rp1210.getDevice(3) == None
 

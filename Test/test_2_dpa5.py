@@ -14,7 +14,7 @@ def test_RP1210Interface():
     assert rp1210.isValid() == True
     assert str(rp1210) == API_NAME + " - DG Technologies DPA 5 Multi Application"
     assert rp1210.getAPIName() == API_NAME
-    assert rp1210.getName() == "DG Technologies DPA 5 Multi Application"
+    assert rp1210.getName() == "DG Technologies DPA 5 Multi Application" == rp1210.getDescription()
     assert rp1210.getAddress1() == "DG Technologies"
     assert rp1210.getAddress2() == "33604 West 8 Mile Road"
     assert rp1210.getCity() == "Farmington Hills"
@@ -25,7 +25,7 @@ def test_RP1210Interface():
     assert rp1210.getFax() == "248-888-9977"
     assert rp1210.getVendorURL() == "http://www.dgtech.com"
     assert rp1210.getVersion() == "4.04"
-    assert rp1210.autoDetectCapable() == True
+    assert rp1210.autoDetectCapable() == True == rp1210.getAutoDetectCapable()
     assert rp1210.getTimeStampWeight() == 1000
     assert rp1210.getMessageString() == "dgDPA5MessageString"
     assert rp1210.getErrorString() == "dgDPA5ErrorString"
@@ -35,7 +35,7 @@ def test_RP1210Interface():
     assert rp1210.getDebugMode() == 1
     assert rp1210.getDebugFileSize() == 1024
     assert rp1210.getNumberOfSessions() == 1
-    assert rp1210.getCANAutoBaud() == True
+    assert rp1210.getCANAutoBaud() == True == rp1210.autoBaudEnabled()
     assert rp1210.getCANFormatsSupported() == [4, 5]
     assert rp1210.getJ1939FormatsSupported() == [1, 2]
     assert rp1210.getDeviceIDs() == [1, 2]
