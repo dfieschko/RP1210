@@ -214,6 +214,12 @@ def test_sanitize_msg_param_bool():
     assert sanitize_msg_param(True) == b'\x01'
     assert sanitize_msg_param(False) == b'\x00'
 
+def test_sanitize_msg_param_typeerror():
+    try:
+        sanitize_msg_param(RP1210.RP1210VendorList())
+    except TypeError:
+        pass
+
 def test_rp1210client_populate_logic():
     """Tests whether RP1210Client recognizes relevant drivers when adapter is disconnected."""
     vendors = []

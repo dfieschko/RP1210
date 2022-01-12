@@ -24,5 +24,5 @@ ECHO Done!
 ECHO ..............................................................................................
 ECHO Disconnect all RP1210 adapters before continuing.
 pause
-py -m pytest -l -v -ra --tb=long --cov=RP1210
+py -m pytest -l -v -ra --tb=long --cov=RP1210 --cov func --cov-branch --cov-report term-missing
 pause

@@ -1,5 +1,6 @@
 from RP1210 import J1939, Commands, sanitize_msg_param
 import binascii
+import pytest
 
 def test_format_default():
     assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"
@@ -163,7 +164,7 @@ def test_setJ1939Filters():
         cmd_string = Commands.setJ1939Filters(filter_type, pgn=filter_list_int[i])
         assert messageString == cmd_string
 
-
+@pytest.mark.skip("This test hasn't been implemented yet.")
 def test_toJ1939Name():
     # arbitrary address (1 bit)
     # industry group (3 bits)
@@ -177,3 +178,55 @@ def test_toJ1939Name():
     # identity number (21 bits)
     """TODO"""
     
+def test_isDM_hex():
+    """
+    Runs a simple test on all J1939.isDMxxxx() functions w/ hex inputs
+    """
+    assert not J1939.isDMRequestPGN(0x1111)
+    assert J1939.isDMRequestPGN(0xEA00)
+    assert not J1939.isDM1MessagePGN(0x1111)
+    assert J1939.isDM1MessagePGN(0xFECA)
+    assert not J1939.isDM2MessagePGN(0x1111)
+    assert J1939.isDM2MessagePGN(0xFECB)
+    assert not J1939.isDM3MessagePGN(0x1111)
+    assert J1939.isDM3MessagePGN(0xFECC)
+    assert not J1939.isDM4MessagePGN(0x1111)
+    assert J1939.isDM4MessagePGN(0xFECD)
+    assert not J1939.isDM11MessagePGN(0x1111)
+    assert J1939.isDM11MessagePGN(0xFED3)
+    assert not J1939.isDM12MessagePGN(0x1111)
+    assert J1939.isDM12MessagePGN(0xFED4)
+
+def test_J1939MessageParser_isDM_hex():
+    """
+    Runs a simple test on all J1939MessageParser.isDMxxxx() functions w/ hex inputs
+    """
+    def makeMessage(pgn):
+        # 4-byte timestamp
+        msg = b'0000' + J1939.toJ1939Message(pgn, 3, 0xFE, 0xAA, b'Bingus')
+        return J1939.J1939MessageParser(msg)
+
+    msg = makeMessage(0x1111)
+    assert msg.getPGN() == 0x1111
+    assert not msg.isDMRequest()
+    assert not msg.isDM1()
+    assert not msg.isDM2()
+    assert not msg.isDM3()
+    assert not msg.isDM4()
+    assert not msg.isDM11()
+    assert not msg.isDM12()
+
+    msg = makeMessage(0xEA00)
+    assert msg.isDMRequest()
+    msg = makeMessage(0xFECA)
+    assert msg.isDM1()
+    msg = makeMessage(0xFECB)
+    assert msg.isDM2()
+    msg = makeMessage(0xFECC)
+    assert msg.isDM3()
+    msg = makeMessage(0xFECD)
+    assert msg.isDM4()
+    msg = makeMessage(0xFED3)
+    assert msg.isDM11()
+    msg = makeMessage(0xFED4)
+    assert msg.isDM12()
