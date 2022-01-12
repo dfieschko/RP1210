@@ -16,7 +16,7 @@ J1939 classes:
 
 from RP1210 import sanitize_msg_param
 
-def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) -> bytes:
+def toJ1939Message(pgn, priority, source, destination, data) -> bytes:
     """
     Converts args to J1939 message suitable for RP1210_SendMessage function.
 
@@ -30,9 +30,9 @@ def toJ1939Message(pgn, priority, source, destination, data, sanitize = True) ->
     - Destination Address (1 byte)
     - Message Data (0 - 1785 byes)
 
-    Arguments can be strings, ints, or bytes. This function will decode UTF-8 characters in strings
-    to base-10 ints, so don't provide it with letters or special characters. If you want to send it
-    0xFF, send it as an int and not "FF".
+    Arguments can be strings, ints, or bytes. This function will parse strings as UTF-8 characters,
+    so don't provide it with letters or special characters unless that's what you mean to send.
+    If you want to send it 0xFF, send it as an int and not "FF".
     """
     ret_val = sanitize_msg_param(pgn, 3, 'little')
     ret_val += sanitize_msg_param(priority, 1)
@@ -56,6 +56,12 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> by
 
 def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
                 function : int, function_instance : int, ecu_instance : int, mfg_code : int, id : int) -> bytes:
+    """
+    Each J1939-compliant ECU needs its own 64-bit name. This function is meant to help generate such
+    a name based on the component bytes that make it up.
+
+    TODO: This function has not been tested.
+    """
     def add_bits(name, val, num_bits):
         mask = (1 << num_bits) - 1
         value = int.from_bytes(sanitize_msg_param(val), (num_bits + 7) // 8)
@@ -163,7 +169,35 @@ class J1939MessageParser():
 
     def isRequest(self) -> bool:
         """Returns true if PGN matches J1939 Request PGN."""
-        return self.getPGN() == 0x00EA00
+        return self.getPGN() == 0xEA00
+
+    def isDMRequest(self) -> bool:
+        """Returns true if PGN matches Diagnostic Message Request PGN."""
+        return self.getPGN() == 0xEA00
+
+    def isDM1(self) -> bool:
+        """Returns true if PGN matches DM1 (active DTC) PGN."""
+        return self.getPGN() == 0xFECA
+    
+    def isDM2(self) -> bool:
+        """Returns true if PGN matches DM2 (previously active DTC) PGN."""
+        return self.getPGN() == 0xFECB
+    
+    def isDM3(self) -> bool:
+        """Returns true if PGN matches DM3 (clear previously active DTCs) PGN."""
+        return self.getPGN() == 0xFECC
+
+    def isDM4(self) -> bool:
+        """Returns true if PGN matches DM4 (freeze frame parameters) PGN."""
+        return self.getPGN() == 0xFECD
+
+    def isDM11(self) -> bool:
+        """Returns true if PGN matches DM11 (clear active DTCs) PGN."""
+        return self.getPGN() == 0xFED3
+
+    def isDM12(self) -> bool:
+        """Returns true if PGN matches DM12 (emission-related active DTCs) PGN."""
+        return self.getPGN() == 0xFED4
 
     def getTimestamp(self) -> int:
         """Returns timestamp (4 bytes) as int."""
@@ -196,3 +230,60 @@ class J1939MessageParser():
         """Returns message data (0 - 1785 bytes) as bytes."""
         loc = 10 + self.echo_offset
         return self.msg[loc:]
+
+
+def isDMRequestPGN(pgn) -> bool:
+    """
+    Checks if PGN matches Diagnostic Message Request PGN.
+
+    Returns True if pgn is 0xEA00 (DM request PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xEA\x00'
+
+def isDM1MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM1 (active DTC) Message PGN.
+
+    Returns True if pgn is 0xFECA (DM1 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xCA'
+
+def isDM2MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM2 (previously active DTC) Message PGN.
+    
+    Returns True if pgn is 0xFECB (DM2 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xCB'
+
+def isDM3MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM3 (clear previously active DTCs) Message PGN.
+
+    Returns True if pgn is 0xFECC (DM3 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xCC'
+
+def isDM4MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM4 (freeze frame parameters) Message PGN.
+    
+    Returns True if pgn is 0xFECD (DM4 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xCD'
+
+def isDM11MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM11 (clear active DTCs) Message PGN.
+    
+    Returns True if pgn is 0xFED3 (DM11 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xD3'
+
+def isDM12MessagePGN(pgn) -> bool:
+    """
+    Checks if PGN matches DM12 (emission-related active DTCs) Message PGN.
+    
+    Returns True if pgn is 0xFED4 (DM12 PGN), False if not.
+    """
+    return sanitize_msg_param(pgn) == b'\xFE\xD4'

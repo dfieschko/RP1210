@@ -5,6 +5,8 @@ import os
 import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
+from typing import Literal
+from RP1210 import Commands
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -161,44 +163,6 @@ def getAPINames(rp121032_path = None) -> list[str]:
     except Exception:
         return []
 
-def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> bytes:
-    """
-    'Sanitizes' (converts to bytes) a message parameter.
-
-    Defaults to big-endianness and whatever the size of param is.
-
-    This function is meant for internal use in message/protocol files; it's only public because
-    I didn't want to copy/paste it a bunch of times.
-    """
-    if isinstance(param, int): # int to bytes
-        if num_bytes == 0:
-            num_bytes = (param.bit_length() + 7) // 8
-            if param == 0: # don't cut it off if the input is zero
-                num_bytes = 1
-        return param.to_bytes(num_bytes, byteorder)
-    elif isinstance(param, bool):
-        if param:
-            return sanitize_msg_param(1, num_bytes, byteorder)
-        else:
-            return sanitize_msg_param(0, num_bytes, byteorder)
-    elif isinstance(param, str): # string to bytes
-        if param == "": # check for empty string
-            return b'' + b'\x00' * num_bytes
-        return sanitize_msg_param(str.encode(param, 'utf8'), num_bytes, byteorder)
-    elif isinstance(param, bytes):
-         # convert to int, run sanitize_msg_param again
-        if num_bytes == 0:
-            if param == b'': # len == 1 for b'', but we don't want to return b'\x00'
-                return b''
-            num_bytes = len(param)
-        if byteorder == 'little':
-            param2 = param[::-1]
-        else:
-            param2 = param
-        val = int.from_bytes(param2[:num_bytes], byteorder)
-        return sanitize_msg_param(val, num_bytes, byteorder)
-    
-
 class RP1210Protocol:
     """
     Stores information for an RP1210 protocol, e.g. info stored in ProtocolInformationXXX sections.
@@ -261,7 +225,6 @@ class RP1210Protocol:
             return devices
         except Exception:
             return []
-
 
 class RP1210Device:
     """
@@ -332,7 +295,6 @@ class RP1210Device:
             ret_str += " - " + self.getDescription()
         return ret_str
          
-
 class RP1210Config(ConfigParser):
     """
     Reads & stores Vendor API information. Child of ConfigParser. Use getAPINames() to get an
@@ -342,8 +304,8 @@ class RP1210Config(ConfigParser):
     As such, it is embarrassingly long.
 
     This class holds an instance of RP1210API, which you can use to call RP1210 functions.
-        nexiq = RP1210Config("NULN2R32")
-         clientID = nexiq.api.ClientConnect(args)
+    - `nexiq = RP1210Config("NULN2R32")`
+    - `clientID = nexiq.api.ClientConnect(args)`
 
     You can use str(this_object) to generate a string to display in your Vendors dropdown.
     """
@@ -532,13 +494,10 @@ class RP1210Config(ConfigParser):
         Returns the 'AutoDetectCapable' field from VendorInformation section.
 
         Returns False if the field isn't found.
+
+        This function is a duplicate of getAutoDetectCapable().
         """
-        if not self.has_option("VendorInformation", "AutoDetectCapable"):
-            return False
-        try:
-            return self.getboolean("VendorInformation", "AutoDetectCapable")
-        except (ValueError, KeyError):
-            return False
+        return self.getAutoDetectCapable()
 
     def getTimeStampWeight(self) -> float:
         """
@@ -655,10 +614,10 @@ class RP1210Config(ConfigParser):
 
         Returns 1 (default value) if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "NumberOfSessions"):
+        if not self.has_option("VendorInformation", "NumberOfRTSCTSSessions"):
             return 1
         try:
-            return self.getint("VendorInformation", "NumberOfSessions")
+            return self.getint("VendorInformation", "NumberOfRTSCTSSessions")
         except (ValueError, KeyError):
             return 1
 
@@ -843,7 +802,7 @@ class RP1210API:
         self._api_valid = False
         self._api_name = api_name
         self.dll = None
-        self._rp1210c = True
+        self._conforms_to_rp1210c = True
 
     def getDLL(self) -> CDLL:
         """
@@ -897,7 +856,7 @@ class RP1210API:
         self.getDLL()
         if not self.isValid():
             return False
-        return self._rp1210c
+        return self._conforms_to_rp1210c
 
     def setDLL(self, dll : CDLL):
         """Sets the CDLL used to call RP1210 API functions."""
@@ -916,13 +875,13 @@ class RP1210API:
         """
         Attempts to connect to an RP1210 adapter.
         - nDeviceID determines which adapter it tries to connect to.
-        - You can generate Protocol with a ProtocolFormatter class, e.g. J1939ProtocolFormatter,
-        use RP1210Protocol class to read supported formats from file, or just do it yourself.
+        - You can generate Protocol with a protocol format function, e.g. getJ1939ProtocolString(),
+        or just do it yourself.
             - Protocol defaults to b"J1939:Baud=Auto"
         - Tx and Rcv buffer sizes default to 8K when given an argument of 0.
         - Don't mess with argument nisAppPacketizingincomingMsgs.
 
-        Returns nDeviceID. 0 to 127 means connection was successful; >127 means it failed.
+        Returns clientID. 0 to 127 means connection was successful; >127 means it failed.
 
         Use function translateClientID() to translate nClientID to an error message.
         """
@@ -932,7 +891,7 @@ class RP1210API:
     
     def ClientDisconnect(self, ClientID : int) -> int:
         """
-        Disconnects from client w/ specified clientID.
+        Disconnects client w/ specified clientID from adapter.
         
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
@@ -975,28 +934,30 @@ class RP1210API:
         if not BufferSize:
             BufferSize = len(RxBuffer)
         ret_val = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
-        # check for error codes. ret_val is generally a 16-bit unsigned int, so must be converted
+        # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
         # to negative signed int.
         if ret_val >= 0x08000:
             ret_val = (ret_val - 0x10000)
         return ret_val
 
-    def ReadDirect(self, ClientID : int, BufferSize = 512, BlockOnRead = 0) -> bytes:
+    def ReadDirect(self, ClientID : int, BufferSize = 256, BlockOnRead = 0):
         """
-        Calls ReadMessage, but generates and returns its own RxBuffer as an array of c_chars.
+        Calls ReadMessage, but generates and returns its own RxBuffer as bytes.
         - ClientID = clientID you got from ClientConnect
         - BufferSize = the size of the buffer in bytes. Defaults to 512.
         - BlockOnRead = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
 
-        Automatically cuts array size to the message size reported by ReadMessage().
-
-        Output still includes leading 4 timestamp bytes.
+        Output still includes leading 4 timestamp bytes, if applicable.
         """
         RxBuffer = create_string_buffer(BufferSize)
         size = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
         if size < 0: # errored out
-            return create_string_buffer(0)
-        return create_string_buffer(RxBuffer[:size]).value # this is kind of gross
+            return b''
+        ret_val = create_string_buffer(RxBuffer[:size])
+        if ret_val.value != b'':
+            return ret_val.raw
+        else:
+            return ret_val.value
 
     def ReadVersion(self, DLLMajorVersionBuffer : bytes, 
                         DLLMinorVersionBuffer : bytes,
@@ -1049,7 +1010,7 @@ class RP1210API:
         this function will return 128 (ERR_DLL_NOT_INITIALIZED).
         """
         self.getDLL()   # set rp1210c flag
-        if not self._rp1210c:
+        if not self._conforms_to_rp1210c:
             return 128
         return self.getDLL().RP1210_ReadDetailedVersion(ClientID, APIVersionBuffer, 
                                                         DLLVersionBuffer, FWVersionBuffer)
@@ -1067,7 +1028,7 @@ class RP1210API:
         this function will return empty strings.
         """
         self.getDLL()   # set rp1210c flag
-        if not self._rp1210c:
+        if not self._conforms_to_rp1210c:
             return ("", "", "")
         APIVersionInfo = create_string_buffer(17)
         DLLVersionInfo = create_string_buffer(17)
@@ -1146,7 +1107,7 @@ class RP1210API:
             self.dll.RP1210_GetLastErrorMsg.argtypes = [c_short, POINTER(c_int32), c_char_p, c_short]
             self.dll.RP1210_Ioctl.argtypes = [c_short, c_long, c_void_p, c_void_p]
         except Exception: # RP1210C functions not supported
-            self._rp1210c = False
+            self._conforms_to_rp1210c = False
 
     def __get_dll_path_aux(self) -> str:
         """
@@ -1168,4 +1129,570 @@ class RP1210API:
     
     def __is_valid_clientid(self, clientID) -> bool:
         return clientID in RP1210_ERRORS or (0 <= clientID < 128)
+
+class RP1210VendorList:
+    """
+    Loads and stores a list of all RP1210 adapter vendors specified in RP121032.ini.
+    
+    Also points to a specific RP1210Config, and a device within that RP1210Config. This feature is
+    intended to be used with a couple of combo boxes that allow for the selection of RP1210 vendors
+    and devices.
+
+    - Access the RP1210Config object that is currently being pointed to with `getVendor()`.
+    - Access the RP1210API object that is currently being pointed to with with `getAPI()`.
+    - Set vendor index with `setVendorIndex()`.
+    - Set device index with `setDeviceIndex()`. This is NOT deviceID!
+    - If you have a vendor name but not index, use `getVendorIndex(api_name)` to find the index.
+    """
+    def __init__(self):
+        super().__init__()
+        self.vendors = [] #type: list[RP1210Config]
+        self.vendorIndex = 0
+        self.deviceIndex = 0
+        self.populate()
+
+    def populate(self) -> None:
+        """
+        Populates vendors from RP121032.ini. Initializes an RP1210Config object for each vendor name
+        that is found.
+        """
+        self.vendors.clear()
+        api_list = getAPINames()
+        try:
+            for api_name in api_list:
+                try:
+                    self.vendors.append(RP1210Config(api_name))
+                except Exception:
+                    # skip this API if its .ini file can't be parsed
+                    pass
+        except Exception:
+            self.vendors = []
+
+    def getList(self) -> list[RP1210Config]:
+        """
+        Returns list of stored RP1210Config objects (e.g. list of vendors).
+        """
+        try:
+            return self.vendors
+        except Exception:
+            return []
+
+    def getVendorList(self) -> list[RP1210Config]:
+        """Same as getList()."""
+        return self.getList()
+
+    def getAPI(self) -> RP1210API:
+        """
+        Returns RP1210API object pointed to by current vendor index and device index.
+        
+        Returns None on error.
+        """
+        try:
+            return self.getCurrentVendor().getAPI()
+        except Exception:
+            return None
+
+    def numVendors(self):
+        """Returns number of vendors stored in vendor list."""
+        try:
+            return len(self.vendors)
+        except Exception:
+            return 0
+
+    def numDevices(self):
+        """Returns number of devices supported by current vendor."""
+        try:
+            return len(self.getCurrentVendor().getDevices())
+        except Exception:
+            return 0
+
+    def setVendorIndex(self, index : int):
+        """
+        Set index of current vendor.
+        """
+        self.vendorIndex = index
+        self.deviceIndex = 0
+
+    def setVendor(self, api_name : str):
+        """
+        Sets current vendor by api_name (e.g. NULN2R32).
+
+        Will set index to 0 if api_name is not found in RP121032.ini.
+        """
+        index = self.getVendorIndex(api_name)
+        self.setVendorIndex(index)
+
+    def setDeviceIndex(self, index : int):
+        """
+        Set index of current device.
+        """
+        self.deviceIndex = index
+
+    def setDevice(self, deviceID): 
+        """
+        Sets current device to device matching deviceID.
+        """
+        index = self.getDeviceIndex(deviceID)
+        self.setDeviceIndex(index)
+
+    def getDeviceIndex(self, deviceID = -1) -> int:
+        """
+        Returns index of device matching deviceID. Returns 0 if no match is found.
+
+        Returns current device index if no deviceID is provided.
+        """
+        if deviceID == -1:
+            return self.deviceIndex
+        index = 0
+        try:
+            for device in self.getCurrentVendor().getDevices():
+                if device.getID() == deviceID:
+                    return index
+                index = index + 1
+        except Exception:
+            return 0
+        return 0
+
+    def getVendor(self, index : int) -> RP1210Config:
+        """
+        Returns RP1210Config object in vendor list at specified index.
+        
+        Will return None on error.
+        """
+        try:
+            return self.vendors[index]
+        except Exception:
+            return None
+
+    def getVendorIndex(self, api_name = "") -> int:
+        """
+        Returns index of vendor in list, given vendor's api name.
+
+        If API name is left blank, will return current vendor index instead.
+
+        Returns 0 (start of list) if vendor is not found in list.
+        """
+        if api_name == "":
+            return self.vendorIndex
+        index = 0
+        try:
+            for vendor in self.vendors:
+                if vendor.getAPIName() == api_name:
+                    return index
+                index += 1
+        except Exception:
+            return 0
+        # if no matching vendor found in list:
+        return 0
+
+    def getCurrentVendor(self) -> RP1210Config:
+        """
+        Returns RP1210Config object pointed to by vendor_index.
+
+        Will return None on error.
+        """
+        try:
+            return self.vendors[self.vendorIndex]
+        except Exception:
+            return None
+
+    def getCurrentDevice(self) -> RP1210Device:
+        """
+        Returns RP1210Device object pointed to by device_index.
+
+        Will return None on error.
+        """
+        try:
+            return self.getCurrentVendor().getDevices()[self.deviceIndex]
+        except IndexError: # check for index out of bounds
+            # if DeviceList holds zero devices, there's a bigger issue
+            if len(self.getCurrentVendor().getDevices()) == 0:
+                return None
+            # if index is out of bounds, reset it to position 0
+            self.deviceIndex = 0
+            return self.getCurrentDevice()
+        except Exception:
+            return None
+
+    def getDeviceID(self) -> int:
+        """
+        Returns DeviceID of current device.
+
+        Returns -1 if current device's DeviceID field is invalid.
+        """
+        try:
+            return self.getCurrentDevice().getID()
+        except Exception:
+            return -1
+
+class RP1210Client(RP1210VendorList):
+    """
+    Stores a list of all adapter vendors and devices read from .ini files (child of VendorList), and
+    handles connection with an adapter.
+    """
+
+    def __init__(self) -> None:
+        self.clientID = 128 # DLL_NOT_INITIALIZED
+        super().__init__()
+
+    ###################
+    # CLASS FUNCTIONS #
+    ###################
+
+    def getClientID(self) -> int:
+        """
+        Returns clientID received from ClientConnect command (which you call via `connect()`).
+
+        If `connect()` has not yet been called, will default to 128 (DLL_NOT_INITIALIZED).
+
+        Will return -1 if there was an error calling ClientConnect.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        return self.clientID
+
+    ####################
+    # RP1210 FUNCTIONS #
+    ####################
+
+    def connect(self, protocol = b"J1939:Baud=Auto") -> int:
+        """
+        Calls ClientConnect w/ specified protocol string, then stores resultant clientID.
+
+        Returns clientID; will return 128 (ERR_DLL_NOT_INITIALIZED) if there's an error.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        try:
+            # if vendor .ini file is invalid, don't try to connect
+            if not self.getCurrentVendor().isValid():
+                return 128 # DLL_NOT_INITIALIZED
+            deviceID = self.getDeviceID()
+            self.clientID = self.getAPI().ClientConnect(deviceID, protocol)
+            return self.clientID
+        except Exception:
+            return 128 # DLL_NOT_INITIALIZED
+
+    def disconnect(self) -> int:
+        """
+        Disconnects from adapter.
+        
+        Returns 0 if successful, or >127 if it failed.
+            You can use translateClientID() to translate the failure code.
+        """
+        try:
+            return self.getAPI().ClientDisconnect(self.clientID)
+        except Exception:
+            return 128 # DLL_NOT_INITIALIZED
+
+    def command(self, CommandNumber, ClientCommand = b"", MessageSize = 0) -> int:
+        """
+        Calls RP1210_SendCommand with current clientID.
+
+        MessageSize will default to len(ClientCommand) if it is left 0.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        try:
+            return self.getAPI().SendCommand(CommandNumber, self.clientID, ClientCommand, MessageSize)
+        except Exception:
+            return -1
+
+    def rx(self, buffer_size = 512, blocking = False):
+        """
+        Calls ReadMessage, but generates and returns its own RxBuffer value.
+        - buffer_size = the size of the buffer in bytes. Defaults to 512.
+        - blocking = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
+
+        Output still includes leading 4 timestamp bytes, if applicable.
+
+        Unlike most of the other functions in this module, this function WILL throw an exception
+        if the relevant RP1210API isn't able to be initialized!
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        return self.getAPI().ReadDirect(self.clientID, buffer_size, blocking)
+
+    def tx(self, message, msg_size = 0):
+        """
+        Send a message to the databus your adapter is connected to.
+        - message = message you want to send
+        - msg_size = message size in bytes (including qualifier bytes like timestamp, if applicable)
+            - Will default to len(message) if msg_size = 0
+        
+        Use a message function provided with this package (e.g. toJ1939Message()) to generate the
+        message. Or just do it yourself, I'm not the boss of you.
+
+        Returns 0 if successful, or >127 if it failed.
+            You can use translateClientID() to translate the failure code.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        try:
+            return self.getAPI().SendMessage(self.clientID, message, msg_size)
+        except Exception:
+            return 128 # DLL_NOT_INITIALIZED
+
+    #####################
+    # COMMAND FUNCTIONS #
+    #####################
+
+    def resetDevice(self) -> int:
+        """
+        Reset Device (0) (0 bytes)
+
+        RP1210_RESET_DEVICE only works if only one client is connected to the adapter, and does
+        the exact same thing as if you called the function ClientDisconnect.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        return self.command(0)
+    
+    def setAllFiltersToPass(self) -> int:
+        """
+        Set All Filter States to Pass (3) (0 bytes)
+        """
+        return self.command(3)
+
+    def setJ1939Filters(self, filter_flag : int, pgn = 0, source = 0, dest = 0) -> int:
+        """
+        Set Message Filtering for J1939 (4) (7 bytes)
+
+        Args:
+        - Filter flag (1 byte) - filter flag integer/bytecode.
+            - FILTER_PGN (1), FILTER_SOURCE (2), FILTER_DESTINATION (4)
+            - J1939_FILTERS dict is available for convenience.
+        - PGN (3 bytes) - the PGN that needs to be filtered.
+        - Source Address (1 byte) - the source address that needs to be filtered.
+        - Destination Address (1 byte) - the destination address that needs to be filtered.
+
+        Args pgn, source, and dest only do anything if they are set with filter_flag. If they aren't,
+        they will be ignored.
+
+        You can specifiy filter_flag and keyword arguments instead of entering useless values for
+        pgn, source, or dest.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 4
+        cmd_data = Commands.setJ1939Filters(filter_flag, pgn, source, dest)
+        cmd_size = 7
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setCANFilters(self, can_type, mask, header) -> int:
+        """
+        Set Message Filtering for CAN (5) (9 bytes)
+
+        Args:
+        - CAN Type (1 byte) - 0x00 for STANDARD_CAN, 0x01 for EXTENDED_CAN.
+            - See dict CAN_TYPES for other types.
+        - Mask (4 bytes) - a bitwise mask that indicates which bits in the header need to be matched.
+            - Big endian; "1" means a value is important; "0" means a value is unimportant.
+        - Header (4 bytes) - "Indicates what value is required for each bit of interest".
+
+        This is one of those functions that you're going to want the RP1210C documentation for.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 5
+        cmd_data = Commands.setCANFilters(can_type, mask, header)
+        cmd_size = 9
+        return self.command(cmd_num, cmd_data, cmd_size)
+        
+    def setEcho(self, echo_on = True) -> int:
+        """
+        Set Echo Transmitted Messages (16) (1 byte)
+
+        Args:
+        - Echo on/off (bool) - False for no echo, True for echo.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 16
+        cmd_data = Commands.setEcho(echo_on)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setAllFiltersToDiscard(self) -> int:
+        """
+        Set All Filter States to Discard (17) (0 bytes)
+        """
+        return self.command(17)
+
+    def setMessageReceive(self, receive_messages = True) -> int:
+        """
+        Set Message Receive (18)
+
+        Args:
+        - Receive on/off : True = RECEIVE_ON, False = RECEIVE_OFF.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 18
+        cmd_data = Commands.setMessageReceive(receive_messages)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def protectJ1939Address(self, address_to_claim, network_mgt_name, blocking = True) -> bytes:
+        """
+        Protect J1939 Address (19) (10 bytes)
+
+        This command claims an address on the J1939 bus.
+        - address_to_claim (1 byte) - 8-bit address to claim on the J1939 bus.
+        - network_mgt_name (8 bytes) - 8-byte name of client on network (this is you!)
+            - See J1939 network management standard!
+            - Lowest name takes priority if two devices try to claim the same address
+        - blocking (bool) - True will block until done, False will return before completion
+
+        This function automatically sanitizes str, int, and bytes inputs. str are parsed as 10-bit
+        decimals! Use byte strings (b"message") if you want to pass utf-8 characters.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 19
+        cmd_data = Commands.protectJ1939Address(address_to_claim, network_mgt_name, blocking)
+        cmd_size = 10
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def releaseJ1939Address(self, address) -> int:
+        """
+        Release a J1939 Address (31)
+
+        Args:
+        - Address (1 byte) - the address to release.
+
+        This doesn't do anything special with the J1939 bus. All it does is tell your adapter not to
+        use this address anymore.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 31
+        cmd_data = Commands.releaseJ1939Address(address)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setJ1939FilterType(self, filter_type : Literal[0, 1]) -> int:
+        """
+        RP1210_Set_J1939_Filter_Type (25) (1 byte)
+
+        filter_type:
+        - 0 = FILTER_INCLUSIVE
+        - 1 = FILTER_EXCLUSIVE
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 25
+        cmd_data = Commands.setFilterType(filter_type)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setCANFilterType(self, filter_type : Literal[0, 1]) -> int:
+        """
+        RP1210_Set_CAN_Filter_Type (26) (1 byte)
+
+        filter_type:
+        - 0 = FILTER_INCLUSIVE
+        - 1 = FILTER_EXCLUSIVE
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 26
+        cmd_data = Commands.setFilterType(filter_type)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setJ1939InterpacketTime(self, time_in_ms : int) -> int:
+        """
+        Set J1939 Broadcast Interpacket Timing (27) (4 bytes)
+
+        Args:
+        - time_in_ms - interpacket time in milliseconds (unsigned 32-bit int)
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 27
+        cmd_data = Commands.setJ1939InterpacketTime(time_in_ms)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setMaxErrorMsgSize(self, msg_size : int) -> int:
+        """
+        Set Max Error Message Return Size (28) (2 bytes)
+
+        Args:
+        - msg_size - value in bytes for how large error messages are allowed to be.
+            - Should be between 81 and 65535
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 28
+        cmd_data = Commands.setMaxErrorMsgSize(msg_size)
+        cmd_size = 1
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def disallowConnections(self) -> int:
+        """
+        Disallow Further Client Connections (29) (0 bytes)
+        """
+        return self.command(29)
+
+    def setJ1939Baud(self, baud_code : int, wait_for_msg = True) -> int:
+        """
+        Set J1939 Baud Rate (37)
+
+        Args:
+        - baud_code - code that corresponds w/ desired baud rate
+            - 125k = 4
+            - 250k = 5
+            - 500k = 6
+            - 1000k = 7
+        - wait_for_msg - should we apply the baud change after the current message is finished, or
+                        apply the change right away?
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        cmd_num = 37
+        cmd_data = Commands.setJ1939Baud(baud_code, wait_for_msg)
+        cmd_size = 2
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def setBlockingTimeout(self, block1 : int, block2 : int) -> int:
+        """
+        Set Blocking Timeout (215) (2 bytes)
+
+        Block 1 and block 2 are multiplied together to determine the final blocking time in
+        milliseconds. Set either block to 0 for infinite time.
+        """
+        cmd_num = 215
+        cmd_data = Commands.setJ1939Baud(block1, block2)
+        cmd_size = 2
+        return self.command(cmd_num, cmd_data, cmd_size)
+
+    def flushBuffers(self) -> int:
+        """
+        Flush the Send/Receive Buffers (39) (0 bytes)
+        """
+        return self.command(39)
+
+    def setCANBaud(self, baud_code : int, wait_for_msg = True):
+        """
+        Set CAN Baud Rate (47) (2 bytes)
+
+        Args:
+        - baud_code - code that corresponds w/ desired baud rate
+            - 9600 = 0
+            - 19200 = 1
+            - 38400 = 2
+            - 57600 = 3
+            - 125k = 4
+            - 250k = 5
+            - 500k = 6
+            - 1000k = 7
+        - wait_for_msg - should we apply the baud change after the current message is finished, or
+                        apply the change right away?
+        """
+        cmd_num = 47
+        cmd_data = Commands.setCANBaud(baud_code, wait_for_msg)
+        cmd_size = 2
+        return self.command(cmd_num, cmd_data, cmd_size)
 

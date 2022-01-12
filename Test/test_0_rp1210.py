@@ -119,6 +119,7 @@ def test_InvalidAPIName_Devices_Protocols():
     rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.getDeviceIDs() == []
     assert rp1210.getProtocolIDs() == []
+    assert rp1210.getProtocol() == None
     assert rp1210.getProtocol(3) == None
     assert rp1210.getDevice(3) == None
 
@@ -213,3 +214,27 @@ def test_sanitize_msg_param_bool():
     assert sanitize_msg_param(True, 2, 'little') == b'\x01\x00'
     assert sanitize_msg_param(True) == b'\x01'
     assert sanitize_msg_param(False) == b'\x00'
+
+def test_sanitize_msg_param_typeerror():
+    try:
+        sanitize_msg_param(RP1210.RP1210VendorList())
+    except TypeError:
+        pass
+
+def test_rp1210client_populate_logic():
+    """Tests whether RP1210Client recognizes relevant drivers when adapter is disconnected."""
+    vendors = []
+    vendors.clear()
+    api_list = RP1210.getAPINames()
+    try:
+        for api_name in api_list:
+            try:
+                vendors.append(RP1210.RP1210Config(api_name))
+            except Exception as err:
+                # skip this API if its .ini file can't be parsed
+                print(err)
+                pass
+    except Exception as err:
+        print(err)
+        vendors = []
+    assert vendors != []

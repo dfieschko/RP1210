@@ -1,4 +1,6 @@
 from RP1210 import J1939, Commands, sanitize_msg_param
+import binascii
+import pytest
 
 def test_format_default():
     assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"
@@ -92,6 +94,7 @@ def test_J1939MessageParser_Request():
     assert parser.getSource() == 2
     assert parser.getDestination() == 255
     assert parser.getData() == b'\xEE\xFE\x00'
+    assert parser.isEcho() == False
 
 def test_command_claimAddress():
     address = 0x0F
@@ -105,6 +108,64 @@ def test_command_claimAddress():
     command = Commands.protectJ1939Address(address, name, blocking)
     assert command == b"\x01\x00\x00\x00\x00\x00\x23\xF0\x79\x02"
 
+def test_setJ1939Filters():
+    PGN = 1
+    SOURCE = 4
+    DEST = 8
+    assert Commands.setJ1939Filters(0) == b'\x00\x00\x00\x00\x00\x00\x00'
+    assert Commands.setJ1939Filters(PGN, pgn=0x0EF123) == b'\x01\x23\xF1\x0E\x00\x00\x00'
+    assert Commands.setJ1939Filters(SOURCE, source=0xAB) == b'\x04\x00\x00\x00\x00\xAB\x00'
+    assert Commands.setJ1939Filters(DEST, dest=0xCD) == b'\x08\x00\x00\x00\x00\x00\xCD'
+    assert Commands.setJ1939Filters(PGN+SOURCE, pgn=0x0EF123, source=0xAB) == b'\x05\x23\xF1\x0E\x00\xAB\x00'
+
+    filter_type = PGN # filter by PGN
+    filter_list_int = [0xB100,
+                    0xB200,
+                    0xB300,
+                    0xB400,
+                    0xE000,
+                    0xE04E,
+                    0xE099,
+                    0xE0FF,
+                    0xF003,
+                    0xF004,
+                    0xFEDA,
+                    0xFEEE,
+                    0xFEF1,
+                    0xFEF6,
+                    0xFEF7,
+                    0xFEF8,
+                    0xFFCC,
+                    0xFECA,
+                    0x7500,
+                    0x7800]
+    filter_list_str = ["B100",
+                       "B200",
+                       "B300",
+                       "B400",
+                       "E000",
+                       "E04E",
+                       "E099",
+                       "E0FF",
+                       "F003",
+                       "F004",
+                       "FEDA",
+                       "FEEE",
+                       "FEF1",
+                       "FEF6",
+                       "FEF7",
+                       "FEF8",
+                       "FFCC",
+                       "FECA",
+                       "7500",
+                       "7800"
+                       ]
+    for i in range(len(filter_list_int)):
+        messageString = binascii.a2b_hex("01" + filter_list_str[i][2:4] + filter_list_str[i][0:2] + "00" + "000000")
+        cmd_string = Commands.setJ1939Filters(filter_type, pgn=filter_list_int[i])
+        assert messageString == cmd_string
+
+@pytest.mark.skip("This test hasn't been implemented yet.")
 def test_toJ1939Name():
     # arbitrary address (1 bit)
     # industry group (3 bits)
@@ -118,3 +179,55 @@ def test_toJ1939Name():
     # identity number (21 bits)
     """TODO"""
     
+def test_isDM_hex():
+    """
+    Runs a simple test on all J1939.isDMxxxx() functions w/ hex inputs
+    """
+    assert not J1939.isDMRequestPGN(0x1111)
+    assert J1939.isDMRequestPGN(0xEA00)
+    assert not J1939.isDM1MessagePGN(0x1111)
+    assert J1939.isDM1MessagePGN(0xFECA)
+    assert not J1939.isDM2MessagePGN(0x1111)
+    assert J1939.isDM2MessagePGN(0xFECB)
+    assert not J1939.isDM3MessagePGN(0x1111)
+    assert J1939.isDM3MessagePGN(0xFECC)
+    assert not J1939.isDM4MessagePGN(0x1111)
+    assert J1939.isDM4MessagePGN(0xFECD)
+    assert not J1939.isDM11MessagePGN(0x1111)
+    assert J1939.isDM11MessagePGN(0xFED3)
+    assert not J1939.isDM12MessagePGN(0x1111)
+    assert J1939.isDM12MessagePGN(0xFED4)
+
+def test_J1939MessageParser_isDM_hex():
+    """
+    Runs a simple test on all J1939MessageParser.isDMxxxx() functions w/ hex inputs
+    """
+    def makeMessage(pgn):
+        # 4-byte timestamp
+        msg = b'0000' + J1939.toJ1939Message(pgn, 3, 0xFE, 0xAA, b'Bingus')
+        return J1939.J1939MessageParser(msg)
+
+    msg = makeMessage(0x1111)
+    assert msg.getPGN() == 0x1111
+    assert not msg.isDMRequest()
+    assert not msg.isDM1()
+    assert not msg.isDM2()
+    assert not msg.isDM3()
+    assert not msg.isDM4()
+    assert not msg.isDM11()
+    assert not msg.isDM12()
+
+    msg = makeMessage(0xEA00)
+    assert msg.isDMRequest()
+    msg = makeMessage(0xFECA)
+    assert msg.isDM1()
+    msg = makeMessage(0xFECB)
+    assert msg.isDM2()
+    msg = makeMessage(0xFECC)
+    assert msg.isDM3()
+    msg = makeMessage(0xFECD)
+    assert msg.isDM4()
+    msg = makeMessage(0xFED3)
+    assert msg.isDM11()
+    msg = makeMessage(0xFED4)
+    assert msg.isDM12()

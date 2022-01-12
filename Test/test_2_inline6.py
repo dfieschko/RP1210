@@ -14,7 +14,7 @@ def test_RP1210Interface():
     assert rp1210.isValid() == True
     assert str(rp1210) == API_NAME + " - Cummins Inc. INLINE6"
     assert rp1210.getAPIName() == API_NAME
-    assert rp1210.getName() == "Cummins Inc. INLINE6"
+    assert rp1210.getName() == "Cummins Inc. INLINE6" == rp1210.getDescription()
     assert rp1210.getAddress1() == "1460 N National Rd"
     assert rp1210.getAddress2() == ""
     assert rp1210.getCity() == "Columbus"
@@ -25,8 +25,8 @@ def test_RP1210Interface():
     assert rp1210.getFax() == ""
     assert rp1210.getVendorURL() == "http://inline.cummins.com"
     assert rp1210.getVersion() == ""
-    assert rp1210.autoDetectCapable() == False
-    assert rp1210.getCANAutoBaud() == True
+    assert rp1210.autoDetectCapable() == False == rp1210.getAutoDetectCapable()
+    assert rp1210.getCANAutoBaud() == True == rp1210.autoBaudEnabled()
     assert rp1210.getTimeStampWeight() == 1000
     assert rp1210.getMessageString() == "CMNSI632_RP1210_MSG"
     assert rp1210.getErrorString() == "CMNSI632_RP1210_ERROR"
@@ -248,3 +248,28 @@ def test_disconnected_RemainingFunctions():
     assert not read_array_in.value
     assert not rp1210.api.ReadDirect(0)
     assert rp1210.api.ReadDetailedVersionDirect(0) == ("", "", "")
+
+def test_disconnected_rp1210client_commands():
+    """Tests RP1210Client command functions when adapter is disconnected."""
+    client = RP1210.RP1210Client()
+    client.setVendor(API_NAME)
+    assert client.getClientID() == 128
+    clientID = client.connect()
+    assert clientID in RP1210.RP1210_ERRORS.keys()
+    assert clientID == client.getClientID()
+    # sampling of simpler commands
+    assert client.resetDevice() in RP1210.RP1210_ERRORS.keys()
+    assert client.setAllFiltersToPass() in RP1210.RP1210_ERRORS.keys()
+    assert client.setAllFiltersToDiscard() in RP1210.RP1210_ERRORS.keys()
+    assert client.setEcho(True) in RP1210.RP1210_ERRORS.keys()
+    assert client.setMessageReceive(True) in RP1210.RP1210_ERRORS.keys()
+    assert client.releaseJ1939Address(0xEE) in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939FilterType(0) in RP1210.RP1210_ERRORS.keys()
+    assert client.setCANFilterType(0) in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939InterpacketTime(100) in RP1210.RP1210_ERRORS.keys()
+    assert client.setMaxErrorMsgSize(100) in RP1210.RP1210_ERRORS.keys()
+    assert client.disallowConnections() in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939Baud(5) in RP1210.RP1210_ERRORS.keys()
+    assert client.setBlockingTimeout(20, 30) in RP1210.RP1210_ERRORS.keys()
+    assert client.flushBuffers() in RP1210.RP1210_ERRORS.keys()
+    assert client.setCANBaud(5) in RP1210.RP1210_ERRORS.keys()

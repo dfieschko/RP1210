@@ -1,5 +1,6 @@
 from ctypes import create_string_buffer
 import RP1210
+from RP1210.RP1210 import RP1210Client, RP1210Config
 
 API_NAME = "NULN2R32"
 
@@ -14,7 +15,7 @@ def test_RP1210Interface():
     assert rp1210.isValid() == True
     assert str(rp1210) == API_NAME + " - NEXIQ Technologies USB-Link 2"
     assert rp1210.getAPIName() == API_NAME
-    assert rp1210.getName() == "NEXIQ Technologies USB-Link 2"
+    assert rp1210.getName() == "NEXIQ Technologies USB-Link 2" == rp1210.getDescription()
     assert rp1210.getAddress1() == "2950 Waterview"
     assert rp1210.getAddress2() == ""
     assert rp1210.getCity() == "Rochester Hills"
@@ -25,8 +26,8 @@ def test_RP1210Interface():
     assert rp1210.getFax() == "(248)293-8211"
     assert rp1210.getVendorURL() == "www.nexiq.com"
     assert rp1210.getVersion() == "2.8.0.2"
-    assert rp1210.autoDetectCapable() == True
-    assert rp1210.getCANAutoBaud() == True
+    assert rp1210.autoDetectCapable() == True == rp1210.getAutoDetectCapable()
+    assert rp1210.getCANAutoBaud() == True == rp1210.autoBaudEnabled()
     assert rp1210.getTimeStampWeight() == 1
     assert rp1210.getMessageString() == "DMUX32 MESSAGE"
     assert rp1210.getErrorString() == "DMUX32 ERROR"
@@ -112,6 +113,12 @@ def test_Protocols_CAN_J1939():
     assert protocol26.getParams() == ""
     assert protocol26.getDevices() == [1, 2, 3]
     assert protocol26.getSpeed() == ["50","125"]
+    protocol = rp1210.getProtocol("J1939")
+    assert protocol1.getDescription() == "SAE J1939 Protocol"
+    assert protocol1.getString() == "J1939"
+    assert protocol1.getParams() == ""
+    assert protocol1.getDevices() == [1, 2, 3]
+    assert protocol1.getSpeed() == ["250","500","666","1000","Auto"]
 
 def test_load_DLL():
     """
@@ -199,3 +206,40 @@ def test_disconnected_RemainingFunctions():
     assert not read_array_in.value
     assert not rp1210.api.ReadDirect(0)
     assert rp1210.api.ReadDetailedVersionDirect(0) == ("", "", "")
+
+def test_disconnected_rp1210client():
+    """Tests whether RP1210Client recognizes relevant drivers when adapter is disconnected."""
+    client = RP1210Client()
+    assert RP1210.getAPINames() != []
+    assert client.getList() != []
+    assert client.getVendorIndex(API_NAME) != 0
+    client.setVendor(API_NAME)
+    rp1210 = RP1210Config(API_NAME)
+    assert client.getClientID() == 128
+    assert client.getCurrentVendor().getAPIName() == rp1210.getAPIName()
+
+def test_disconnected_rp1210client_commands():
+    """Tests RP1210Client command functions when adapter is disconnected."""
+    client = RP1210.RP1210Client()
+    client.setVendor(API_NAME)
+    assert client.getClientID() == 128
+    clientID = client.connect()
+    assert clientID in RP1210.RP1210_ERRORS.keys()
+    assert clientID == client.getClientID()
+    # sampling of simpler commands
+    assert client.resetDevice() in RP1210.RP1210_ERRORS.keys()
+    assert client.setAllFiltersToPass() in RP1210.RP1210_ERRORS.keys()
+    assert client.setAllFiltersToDiscard() in RP1210.RP1210_ERRORS.keys()
+    assert client.setEcho(True) in RP1210.RP1210_ERRORS.keys()
+    assert client.setMessageReceive(True) in RP1210.RP1210_ERRORS.keys()
+    assert client.releaseJ1939Address(0xEE) in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939FilterType(0) in RP1210.RP1210_ERRORS.keys()
+    assert client.setCANFilterType(0) in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939InterpacketTime(100) in RP1210.RP1210_ERRORS.keys()
+    assert client.setMaxErrorMsgSize(100) in RP1210.RP1210_ERRORS.keys()
+    assert client.disallowConnections() in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939Baud(5) in RP1210.RP1210_ERRORS.keys()
+    assert client.setBlockingTimeout(20, 30) in RP1210.RP1210_ERRORS.keys()
+    assert client.flushBuffers() in RP1210.RP1210_ERRORS.keys()
+    assert client.setCANBaud(5) in RP1210.RP1210_ERRORS.keys()
+

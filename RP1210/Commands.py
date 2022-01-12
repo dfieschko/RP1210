@@ -139,7 +139,7 @@ def resetDevice():
     """
     Reset Device (0) (0 bytes)
 
-    The RP1210_RESET_DEVICE only works if only one client is connected to the adapter, and does
+    RP1210_RESET_DEVICE only works if only one client is connected to the adapter, and does
     the exact same thing as if you called the function ClientDisconnect.
 
     Returns empty byte string (this command needs no extra data).
@@ -184,7 +184,7 @@ def setJ1939Filters(filter_flag : int, pgn = 0, source = 0, dest = 0) -> bytes:
 
 def setCANFilters(can_type, mask, header) -> bytes:
     """
-    Set Message Filtering for CAN (5)
+    Set Message Filtering for CAN (5) (9 bytes)
 
     Args:
     - CAN Type (1 byte) - 0x00 for STANDARD_CAN, 0x01 for EXTENDED_CAN.
@@ -213,7 +213,7 @@ def generic(ClientCommand, num_bytes = 0, byteorder = 'big') -> bytes:
 
 def setEcho(echo = True) -> bytes:
     """
-    Set Echo Transmitted Messages (16)
+    Set Echo Transmitted Messages (16) (1 byte)
 
     Args:
     - Echo on/off (bool) - False for no echo, True for echo.
@@ -226,7 +226,7 @@ def setEcho(echo = True) -> bytes:
 
 def setAllFiltersToDiscard():
     """
-    Set All Filter States to Discard (17)
+    Set All Filter States to Discard (17) (0 bytes)
 
     Returns empty byte string (this command needs no extra data).
     """
@@ -234,7 +234,7 @@ def setAllFiltersToDiscard():
 
 def setMessageReceive(receive_messages = True) -> bytes:
     """
-    Set Message Receive (18)
+    Set Message Receive (18) (1 byte)
 
     Args:
     - Receive on/off : True = RECEIVE_ON, False = RECEIVE_OFF.
@@ -269,7 +269,7 @@ def protectJ1939Address(address_to_claim, network_mgt_name, blocking = True) -> 
 
 def releaseJ1939Address(address) -> bytes:
     """
-    Release a J1939 Address (31)
+    Release a J1939 Address (31) (1 byte)
 
     Args:
     - Address (1 byte) - the address to release.
@@ -312,9 +312,9 @@ def setBroadcastList(function : Literal[1, 2, 3, 4, 5], command) -> bytes:
     return ret_val
 
 
-def setFilterType(filter_type = Literal[0, 1]):
+def setFilterType(filter_type : Literal[0, 1]):
     """
-    Set Filter Type
+    Set Filter Type (1 byte)
 
     filter_type:
     - 0 = FILTER_INCLUSIVE
@@ -392,7 +392,10 @@ def setJ1939Baud(baud_code : int, wait_for_msg = True):
 
 def setBlockingTimeout(block1 : int, block2 : int):
     """
-    Set Blocking Timeout (215)
+    Set Blocking Timeout (215) (2 bytes)
+
+    Block 1 and block 2 are multiplied together to determine the final blocking time in
+    milliseconds. Set either block to 0 for infinite time.
     """
     return sanitize_msg_param(block1, 1) + sanitize_msg_param(block2, 1)
 
