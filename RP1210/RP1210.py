@@ -878,8 +878,8 @@ class RP1210API:
         """
         Attempts to connect to an RP1210 adapter.
         - nDeviceID determines which adapter it tries to connect to.
-        - You can generate Protocol with a ProtocolFormatter class, e.g. J1939ProtocolFormatter,
-        use RP1210Protocol class to read supported formats from file, or just do it yourself.
+        - You can generate Protocol with a protocol format function, e.g. getJ1939ProtocolString(),
+        or just do it yourself.
             - Protocol defaults to b"J1939:Baud=Auto"
         - Tx and Rcv buffer sizes default to 8K when given an argument of 0.
         - Don't mess with argument nisAppPacketizingincomingMsgs.
@@ -894,7 +894,7 @@ class RP1210API:
     
     def ClientDisconnect(self, ClientID : int) -> int:
         """
-        Disconnects from client w/ specified clientID.
+        Disconnects client w/ specified clientID from adapter.
         
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
@@ -950,9 +950,7 @@ class RP1210API:
         - BufferSize = the size of the buffer in bytes. Defaults to 512.
         - BlockOnRead = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
 
-        Automatically cuts array size to the message size reported by ReadMessage().
-
-        Output still includes leading 4 timestamp bytes.
+        Output still includes leading 4 timestamp bytes, if applicable.
         """
         RxBuffer = create_string_buffer(BufferSize)
         size = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
@@ -1280,13 +1278,33 @@ class RP1210VendorList:
 
 class RP1210Client(RP1210VendorList):
     """
-    Stores a list of all adapter vendors and devices read from .ini files (child of VendorList) and
+    Stores a list of all adapter vendors and devices read from .ini files (child of VendorList), and
     handles connection with an adapter.
     """
 
     def __init__(self) -> None:
         self.clientID = 128 # DLL_NOT_INITIALIZED
         super().__init__()
+
+    ###################
+    # CLASS FUNCTIONS #
+    ###################
+
+    def getClientID(self) -> int:
+        """
+        Returns clientID received from ClientConnect command (which you call via `connect()`).
+
+        If `connect()` has not yet been called, will default to 128 (DLL_NOT_INITIALIZED).
+
+        Will return -1 if there was an error calling ClientConnect.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        return self.clientID
+
+    ####################
+    # RP1210 FUNCTIONS #
+    ####################
 
     def connect(self, protocol = b"J1939:Baud=Auto") -> int:
         """
@@ -1306,6 +1324,18 @@ class RP1210Client(RP1210VendorList):
         except Exception:
             return -1
 
+    def disconnect(self) -> int:
+        """
+        Disconnects from adapter.
+        
+        Returns 0 if successful, or >127 if it failed.
+            You can use translateClientID() to translate the failure code.
+        """
+        try:
+            return self.getAPI().ClientDisconnect(self.clientID)
+        except Exception:
+            return 128 # DLL_NOT_INITIALIZED
+
     def command(self, CommandNumber, ClientCommand = b"", MessageSize = 0) -> int:
         """
         Calls RP1210_SendCommand with current clientID.
@@ -1319,21 +1349,38 @@ class RP1210Client(RP1210VendorList):
         except Exception:
             return -1
 
-    def getClientID(self) -> int:
+    def rx(self, buffer_size = 512, blocking = False):
         """
-        Returns clientID received from ClientConnect command (which you call via `connect()`).
+        Calls ReadMessage, but generates and returns its own RxBuffer value.
+        - buffer_size = the size of the buffer in bytes. Defaults to 512.
+        - blocking = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
 
-        If `connect()` has not yet been called, will default to 128 (DLL_NOT_INITIALIZED).
-
-        Will return -1 if there was an error calling ClientConnect.
+        Output still includes leading 4 timestamp bytes, if applicable.
 
         TODO: This function has not yet been rigorously tested.
         """
-        return self.clientID
+        return self.getAPI().ReadDirect(self.clientID, buffer_size, blocking)
 
-    ############
-    # COMMANDS #
-    ############
+    def tx(self, message, msg_size = 0):
+        """
+        Send a message to the databus your adapter is connected to.
+        - message = message you want to send
+        - msg_size = message size in bytes (including qualifier bytes like timestamp, if applicable)
+            - Will default to len(message) if msg_size = 0
+        
+        Use a message function provided with this package (e.g. toJ1939Message()) to generate the
+        message. Or just do it yourself, I'm not the boss of you.
+
+        Returns 0 if successful, or >127 if it failed.
+            You can use translateClientID() to translate the failure code.
+
+        TODO: This function has not yet been rigorously tested.
+        """
+        return self.getAPI().SendMessage(self.clientID, message, msg_size)
+
+    #####################
+    # COMMAND FUNCTIONS #
+    #####################
 
     def resetDevice(self) -> int:
         """
