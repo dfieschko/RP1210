@@ -30,9 +30,13 @@ def toJ1939Message(pgn, priority, source, destination, data) -> bytes:
     - Destination Address (1 byte)
     - Message Data (0 - 1785 byes)
 
+    If you're not sure what to do with some of these arguments due to differences between PDU1 and
+    PDU2 messages, you can most likely get away with leaving irrelevant portions blank - your RP1210
+    adapter drivers will format the message for you.
+
     Arguments can be strings, ints, or bytes. This function will parse strings as UTF-8 characters,
     so don't provide it with letters or special characters unless that's what you mean to send.
-    If you want to send it 0xFF, send it as an int and not "FF".
+    If you want to send it 0xFF, send it as an int and not "FF". Likewise, 0 != "0".
     """
     ret_val = sanitize_msg_param(pgn, 3, 'little')
     ret_val += sanitize_msg_param(priority, 1)
