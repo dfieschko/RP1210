@@ -179,24 +179,6 @@ def test_toJ1939Name():
     # identity number (21 bits)
     """TODO"""
     
-def test_isDM_hex():
-    """
-    Runs a simple test on all J1939.isDMxxxx() functions w/ hex inputs
-    """
-    assert not J1939.isDMRequestPGN(0x1111)
-    assert J1939.isDMRequestPGN(0xEA00)
-    assert not J1939.isDM1MessagePGN(0x1111)
-    assert J1939.isDM1MessagePGN(0xFECA)
-    assert not J1939.isDM2MessagePGN(0x1111)
-    assert J1939.isDM2MessagePGN(0xFECB)
-    assert not J1939.isDM3MessagePGN(0x1111)
-    assert J1939.isDM3MessagePGN(0xFECC)
-    assert not J1939.isDM4MessagePGN(0x1111)
-    assert J1939.isDM4MessagePGN(0xFECD)
-    assert not J1939.isDM11MessagePGN(0x1111)
-    assert J1939.isDM11MessagePGN(0xFED3)
-    assert not J1939.isDM12MessagePGN(0x1111)
-    assert J1939.isDM12MessagePGN(0xFED4)
 
 def test_J1939MessageParser_isDM_hex():
     """
@@ -231,3 +213,11 @@ def test_J1939MessageParser_isDM_hex():
     assert msg.isDM11()
     msg = makeMessage(0xFED4)
     assert msg.isDM12()
+
+def test_DTCParser():
+    """
+    Runs tests on DTCParser class.
+
+    Will also cover other J1939 functions out of necessity.
+    """
+    
