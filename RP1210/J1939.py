@@ -50,6 +50,46 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> by
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
     return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
 
+def toDiagnosticData(spn : int, fmi : int, oc : int,
+                    lamps = 0x00, lamps_flash = 0x00, cm = 0b0) -> bytes:
+    """
+    Generates data (lamp code + diagnostic trouble code) for diagnostic messages
+    (DM1, DM2, or DM12).
+
+    To use, generate message data with this function, then use return value for data parameter in
+    toJ1939Message().
+    - spn = Suspect Parameter Number (19 bits)
+    - fmi = Failure Mode Identifier (5 bits)
+    - OC = Occurence Count (7 bits)
+    - lamps = lamps code (1 byte)
+    - lamps_flash = flashing lamps code (1 byte)
+
+    lamps and lamps_flash follow the following format:
+    - bits 7-6: Malfunction Indicator Lamp
+    - bits 5-4: Red Stop Lamp
+    - bits 3-2: Amber Warning Lamp
+    - bits 1-0: Protect Lamp
+    """
+    ret_val = b''
+    # byte 0 is lamp code
+    ret_val += sanitize_msg_param(lamps)
+    # byte 1 is lamp flashing code
+    ret_val += sanitize_msg_param(lamps_flash)
+    # bytes 2 and 3 are just SPN in little-endian format
+    spn_bytes = sanitize_msg_param(spn, 3, 'little')
+    ret_val += int.to_bytes(spn_bytes[0], 1, 'big')
+    ret_val += int.to_bytes(spn_bytes[1], 1, 'big')
+    # byte 4 is mix of SPN (3 bits) and fmi (5 bits)
+    # we will handle this by doing bitwise operations on an int, then convert back to bytes
+    byte4_int = (int(spn_bytes[2]) << 5) & 0b11100000
+    byte4_int |= int(fmi) & 0b00011111
+    ret_val += sanitize_msg_param(byte4_int)
+    # byte 5 is mix of CM (1 bit) and OC (7 bits)
+    byte5_int = (int(cm) & 0b1) << 7
+    byte5_int |= int(oc) & 0b01111111
+    ret_val += sanitize_msg_param(byte5_int)
+    return ret_val
+
 class J1939MessageParser():
     """
     A convenience class for parsing a J1939 message received from RP1210_ReadMessage.
@@ -134,7 +174,7 @@ class J1939MessageParser():
     def getData(self) -> bytes:
         """Returns message data (0 - 1785 bytes) as bytes."""
         loc = 10 + self.echo_offset
-        return int(self.msg[loc:])
+        return self.msg[loc:]
 
 class DTCParser():
     """
@@ -156,9 +196,10 @@ class DTCParser():
         Returns SPN (suspect parameter number) field from DTC.
         """
         # need to construct SPN from bytes 2-4
-        temp_data = self.data[2:5] # copy bytes 2-4
-        temp_data[4] = (temp_data[4] & 0b11100000) >> 5 # only need bits 5-7 of byte 4
-        return int.from_bytes(temp_data, 'little') # return result (little-endian)
+        ret_val = (self.data[4] & 0b11100000) >> 5
+        ret_val = (ret_val << 8) | self.data[3]
+        ret_val = (ret_val << 8) | self.data[2]
+        return ret_val
 
     def getFMI(self) -> int:
         """
@@ -176,14 +217,20 @@ class DTCParser():
         """
         Returns CM (conversion method) bit in DTC.
         """
-        return int(self.data[5], 2) >> 7 & 1 # return bit in position 7 of byte 5 
+        return self.data[5] >> 7 & 1 # return bit in position 7 of byte 5 
 
 
-    def getLamp(self) -> int:
+    def getLampStatus(self) -> int:
         """
         Returns a code for lamp status. Not technically part of the DTC.
         """
-        return int(self.data[0])
+        return self.data[0]
+
+    def getLampFlashingStatus(self) -> int:
+        """
+        Returns a code for flashing lamp status. Not technically part of the DTC.
+        """
+        return self.data[1]
 
 
 def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,

@@ -214,10 +214,44 @@ def test_J1939MessageParser_isDM_hex():
     msg = makeMessage(0xFED4)
     assert msg.isDM12()
 
+def test_toDiagnosticData():
+    """
+    Runs tests on toDiagnosticData() function.
+    """
+    # test SPN
+    data = J1939.toDiagnosticData(0x5BEEF, 0, 0)
+    assert data[2] == 0xEF
+    assert data[3] == 0xBE
+    assert data[4] == 0b10100000
+    # test fmi
+    data = J1939.toDiagnosticData(0, 0b10101, 0)
+    assert data[4] == 0b00010101
+    # test cm
+    data = J1939.toDiagnosticData(0, 0, 0, cm=1)
+    assert data[5] == 0b10000000
+    # test oc
+    data = J1939.toDiagnosticData(0, 0, 102)
+    assert data[5] == 102
+    # test lamp
+    data = J1939.toDiagnosticData(0,0,0, lamps=0xAF)
+    assert data[0] == 0xAF
+    # test flashing lamps
+    data = J1939.toDiagnosticData(0,0,0, lamps_flash=0xFA)
+    assert data[1] == 0xFA
+
+
 def test_DTCParser():
     """
     Runs tests on DTCParser class.
 
     Will also cover other J1939 functions out of necessity.
     """
-    
+    # test with toDiagnosticData()
+    data = J1939.toDiagnosticData(0x12345, 22, 47, 0b01010101, 0b01000100, 1)
+    dtc = J1939.DTCParser(data)
+    assert dtc.getSPN() == 0x12345
+    assert dtc.getFMI() == 22
+    assert dtc.getOC() == 47
+    assert dtc.getLampStatus() == 0b01010101
+    assert dtc.getLampFlashingStatus() == 0b01000100
+    assert dtc.getCM() == 1

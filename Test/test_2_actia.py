@@ -1,7 +1,14 @@
 from ctypes import create_string_buffer
 import RP1210
+import pytest
 
 API_NAME = "IMBRP32"
+
+TEST_ENABLED = False
+SKIP_REASON = "ACTIA is stinky."
+
+if not TEST_ENABLED:
+    pytest.skip(SKIP_REASON, allow_module_level=True)
 
 def test_RP1210Interface():
     """
