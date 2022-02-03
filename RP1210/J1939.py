@@ -4,14 +4,6 @@ if you try to generate J1939 messages to transmit directly onto a CANbus, these 
 
 While a dict of J1939 PGNs would be convenient, they are not provided here because the list is a
 copyright of SAE.
-
-J1939 functions:
-- toJ1939Message
-- getJ1939ProtocolString
-- getJ1939ProtocolDescription
-
-J1939 classes:
-- J1939MessageParser
 """
 
 from RP1210 import sanitize_msg_param
@@ -53,6 +45,142 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> by
     """
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
     return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
+
+class J1939MessageParser():
+    """
+    A convenience class for parsing a J1939 message received from RP1210_ReadMessage.
+
+    Message must include timestamp (4 bytes) in its leading bytes (this conforms w/ return value
+    of RP1210_ReadMessage).
+
+    - Initialize the object with the message received from ReadMessage.
+    - If you used the command 'Set Echo Transmitted Messages' to turn echo on, set arg echo = True.
+    """
+    def __init__(self, j1939_message : bytes, echo = False) -> None:
+        self.msg = j1939_message
+        self.echo_offset = int(echo)
+
+    def isEcho(self) -> bool:
+        """Returns True if the message is an echo of a message you transmitted, False if not."""
+        if self.echo_offset == 1:
+            return int.from_bytes(self.msg[4]) == 0x01
+        return False
+
+    def isRequest(self) -> bool:
+        """Returns true if PGN matches J1939 Request PGN."""
+        return self.getPGN() == 0xEA00
+
+    def isDMRequest(self) -> bool:
+        """Returns true if PGN matches Diagnostic Message Request PGN."""
+        return self.getPGN() == 0xEA00
+
+    def isDM1(self) -> bool:
+        """Returns true if PGN matches DM1 (active DTC) PGN."""
+        return self.getPGN() == 0xFECA
+    
+    def isDM2(self) -> bool:
+        """Returns true if PGN matches DM2 (previously active DTC) PGN."""
+        return self.getPGN() == 0xFECB
+    
+    def isDM3(self) -> bool:
+        """Returns true if PGN matches DM3 (clear previously active DTCs) PGN."""
+        return self.getPGN() == 0xFECC
+
+    def isDM4(self) -> bool:
+        """Returns true if PGN matches DM4 (freeze frame parameters) PGN."""
+        return self.getPGN() == 0xFECD
+
+    def isDM11(self) -> bool:
+        """Returns true if PGN matches DM11 (clear active DTCs) PGN."""
+        return self.getPGN() == 0xFED3
+
+    def isDM12(self) -> bool:
+        """Returns true if PGN matches DM12 (emission-related active DTCs) PGN."""
+        return self.getPGN() == 0xFED4
+
+    def getTimestamp(self) -> int:
+        """Returns timestamp (4 bytes) as int."""
+        return int.from_bytes(self.msg[0:4], 'big')
+
+    def getPGN(self) -> int:
+        """Returns PGN (3 bytes) as int."""
+        start = 4 + self.echo_offset
+        end = 6 + self.echo_offset
+        return int.from_bytes(self.msg[start:end], 'little')
+
+    def getPriority(self) -> int:
+        """Returns Priority (1 byte) as int."""
+        loc = 7 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getSource(self) -> int:
+        """Returns Source Address (1 byte) as int."""
+        loc = 8 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getSourceAddress(self) -> int:
+        """Returns Source Address (1 byte) as int."""
+        return int(self.getSource())
+
+    def getDestination(self) -> int:
+        """Returns Destination Address (1 byte) as int."""
+        loc = 9 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getData(self) -> bytes:
+        """Returns message data (0 - 1785 bytes) as bytes."""
+        loc = 10 + self.echo_offset
+        return int(self.msg[loc:])
+
+class DTCParser():
+    """
+    A convenience class for parsing the diagnostic trouble code (DTC) in diagnostic message data.
+    This class should work for DM1, DM2, and DM12 messages.
+
+    Initialize this object with the return value of getData() from J1939MessageParser.
+    
+    This class only supports DTC conversion method 4 (e.g. the modern format). If you're getting an
+    unexpected value for the SPN, it's probably in a different format. If you want support for other
+    formats, open an issue in GitHub (github.com/dfieschko/RP1210).
+    """
+
+    def __init__(self, data : bytes) -> None:
+        self.data = data
+
+    def getSPN(self) -> int:
+        """
+        Returns SPN (suspect parameter number) field from DTC.
+        """
+        # need to construct SPN from bytes 2-4
+        temp_data = self.data[2:5] # copy bytes 2-4
+        temp_data[4] = (temp_data[4] & 0b11100000) >> 5 # only need bits 5-7 of byte 4
+        return int.from_bytes(temp_data, 'little') # return result (little-endian)
+
+    def getFMI(self) -> int:
+        """
+        Returns FMI (failure mode identifier) field from DTC.
+        """
+        return int(self.data[4]) & 0b00011111 # return bits 0-4 of byte 4
+
+    def getOC(self) -> int:
+        """
+        Returns OC (occurence count) field from DTC.
+        """
+        return int(self.data[5]) & 0b01111111 # return bits 0-6 of byte 5
+
+    def getCM(self) -> int:
+        """
+        Returns CM (conversion method) bit in DTC.
+        """
+        return int(self.data[5], 2) >> 7 & 1 # return bit in position 7 of byte 5 
+
+
+    def getLamp(self) -> int:
+        """
+        Returns a code for lamp status. Not technically part of the DTC.
+        """
+        return int(self.data[0])
+
 
 def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
                 function : int, function_instance : int, ecu_instance : int, mfg_code : int, id : int) -> bytes:
@@ -146,144 +274,3 @@ def getJ1939ProtocolDescription(protocol : int) -> str:
         return "Baud formula derived from Intel implementations."
     else:
         return "Invalid J1939 protocol format selected."
-
-class J1939MessageParser():
-    """
-    A convenience class for parsing a J1939 message received from RP1210_ReadMessage.
-
-    Message must include timestamp (4 bytes) in its leading bytes (this conforms w/ return value
-    of RP1210_ReadMessage).
-
-    - Initialize the object with the message received from ReadMessage.
-    - If you used the command 'Set Echo Transmitted Messages' to turn echo on, set arg echo = True.
-    """
-    def __init__(self, j1939_message : bytes, echo = False) -> None:
-        self.msg = j1939_message
-        self.echo_offset = int(echo)
-
-    def isEcho(self) -> bool:
-        """Returns True if the message is an echo of a message you transmitted, False if not."""
-        if self.echo_offset == 1:
-            return int.from_bytes(self.msg[4]) == 0x01
-        return False
-
-    def isRequest(self) -> bool:
-        """Returns true if PGN matches J1939 Request PGN."""
-        return self.getPGN() == 0xEA00
-
-    def isDMRequest(self) -> bool:
-        """Returns true if PGN matches Diagnostic Message Request PGN."""
-        return self.getPGN() == 0xEA00
-
-    def isDM1(self) -> bool:
-        """Returns true if PGN matches DM1 (active DTC) PGN."""
-        return self.getPGN() == 0xFECA
-    
-    def isDM2(self) -> bool:
-        """Returns true if PGN matches DM2 (previously active DTC) PGN."""
-        return self.getPGN() == 0xFECB
-    
-    def isDM3(self) -> bool:
-        """Returns true if PGN matches DM3 (clear previously active DTCs) PGN."""
-        return self.getPGN() == 0xFECC
-
-    def isDM4(self) -> bool:
-        """Returns true if PGN matches DM4 (freeze frame parameters) PGN."""
-        return self.getPGN() == 0xFECD
-
-    def isDM11(self) -> bool:
-        """Returns true if PGN matches DM11 (clear active DTCs) PGN."""
-        return self.getPGN() == 0xFED3
-
-    def isDM12(self) -> bool:
-        """Returns true if PGN matches DM12 (emission-related active DTCs) PGN."""
-        return self.getPGN() == 0xFED4
-
-    def getTimestamp(self) -> int:
-        """Returns timestamp (4 bytes) as int."""
-        print(self.msg)
-        print(self.msg[0:4])
-        return int.from_bytes(self.msg[0:4], 'big')
-
-    def getPGN(self) -> int:
-        """Returns PGN (3 bytes) as int."""
-        start = 4 + self.echo_offset
-        end = 6 + self.echo_offset
-        return int.from_bytes(self.msg[start:end], 'little')
-
-    def getPriority(self) -> int:
-        """Returns Priority (1 byte) as int."""
-        loc = 7 + self.echo_offset
-        return self.msg[loc]
-
-    def getSource(self) -> int:
-        """Returns Source Address (1 byte) as int."""
-        loc = 8 + self.echo_offset
-        return self.msg[loc]
-
-    def getDestination(self) -> int:
-        """Returns Destination Address (1 byte) as int."""
-        loc = 9 + self.echo_offset
-        return self.msg[loc]
-
-    def getData(self) -> bytes:
-        """Returns message data (0 - 1785 bytes) as bytes."""
-        loc = 10 + self.echo_offset
-        return self.msg[loc:]
-
-
-def isDMRequestPGN(pgn) -> bool:
-    """
-    Checks if PGN matches Diagnostic Message Request PGN.
-
-    Returns True if pgn is 0xEA00 (DM request PGN), False if not.
-    """
-    return sanitize_msg_param(pgn) == b'\xEA\x00'
-
-def isDM1MessagePGN(pgn) -> bool:
-    """
-    Checks if PGN matches DM1 (active DTC) Message PGN.
-
-    Returns True if pgn is 0xFECA (DM1 PGN), False if not.
-    """
-    return sanitize_msg_param(pgn) == b'\xFE\xCA'
-
-def isDM2MessagePGN(pgn) -> bool:
-    """
-    Checks if PGN matches DM2 (previously active DTC) Message PGN.
-    
-    Returns True if pgn is 0xFECB (DM2 PGN), False if not.
-    """
-    return sanitize_msg_param(pgn) == b'\xFE\xCB'
-
-def isDM3MessagePGN(pgn) -> bool:
-    """
-    Checks if PGN matches DM3 (clear previously active DTCs) Message PGN.
-
-    Returns True if pgn is 0xFECC (DM3 PGN), False if not.
-    """
-    return sanitize_msg_param(pgn) == b'\xFE\xCC'
-
-def isDM4MessagePGN(pgn) -> bool:
-    """
-    Checks if PGN matches DM4 (freeze frame parameters) Message PGN.
-    
-    Returns True if pgn is 0xFECD (DM4 PGN), False if not.
-    """
-    return sanitize_msg_param(pgn) == b'\xFE\xCD'
-
-def isDM11MessagePGN(pgn) -> bool:
-    """
-    Checks if PGN matches DM11 (clear active DTCs) Message PGN.
-    
-    Returns True if pgn is 0xFED3 (DM11 PGN), False if not.
-    """
-    return sanitize_msg_param(pgn) == b'\xFE\xD3'
-
-def isDM12MessagePGN(pgn) -> bool:
-    """
-    Checks if PGN matches DM12 (emission-related active DTCs) Message PGN.
-    
-    Returns True if pgn is 0xFED4 (DM12 PGN), False if not.
-    """
-    return sanitize_msg_param(pgn) == b'\xFE\xD4'
