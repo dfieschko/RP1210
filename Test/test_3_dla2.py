@@ -5,6 +5,7 @@ a device.
 This is done on the DLA 2.0 adapter because it has the ability to be powered from
 the PC's USB port.
 """
+from doctest import SKIP
 from RP1210 import J1939, Commands
 import RP1210
 from tkinter import messagebox
@@ -13,6 +14,9 @@ import pytest
 TEST_ENABLED = True
 SKIP_REASON = "DLA tests w/ adapter connected are disabled."
 
+if not TEST_ENABLED:
+    pytest.skip(SKIP_REASON, allow_module_level=True)
+
 def disconnect():
     api = RP1210.RP1210API(API_NAME)
     for clientID in range(0, 15):
@@ -20,7 +24,6 @@ def disconnect():
 
 API_NAME = "DLAUSB32"
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
 def test_dla2_drivers_begin():
     messagebox.showinfo("Connect your DLA2 adapter!", 
                         "Connect your DLA2 adapter, then hit OK to continue.\nDon't connect the adapter to a CAN bus!")
@@ -28,7 +31,6 @@ def test_dla2_drivers_begin():
 
 # DON'T ADD ANY TESTS BEFORE THIS POINT!
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
 def test_reset():
     disconnect()
     api = RP1210.RP1210API(API_NAME)
@@ -36,7 +38,6 @@ def test_reset():
     ret_val = api.SendCommand(0, clientID)
     assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
 def test_reset_too_many_connections():
     disconnect()
     api = RP1210.RP1210API(API_NAME)
@@ -45,7 +46,6 @@ def test_reset_too_many_connections():
     ret_val = api.SendCommand(0, clientID)
     assert RP1210.translateErrorCode(ret_val) == "ERR_MULTIPLE_CLIENTS_CONNECTED"
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
 def test_dla2_drivers_installed():
     assert API_NAME in RP1210.getAPINames()
     dla2 = RP1210.RP1210Config(API_NAME)
@@ -53,7 +53,7 @@ def test_dla2_drivers_installed():
     assert dla2.api.getDLL() != None
     assert dla2.api.isValid()
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_ClientConnect():
     """Tests RP1210_ClientConnect with DLA 2.0 adapter connected."""
     dla2 = RP1210.RP1210Config(API_NAME)
@@ -65,7 +65,7 @@ def test_ClientConnect():
     clientID = dla2.api.ClientConnect(deviceID, protocol_str)
     assert RP1210.translateErrorCode(clientID) == "NO_ERRORS"
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_ClientConnect_overflow():
     dla2 = RP1210.RP1210Config(API_NAME)
     deviceID = dla2.getDeviceIDs()[0]
@@ -80,7 +80,7 @@ def test_ClientConnect_overflow():
         clientID = dla2.api.ClientConnect(deviceID, protocol_str)
         assert RP1210.translateErrorCode(clientID) in ["NO_ERRORS", "ERR_CLIENT_AREA_FULL"]
     
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_ClientDisconnect():
     """This test calls RP1210_ClientDisconnect for each of the ClientConnect attempts in the test above."""
     dla2 = RP1210.RP1210Config(API_NAME)
@@ -91,7 +91,7 @@ def test_ClientDisconnect():
         ret_val = dla2.api.ClientDisconnect(x)
         assert RP1210.translateErrorCode(ret_val) in ["NO_ERRORS", "ERR_INVALID_CLIENT_ID"] 
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_ClientConnect_Disconnect_j1939_speeds():
     """
     Tests ClientConnect and ClientDisconnect with all possible J1939 speeds.
@@ -115,7 +115,7 @@ def test_ClientConnect_Disconnect_j1939_speeds():
         disconnect_code = dla2.api.ClientDisconnect(clientID)
         assert RP1210.translateErrorCode(disconnect_code) == "NO_ERRORS"
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_SendMessage_no_address_claimed():
     """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
     api = RP1210.RP1210API(API_NAME)
@@ -131,7 +131,7 @@ def test_SendMessage_no_address_claimed():
     assert RP1210.translateErrorCode(ret_val) == "ERR_ADDRESS_NEVER_CLAIMED"
     api.ClientDisconnect(clientID)
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_SendCommand_claim_j1939_address():
     """Test SendCommand function w/ command "Protect_J1939_Address" (19)"""
     api = RP1210.RP1210API(API_NAME)
@@ -151,7 +151,7 @@ def test_SendCommand_claim_j1939_address():
     assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
     api.ClientDisconnect(clientID)
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_SendCommand_claim_and_release_j1939_address():
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
@@ -175,7 +175,7 @@ def test_SendCommand_claim_and_release_j1939_address():
     assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
     api.ClientDisconnect(clientID)
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_SendCommand_release_unclaimed_j1939_address():
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
@@ -192,7 +192,7 @@ def test_SendCommand_release_unclaimed_j1939_address():
     assert RP1210.translateErrorCode(ret_val) == "ERR_ADDRESS_RELEASE_FAILED"
     api.ClientDisconnect(clientID)
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_SendMessage():
     """Tests SendMessage function while DLA2 connector is connected to PC but not an external device."""
     disconnect()
@@ -213,7 +213,7 @@ def test_SendMessage():
     assert RP1210.translateErrorCode(ret_val) == "NO_ERRORS"
     api.ClientDisconnect(clientID)
 
-@pytest.mark.skipif(TEST_ENABLED == False, reason=SKIP_REASON)
+
 def test_setMessageReceive():
     api = RP1210.RP1210API(API_NAME)
     deviceID = 100
