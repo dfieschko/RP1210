@@ -5,13 +5,12 @@ a device.
 This is done on the DLA 2.0 adapter because it has the ability to be powered from
 the PC's USB port.
 """
-from doctest import SKIP
 from RP1210 import J1939, Commands
 import RP1210
 from tkinter import messagebox
 import pytest
 
-TEST_ENABLED = True
+TEST_ENABLED = False
 SKIP_REASON = "DLA tests w/ adapter connected are disabled."
 
 if not TEST_ENABLED:

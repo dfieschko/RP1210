@@ -27,12 +27,6 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
             if param == 0: # don't cut it off if the input is zero
                 num_bytes = 1
         return param.to_bytes(num_bytes, byteorder)
-    # the bool case is already covered by the int case, so it has been commented out.
-    # elif isinstance(param, bool):
-    #     if param:
-    #         return sanitize_msg_param(1, num_bytes, byteorder)
-    #     else:
-    #         return sanitize_msg_param(0, num_bytes, byteorder)
     elif isinstance(param, str): # string to bytes
         if param == "": # check for empty string
             return b'' + b'\x00' * num_bytes
@@ -50,10 +44,13 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
         val = int.from_bytes(param2[:num_bytes], byteorder)
         return sanitize_msg_param(val, num_bytes, byteorder)
     else:
-        raise TypeError('sanitize_msg_param argument param must be int, bool, str, or bytes', param)
+        try:
+            return sanitize_msg_param(bytes(param), num_bytes, byteorder)
+        except Exception:
+            raise TypeError('sanitize_msg_param() param must be int, bool, str, or bytes', param)
     
 
 # Import everything from RP1210.py
 from RP1210.RP1210 import *
-# Import other modules (not necessary in 3.9)
+# Import other modules (not necessary in Python 3.9+)
 from RP1210 import Commands, J1939
