@@ -119,7 +119,7 @@ def test_dtc_dunder():
         dtc += 1
         assert dtc.oc == min(i, 126)
     assert str(dtc) == str(dtc.data)
-    assert bytes(dtc) == dtc.data == toDTC(spn, fmi, 126)
+    assert bytes(dtc) == dtc.data == toDTC(spn, fmi, 126) == sanitize_msg_param(dtc)
     assert len(dtc) == 4
     assert dtc == toDTC(spn, fmi, 126)
     assert dtc == DTC(None, spn, fmi, 126)
@@ -127,4 +127,3 @@ def test_dtc_dunder():
     assert dtc != toDTC(spn - 6, fmi - 1, oc-3)
     assert dtc
     assert not DTC(None, 0, 0, 0)
-

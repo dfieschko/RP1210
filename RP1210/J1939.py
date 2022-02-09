@@ -6,6 +6,7 @@ While a dict of J1939 PGNs would be convenient, they are not provided here becau
 copyright of SAE.
 """
 
+from numpy import isin
 from RP1210 import sanitize_msg_param
 
 def toJ1939Message(pgn, priority, source, destination, data) -> bytes:
@@ -210,7 +211,6 @@ class DTC():
         ret_val = (ret_val << 8) + ((spn >> 11 & 0b11100000) | (fmi & 0b00011111))
         ret_val = (ret_val << 8) + (oc & 0b01111111)
         return ret_val
-
     #endregion
 
 class J1939MessageParser():
@@ -336,6 +336,21 @@ class DiagnosticMessage():
         """PL (protection lamp) status (0-3)."""
         return self.lamps[0] &0b00000011
 
+    ##################
+    # DUNDER METHODS #
+    ##################
+    #region dundermethods
+
+    def __getitem__(self, index : int) -> DTC:
+        return self.to_dtcs(self.data)[index]
+    
+    def __setitem__(self, index : int, dtc : DTC):
+        dtc = sanitize_msg_param(dtc, 4)
+        for i in range(0, 4):
+            self.data[2 + 4*index + i] = dtc
+
+    #endregion
+
     ##############
     # PROPERTIES #
     ##############
@@ -367,16 +382,10 @@ class DiagnosticMessage():
     ########################
     #region staticmethods
     @staticmethod
-    def to_dtcs(msg) -> list[DTC]:
+    def to_dtcs(data : bytes) -> list[DTC]:
         """
-        Parses given J1939 message into a list of DTCs (diagnostic trouble codes).
+        Parses given J1939 message data into a list of DTCs (diagnostic trouble codes).
         """
-        if isinstance(msg, J1939MessageParser):
-            data = msg.getData()
-        elif isinstance(msg, bytes):
-            data = J1939MessageParser(msg).getData()
-        else:
-            data = sanitize_msg_param(msg)
         dtcs = [] #type: list[DTC]
         for i in range(2, len(data), 4): # iterate in chunks of 4 bytes
             dtc = data[i:i+4]
