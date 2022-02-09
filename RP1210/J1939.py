@@ -50,32 +50,6 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> by
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
     return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
 
-def toDTC(spn : int, fmi : int, oc : int) -> bytes:
-    """
-    Generates diagnostic trouble code (DTC) for diagnostic messages (DM1, DM2, or DM12).
-
-    To use, generate message data with this function, then use return value for data parameter in
-    toJ1939Message().
-    - spn = Suspect Parameter Number (19 bits)
-    - fmi = Failure Mode Identifier (5 bits)
-    - OC = Occurence Count (7 bits)
-
-    Will return 4 bytes containing generated DTC.
-    """
-    ret_val = b''
-    # bytes 0 and 1 are just SPN in little-endian format
-    spn_bytes = sanitize_msg_param(spn, 3, 'little')
-    ret_val += int.to_bytes(spn_bytes[0], 1, 'big')
-    ret_val += int.to_bytes(spn_bytes[1], 1, 'big')
-    # byte 2 is mix of SPN (3 bits) and fmi (5 bits)
-    # we will handle this by doing bitwise operations on an int, then convert back to bytes
-    byte4_int = (int(spn_bytes[2]) << 5) & 0b11100000
-    byte4_int |= int(fmi) & 0b00011111
-    ret_val += sanitize_msg_param(byte4_int)
-    # byte 3 is mix of CM (1 bit) and OC (7 bits) - CM always set to 0
-    ret_val += sanitize_msg_param(int(oc) & 0b01111111)
-    return ret_val
-
 class DTC():
     """
     A convenience class for parsing or generating the diagnostic trouble code (DTC) in diagnostic
@@ -325,16 +299,102 @@ class J1939MessageParser():
         loc = 10 + self.echo_offset
         return self.msg[loc:]
 
+class DiagnosticMessage():
+    """
+    A convenience class for parsing Diagnostic Messages DM1, DM2, and DM12.
+    
+    msg param types:
+    - `J1939Message` - copies data directly from message data
+    - `bytes` - data taken directly from RP1210_ReadMessage
+    - `int` - data from J1939 message (w/o PGN, etc)
+    """
+    def __init__(self, msg = b'\x00\x00') -> None:
+        if isinstance(msg, J1939MessageParser):
+            self.data = msg.getData()
+        elif isinstance(msg, bytes):
+            self.data = J1939MessageParser(msg).getData()
+        else:
+            self.data = sanitize_msg_param(msg)
 
+    #############
+    # FUNCTIONS #
+    #############
 
+    def mil(self):
+        """MIL (malfunction indicator lamp) status (0-3)."""
+        return self.lamps[0] & 0b11000000 >> 6
+    
+    def rsl(self):
+        """RSL (red stop lamp) status (0-3)."""
+        return self.lamps[0] & 0b00110000 >> 4
+
+    def awl(self):
+        """AWL (amber warning lamp) status (0-3)."""
+        return self.lamps[0] & 0b00001100 >> 2
+
+    def pl(self):
+        """PL (protection lamp) status (0-3)."""
+        return self.lamps[0] &0b00000011
+
+    ##############
+    # PROPERTIES #
+    ##############
+    #region properties
+
+    @property
+    def lamps(self) -> bytes:
+        """Byte 0 is lamp codes; Byte 1 is reserved."""
+        if len(self.data >= 2):
+            return self.data[0:2]
+        elif len(self.data == 1):
+            return int.to_bytes(self.data[0], 2, 'little')
+        else:
+            return b'\x00\x00'
+
+    @lamps.setter
+    def lamps(self, val : bytes):
+        """Byte 0 is lamp codes; Byte 1 is reserved."""
+        if len(val) == 1:
+            lamp_code = sanitize_msg_param(val, 2, 'little')
+        else:
+            lamp_code = sanitize_msg_param(val, 2)
+        self.data = lamp_code + self.data[2:]
+
+    #endregion
+
+    ########################
+    # STATIC/CLASS METHODS #
+    ########################
+    #region staticmethods
+    @staticmethod
+    def to_dtcs(msg) -> list[DTC]:
+        """
+        Parses given J1939 message into a list of DTCs (diagnostic trouble codes).
+        """
+        if isinstance(msg, J1939MessageParser):
+            data = msg.getData()
+        elif isinstance(msg, bytes):
+            data = J1939MessageParser(msg).getData()
+        else:
+            data = sanitize_msg_param(msg)
+        dtcs = [] #type: list[DTC]
+        for i in range(2, len(data), 4): # iterate in chunks of 4 bytes
+            dtc = data[i:i+4]
+            if len(dtc) == 4:
+                dtcs.append(DTC(dtc))
+        return dtcs
+
+    #endregion
+
+############################
+# MOSTLY USELESS FUNCTIONS #
+############################
 
 def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
                 function : int, function_instance : int, ecu_instance : int, mfg_code : int, id : int) -> bytes:
     """
     Each J1939-compliant ECU needs its own 64-bit name. This function is meant to help generate such
     a name based on the component bytes that make it up.
-
-    TODO: This function has not been tested.
     """
     def add_bits(name, val, num_bits):
         mask = (1 << num_bits) - 1
