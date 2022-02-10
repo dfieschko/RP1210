@@ -1,5 +1,5 @@
 import pytest
-from RP1210.J1939 import DTC
+from RP1210.J1939 import DTC, DiagnosticMessage, J1939Message, toJ1939Message
 from RP1210 import sanitize_msg_param
 
 def toDTC(spn : int, fmi : int, oc : int) -> bytes:
@@ -127,3 +127,9 @@ def test_dtc_dunder():
     assert dtc != toDTC(spn - 6, fmi - 1, oc-3)
     assert dtc
     assert not DTC(None, 0, 0, 0)
+
+def test_dm_init():
+    msg = toJ1939Message(0xFECA, 6, 0x12, 0xFF, b'\x72\x00' + bytes(DTC(spn=12, fmi=4, oc=21)))
+    DiagnosticMessage(msg)
+    DiagnosticMessage(J1939Message(msg))
+    DiagnosticMessage(int.from_bytes(msg, 'big'))

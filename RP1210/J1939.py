@@ -213,7 +213,7 @@ class DTC():
         return ret_val
     #endregion
 
-class J1939MessageParser():
+class J1939Message():
     """
     A convenience class for parsing a J1939 message received from RP1210_ReadMessage.
 
@@ -226,6 +226,44 @@ class J1939MessageParser():
     def __init__(self, j1939_message : bytes, echo = False) -> None:
         self.msg = j1939_message
         self.echo_offset = int(echo)
+
+    ##############
+    # PROPERTIES #
+    ##############
+
+    def getTimestamp(self) -> int:
+        """Returns timestamp (4 bytes) as int."""
+        return int.from_bytes(self.msg[0:4], 'big')
+
+    def getPGN(self) -> int:
+        """Returns PGN (3 bytes) as int."""
+        start = 4 + self.echo_offset
+        end = 6 + self.echo_offset
+        return int.from_bytes(self.msg[start:end], 'little')
+
+    def getPriority(self) -> int:
+        """Returns Priority (1 byte) as int."""
+        loc = 7 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getSource(self) -> int:
+        """Returns Source Address (1 byte) as int."""
+        loc = 8 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getSourceAddress(self) -> int:
+        """Returns Source Address (1 byte) as int."""
+        return int(self.getSource())
+
+    def getDestination(self) -> int:
+        """Returns Destination Address (1 byte) as int."""
+        loc = 9 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getData(self) -> bytes:
+        """Returns message data (0 - 1785 bytes) as bytes."""
+        loc = 10 + self.echo_offset
+        return self.msg[loc:]
 
     def isEcho(self) -> bool:
         """Returns True if the message is an echo of a message you transmitted, False if not."""
@@ -265,40 +303,6 @@ class J1939MessageParser():
         """Returns true if PGN matches DM12 (emission-related active DTCs) PGN."""
         return self.getPGN() == 0xFED4
 
-    def getTimestamp(self) -> int:
-        """Returns timestamp (4 bytes) as int."""
-        return int.from_bytes(self.msg[0:4], 'big')
-
-    def getPGN(self) -> int:
-        """Returns PGN (3 bytes) as int."""
-        start = 4 + self.echo_offset
-        end = 6 + self.echo_offset
-        return int.from_bytes(self.msg[start:end], 'little')
-
-    def getPriority(self) -> int:
-        """Returns Priority (1 byte) as int."""
-        loc = 7 + self.echo_offset
-        return int(self.msg[loc])
-
-    def getSource(self) -> int:
-        """Returns Source Address (1 byte) as int."""
-        loc = 8 + self.echo_offset
-        return int(self.msg[loc])
-
-    def getSourceAddress(self) -> int:
-        """Returns Source Address (1 byte) as int."""
-        return int(self.getSource())
-
-    def getDestination(self) -> int:
-        """Returns Destination Address (1 byte) as int."""
-        loc = 9 + self.echo_offset
-        return int(self.msg[loc])
-
-    def getData(self) -> bytes:
-        """Returns message data (0 - 1785 bytes) as bytes."""
-        loc = 10 + self.echo_offset
-        return self.msg[loc:]
-
 class DiagnosticMessage():
     """
     A convenience class for parsing Diagnostic Messages DM1, DM2, and DM12.
@@ -309,10 +313,10 @@ class DiagnosticMessage():
     - `int` - data from J1939 message (w/o PGN, etc)
     """
     def __init__(self, msg = b'\x00\x00') -> None:
-        if isinstance(msg, J1939MessageParser):
+        if isinstance(msg, J1939Message):
             self.data = msg.getData()
         elif isinstance(msg, bytes):
-            self.data = J1939MessageParser(msg).getData()
+            self.data = J1939Message(msg).getData()
         else:
             self.data = sanitize_msg_param(msg)
 
@@ -342,6 +346,8 @@ class DiagnosticMessage():
     #region dundermethods
 
     def __getitem__(self, index : int) -> DTC:
+        # O^2 since to_dtcs() generates a new array each time
+        # generally relatively small, but probably worth optimizing anyway
         return self.to_dtcs(self.data)[index]
     
     def __setitem__(self, index : int, dtc : DTC):
@@ -355,6 +361,11 @@ class DiagnosticMessage():
     # PROPERTIES #
     ##############
     #region properties
+
+    @property
+    def codes(self) -> list[DTC]:
+        """List of DTC objects parsed from DiagnosticMessage."""
+
 
     @property
     def lamps(self) -> bytes:

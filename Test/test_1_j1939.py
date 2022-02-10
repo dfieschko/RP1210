@@ -75,7 +75,7 @@ def test_J1939MessageParser():
     data = 0xDEADBEEF
     message = timestamp + J1939.toJ1939Message(pgn, pri, sa, da, data)
     assert message == b'\x01\x02\x03\x04\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
-    parser = J1939.J1939MessageParser(message)
+    parser = J1939.J1939Message(message)
     assert parser.getTimestamp() == 0x01020304
     assert parser.getPGN() == pgn
     assert parser.getSource() == sa
@@ -86,7 +86,7 @@ def test_J1939MessageParser_Request():
     """Test J1939MessageParser class w/ a J1939 Request message."""
     timestamp = b'\x00\x00\x00\x00'
     msg = J1939.toJ1939Request(0XFEEE, 2)
-    parser = J1939.J1939MessageParser(timestamp + msg)
+    parser = J1939.J1939Message(timestamp + msg)
     assert parser.getTimestamp() == 0
     assert parser.isRequest() == True
     assert parser.getPGN() == 0x00EA00
@@ -187,7 +187,7 @@ def test_J1939MessageParser_isDM_hex():
     def makeMessage(pgn):
         # 4-byte timestamp
         msg = b'0000' + J1939.toJ1939Message(pgn, 3, 0xFE, 0xAA, b'Bingus')
-        return J1939.J1939MessageParser(msg)
+        return J1939.J1939Message(msg)
 
     msg = makeMessage(0x1111)
     assert msg.getPGN() == 0x1111
