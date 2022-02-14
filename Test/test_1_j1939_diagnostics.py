@@ -246,3 +246,25 @@ def test_diagnosticmessage_conversion():
     assert not DiagnosticMessage()
     assert dm1
     assert int.from_bytes(J1939Message(timestamp + j1939_msg).getData(), 'big') == int(dm1)
+
+def test_diagnosticmessage_iterate():
+    pgn = 0xFECA
+    pri = 6
+    sa = 0x4E
+    da = 0xFF
+    timestamp = b'\x01\x02\x03\x04'
+    dm1 = DiagnosticMessage()
+    for i in range(20):
+        spn = i * 23
+        fmi = i
+        oc = 1 + i*3
+        dm1 += DTC(None, spn, fmi, oc)
+    count = 0
+    for dtc in dm1:
+        count += 1
+    assert count == 20
+    for i in range(20):
+        assert dm1[i].spn == i * 23
+        assert dm1[i].fmi == i
+        assert dm1[i].oc == 1 + i*3
+    
