@@ -49,6 +49,12 @@ def test_toJ1939Message():
     data = 0xDEADBEEF
     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
     assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
+    data = b'\xDE\xAD\xBE\xEF'
+    message = J1939.toJ1939Message(pgn, pri, sa, da, data)
+    assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
+    dm1_data = b'\x72\x00\x31\x04\x5F\xE0'
+    msg = J1939.toJ1939Message(0xFECA, 6, 0x12, 0xFF, dm1_data)
+    assert msg ==b'\xCA\xFE\x00\x06\x12\xFF\x72\x00\x31\x04\x5F\xE0'
     pgn = 0x0AACCC
     pri = 0
     sa = 22
@@ -75,18 +81,85 @@ def test_J1939MessageParser():
     data = 0xDEADBEEF
     message = timestamp + J1939.toJ1939Message(pgn, pri, sa, da, data)
     assert message == b'\x01\x02\x03\x04\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
-    parser = J1939.J1939MessageParser(message)
+    parser = J1939.J1939Message(message)
     assert parser.getTimestamp() == 0x01020304
     assert parser.getPGN() == pgn
     assert parser.getSource() == sa
     assert parser.getDestination() == da
     assert parser.getData() == sanitize_msg_param(data)
 
+def test_J1939Message_2():
+    timestamp = b'\x12\34\x56\x78'
+    pgn = 0x00FEEE
+    pri = 3
+    sa = 2
+    da = 0x0E
+    data = 0xDEADBEEF
+    message = J1939.toJ1939Message(pgn, pri, sa, da, data)
+    assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
+    j1939 = J1939.J1939Message(timestamp + message)
+    assert j1939.getTimestamp() == int.from_bytes(timestamp, 'big')
+    assert j1939.getPGN() == pgn
+    assert j1939.getPriority() == pri
+    assert j1939.getSourceAddress() == sa
+    assert j1939.getDestination() == da
+    assert j1939.getData() == sanitize_msg_param(data)
+    data = b'\xDE\xAD\xBE\xEF'
+    message = J1939.toJ1939Message(pgn, pri, sa, da, data)
+    assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
+    j1939 = J1939.J1939Message(timestamp + message)
+    assert j1939.getTimestamp() == int.from_bytes(timestamp, 'big')
+    assert j1939.getPGN() == pgn
+    assert j1939.getPriority() == pri
+    assert j1939.getSourceAddress() == sa
+    assert j1939.getDestination() == da
+    assert j1939.getData() == sanitize_msg_param(data)
+    dm1_data = b'\x72\x00\x31\x04\x5F\xE0'
+    msg = J1939.toJ1939Message(0xFECA, 6, 0x12, 0xFF, dm1_data)
+    assert msg ==b'\xCA\xFE\x00\x06\x12\xFF\x72\x00\x31\x04\x5F\xE0'
+    j1939 = J1939.J1939Message(timestamp + msg)
+    assert j1939.getTimestamp() == int.from_bytes(timestamp, 'big')
+    assert j1939.getPGN() == 0xFECA
+    assert j1939.getPriority() == 6
+    assert j1939.getSourceAddress() == 0x12
+    assert j1939.getDestination() == 0xFF
+    assert j1939.getData() == sanitize_msg_param(dm1_data)
+
+def test_J1939Message_3():
+    timestamp = b'\x01\x23\x45\x67'
+    data = b'\x72\x00\x31\x04\x5F\xE0'
+    msg = J1939.toJ1939Message(0xFECA, 6, 0x12, 0xFF, data)
+    assert msg == b'\xCA\xFE\x00\x06\x12\xFF\x72\x00\x31\x04\x5F\xE0'
+    j1939 = J1939.J1939Message(timestamp + msg)
+    assert j1939.msg == timestamp + msg
+    assert j1939.getPriority() == 6
+    assert j1939.getPGN() == 0xFECA
+    assert j1939.getDestination() == 0xFF
+    assert j1939.getSource() == 0x12
+    assert j1939.getData() == data
+
+def test_J1939Message_long():
+    timestamp = b'\x12\34\x56\x78'
+    pgn = 0x0AACCC
+    pri = 0
+    sa = 22
+    da = 0x1E
+    data = 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF0000
+    message = J1939.toJ1939Message(pgn, pri, sa, da, data)
+    assert message == b'\xCC\xAC\x0A\x00\x16\x1E\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\x00\x00'
+    j1939 = J1939.J1939Message(timestamp + message)
+    assert j1939.getTimestamp() == int.from_bytes(timestamp, 'big')
+    assert j1939.getPGN() == pgn
+    assert j1939.getPriority() == pri
+    assert j1939.getSourceAddress() == sa
+    assert j1939.getDestination() == da
+    assert j1939.getData() == sanitize_msg_param(data)
+
 def test_J1939MessageParser_Request():
     """Test J1939MessageParser class w/ a J1939 Request message."""
     timestamp = b'\x00\x00\x00\x00'
     msg = J1939.toJ1939Request(0XFEEE, 2)
-    parser = J1939.J1939MessageParser(timestamp + msg)
+    parser = J1939.J1939Message(timestamp + msg)
     assert parser.getTimestamp() == 0
     assert parser.isRequest() == True
     assert parser.getPGN() == 0x00EA00
@@ -187,7 +260,7 @@ def test_J1939MessageParser_isDM_hex():
     def makeMessage(pgn):
         # 4-byte timestamp
         msg = b'0000' + J1939.toJ1939Message(pgn, 3, 0xFE, 0xAA, b'Bingus')
-        return J1939.J1939MessageParser(msg)
+        return J1939.J1939Message(msg)
 
     msg = makeMessage(0x1111)
     assert msg.getPGN() == 0x1111
@@ -213,45 +286,3 @@ def test_J1939MessageParser_isDM_hex():
     assert msg.isDM11()
     msg = makeMessage(0xFED4)
     assert msg.isDM12()
-
-def test_toDiagnosticData():
-    """
-    Runs tests on toDiagnosticData() function.
-    """
-    # test SPN
-    data = J1939.toDiagnosticData(0x5BEEF, 0, 0)
-    assert data[2] == 0xEF
-    assert data[3] == 0xBE
-    assert data[4] == 0b10100000
-    # test fmi
-    data = J1939.toDiagnosticData(0, 0b10101, 0)
-    assert data[4] == 0b00010101
-    # test cm
-    data = J1939.toDiagnosticData(0, 0, 0, cm=1)
-    assert data[5] == 0b10000000
-    # test oc
-    data = J1939.toDiagnosticData(0, 0, 102)
-    assert data[5] == 102
-    # test lamp
-    data = J1939.toDiagnosticData(0,0,0, lamps=0xAF)
-    assert data[0] == 0xAF
-    # test flashing lamps
-    data = J1939.toDiagnosticData(0,0,0, lamps_flash=0xFA)
-    assert data[1] == 0xFA
-
-
-def test_DTCParser():
-    """
-    Runs tests on DTCParser class.
-
-    Will also cover other J1939 functions out of necessity.
-    """
-    # test with toDiagnosticData()
-    data = J1939.toDiagnosticData(0x12345, 22, 47, 0b01010101, 0b01000100, 1)
-    dtc = J1939.DTCParser(data)
-    assert dtc.getSPN() == 0x12345
-    assert dtc.getFMI() == 22
-    assert dtc.getOC() == 47
-    assert dtc.getLampStatus() == 0b01010101
-    assert dtc.getLampFlashingStatus() == 0b01000100
-    assert dtc.getCM() == 1

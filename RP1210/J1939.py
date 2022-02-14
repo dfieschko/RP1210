@@ -6,6 +6,7 @@ While a dict of J1939 PGNs would be convenient, they are not provided here becau
 copyright of SAE.
 """
 
+from numpy import isin
 from RP1210 import sanitize_msg_param
 
 def toJ1939Message(pgn, priority, source, destination, data) -> bytes:
@@ -50,47 +51,167 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> by
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
     return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
 
-def toDiagnosticData(spn : int, fmi : int, oc : int,
-                    lamps = 0x00, lamps_flash = 0x00, cm = 0b0) -> bytes:
+class DTC():
     """
-    Generates data (lamp code + diagnostic trouble code) for diagnostic messages
-    (DM1, DM2, or DM12).
+    A convenience class for parsing or generating the diagnostic trouble code (DTC) in diagnostic
+    message data. This class should work for DM1, DM2, and DM12 messages.
+    
+    To read SPN, FMI, and OC from a DTC, initialize this class with four bytes containing the DTC
+    you want to parse: `dtc = DTC(dtc=data)`
 
-    To use, generate message data with this function, then use return value for data parameter in
-    toJ1939Message().
-    - spn = Suspect Parameter Number (19 bits)
-    - fmi = Failure Mode Identifier (5 bits)
-    - OC = Occurence Count (7 bits)
-    - lamps = lamps code (1 byte)
-    - lamps_flash = flashing lamps code (1 byte)
+    To generate a DTC, initialize this class with spn, fmi, and oc:
+    `dtc = DTC(spn=532, fmi=4, oc=7)`
 
-    lamps and lamps_flash follow the following format:
-    - bits 7-6: Malfunction Indicator Lamp
-    - bits 5-4: Red Stop Lamp
-    - bits 3-2: Amber Warning Lamp
-    - bits 1-0: Protect Lamp
+    It is also possible to generate an empty object `dtc = DTC()` and set its properties individually.
+
+    Properties `data`, `spn`, `fmi`, and `oc` are all intelligently handled with setters. This means you
+    can e.g. set `dtc.spn = 321`, and `dtc.data` will be updated accordingly.
     """
-    ret_val = b''
-    # byte 0 is lamp code
-    ret_val += sanitize_msg_param(lamps)
-    # byte 1 is lamp flashing code
-    ret_val += sanitize_msg_param(lamps_flash)
-    # bytes 2 and 3 are just SPN in little-endian format
-    spn_bytes = sanitize_msg_param(spn, 3, 'little')
-    ret_val += int.to_bytes(spn_bytes[0], 1, 'big')
-    ret_val += int.to_bytes(spn_bytes[1], 1, 'big')
-    # byte 4 is mix of SPN (3 bits) and fmi (5 bits)
-    # we will handle this by doing bitwise operations on an int, then convert back to bytes
-    byte4_int = (int(spn_bytes[2]) << 5) & 0b11100000
-    byte4_int |= int(fmi) & 0b00011111
-    ret_val += sanitize_msg_param(byte4_int)
-    # byte 5 is mix of CM (1 bit) and OC (7 bits)
-    byte5_int = (int(cm) & 0b1) << 7
-    byte5_int |= int(oc) & 0b01111111
-    ret_val += sanitize_msg_param(byte5_int)
-    return ret_val
 
-class J1939MessageParser():
+    def __init__(self, dtc : bytes = None, spn = 0, fmi = 0, oc = 0) -> None:
+        self._spn = spn
+        self._fmi = fmi
+        self._oc = oc
+        if dtc is None:
+            self.data = self.to_bytes(spn, fmi, oc)
+        else:
+            self.data = sanitize_msg_param(dtc, 4)
+
+    ##############
+    # PROPERTIES #
+    ##############
+    #region properties
+
+    @property
+    def spn(self):
+        """SPN (suspect parameter number)"""
+        return self.get_spn(self.data)
+
+    @spn.setter
+    def spn(self, val : int):
+        """SPN (suspect parameter number)"""
+        self.data = self.to_bytes(val, self.fmi, self.oc)
+
+    @property
+    def fmi(self):
+        """FMI (failure mode identifier)"""
+        return self.get_fmi(self.data)
+
+    @fmi.setter
+    def fmi(self, val : int):
+        """FMI (failure mode identifier)"""
+        self.data = self.to_bytes(self.spn, val, self.oc)
+
+    @property
+    def oc(self):
+        """OC (occurrence count)"""
+        return self.get_oc(self.data)
+
+    @oc.setter
+    def oc(self, val : int):
+        """OC (occurrence count)"""
+        self.data = self.to_bytes(self.spn, self.fmi, val)
+
+    #endregion
+
+    ##################
+    # DUNDER METHODS #
+    ##################
+    #region dundermethods
+
+    def __iadd__(self, val : int):
+        """Overload += so OC can be incremented directly."""
+        oc = min(self.oc + val, 126) # limit to 126
+        self.oc = max(oc, 0) # shouldn't be lower than 0 either
+        return self
+
+    def __str__(self) -> str:
+        return str(self.data)
+
+    def __bytes__(self) -> bytes:
+        return self.data
+
+    def __int__(self) -> int:
+        return int.from_bytes(self.data)
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __eq__(self, other) -> bool:
+        try:
+            return self.data == sanitize_msg_param(other, 4)
+        except Exception:
+            return False
+
+    def __bool__(self) -> bool:
+        return self.data != b'\x00\x00\x00\x00' and len(self.data) == 4
+
+    #endregion
+
+    ########################
+    # STATIC/CLASS METHODS #
+    ########################
+    #region staticmethods
+
+    @staticmethod
+    def get_spn(dtc : bytes) -> int:
+        """Parses and returns SPN from 4-byte DTC."""
+        data = sanitize_msg_param(dtc, 4)
+        # need to construct SPN from bytes 0-2
+        ret_val = (data[2] >> 5 & 0b00000111) << 16
+        ret_val += data[1] << 8
+        ret_val += data[0]
+        return ret_val
+
+    @staticmethod
+    def get_fmi(dtc : bytes) -> int:
+        """Parses and returns FMI from 4-byte DTC."""
+        data = sanitize_msg_param(dtc, 4)
+        # parse FMI from byte 2
+        return data[2] & 0b00011111 # return bits 0-4 of byte 2
+
+    @staticmethod
+    def get_oc(dtc : bytes) -> int:
+        """Parses and returns OC from 4-byte DTC."""
+        data = sanitize_msg_param(dtc, 4)
+        # parse FMI from byte 3
+        return int(data[3]) & 0b01111111 # return bits 0-6 of byte 5
+
+    @staticmethod
+    def get_cm(dtc : bytes) -> int:
+        """Parses and returns CM from 4-byte DTC."""
+        dtc = sanitize_msg_param(dtc, 4)
+        # parse CM from byte 3
+        return dtc[3] >> 7 & 1
+
+    @staticmethod
+    def to_bytes(spn : int, fmi : int, oc : int):
+        """Generates 4-byte DTC from SPN, FMI, and OC."""
+        ret_val = b''
+        # bytes 0 and 1 are just SPN in little-endian format
+        spn_bytes = sanitize_msg_param(spn, 3, 'little')
+        ret_val += int.to_bytes(spn_bytes[0], 1, 'big')
+        ret_val += int.to_bytes(spn_bytes[1], 1, 'big')
+        # byte 2 is mix of SPN (3 bits) and fmi (5 bits)
+        # we will handle this by doing bitwise operations on an int, then convert back to bytes
+        byte4_int = (int(spn_bytes[2]) << 5) & 0b11100000
+        byte4_int |= int(fmi) & 0b00011111
+        ret_val += sanitize_msg_param(byte4_int)
+        # byte 3 is mix of CM (1 bit) and OC (7 bits) - CM always set to 0
+        ret_val += sanitize_msg_param(int(oc) & 0b01111111)
+        return ret_val
+
+    @staticmethod
+    def to_int(spn : int, fmi : int, oc : int):
+        """Generates 4-byte DTC from SPN, FMI, and OC as int."""
+        ret_val = spn & 0b11111111
+        ret_val = (ret_val << 8) + (spn >> 8 & 0b11111111)
+        ret_val = (ret_val << 8) + ((spn >> 11 & 0b11100000) | (fmi & 0b00011111))
+        ret_val = (ret_val << 8) + (oc & 0b01111111)
+        return ret_val
+    #endregion
+
+class J1939Message():
     """
     A convenience class for parsing a J1939 message received from RP1210_ReadMessage.
 
@@ -103,6 +224,44 @@ class J1939MessageParser():
     def __init__(self, j1939_message : bytes, echo = False) -> None:
         self.msg = j1939_message
         self.echo_offset = int(echo)
+
+    ##############
+    # PROPERTIES #
+    ##############
+
+    def getTimestamp(self) -> int:
+        """Returns timestamp (4 bytes) as int."""
+        return int.from_bytes(self.msg[0:4], 'big')
+
+    def getPGN(self) -> int:
+        """Returns PGN (3 bytes) as int."""
+        start = 4 + self.echo_offset
+        end = 6 + self.echo_offset
+        return int.from_bytes(self.msg[start:end+1], 'little')
+
+    def getPriority(self) -> int:
+        """Returns Priority (1 byte) as int."""
+        loc = 7 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getSource(self) -> int:
+        """Returns Source Address (1 byte) as int."""
+        loc = 8 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getSourceAddress(self) -> int:
+        """Returns Source Address (1 byte) as int."""
+        return int(self.getSource())
+
+    def getDestination(self) -> int:
+        """Returns Destination Address (1 byte) as int."""
+        loc = 9 + self.echo_offset
+        return int(self.msg[loc])
+
+    def getData(self) -> bytes:
+        """Returns message data (0 - 1785 bytes) as bytes."""
+        loc = 10 + self.echo_offset
+        return self.msg[loc:]
 
     def isEcho(self) -> bool:
         """Returns True if the message is an echo of a message you transmitted, False if not."""
@@ -142,104 +301,170 @@ class J1939MessageParser():
         """Returns true if PGN matches DM12 (emission-related active DTCs) PGN."""
         return self.getPGN() == 0xFED4
 
-    def getTimestamp(self) -> int:
-        """Returns timestamp (4 bytes) as int."""
-        return int.from_bytes(self.msg[0:4], 'big')
-
-    def getPGN(self) -> int:
-        """Returns PGN (3 bytes) as int."""
-        start = 4 + self.echo_offset
-        end = 6 + self.echo_offset
-        return int.from_bytes(self.msg[start:end], 'little')
-
-    def getPriority(self) -> int:
-        """Returns Priority (1 byte) as int."""
-        loc = 7 + self.echo_offset
-        return int(self.msg[loc])
-
-    def getSource(self) -> int:
-        """Returns Source Address (1 byte) as int."""
-        loc = 8 + self.echo_offset
-        return int(self.msg[loc])
-
-    def getSourceAddress(self) -> int:
-        """Returns Source Address (1 byte) as int."""
-        return int(self.getSource())
-
-    def getDestination(self) -> int:
-        """Returns Destination Address (1 byte) as int."""
-        loc = 9 + self.echo_offset
-        return int(self.msg[loc])
-
-    def getData(self) -> bytes:
-        """Returns message data (0 - 1785 bytes) as bytes."""
-        loc = 10 + self.echo_offset
-        return self.msg[loc:]
-
-class DTCParser():
+class DiagnosticMessage():
     """
-    A convenience class for parsing the diagnostic trouble code (DTC) in diagnostic message data.
-    This class should work for DM1, DM2, and DM12 messages.
-
-    Initialize this object with the return value of getData() from J1939MessageParser.
+    A convenience class for parsing Diagnostic Messages DM1, DM2, and DM12.
     
-    This class only supports DTC conversion method 4 (e.g. the modern format). If you're getting an
-    unexpected value for the SPN, it's probably in a different format. If you want support for other
-    formats, open an issue in GitHub (github.com/dfieschko/RP1210).
+    msg param types:
+    - `J1939Message` - copies data directly from message data
+    - `bytes` - data taken directly from RP1210_ReadMessage
+    - `int` - data from J1939 message (w/o PGN, etc)
     """
+    def __init__(self, msg = None) -> None:
+        if msg is None:
+            self.data = b'\x00\x00'
+        elif isinstance(msg, J1939Message):
+            self.data = msg.getData()
+        elif isinstance(msg, bytes):
+            self.data = J1939Message(msg).getData()
+        else:
+            self.data = sanitize_msg_param(msg)
 
-    def __init__(self, data : bytes) -> None:
+    #############
+    # FUNCTIONS #
+    #############
+
+    def mil(self):
+        """MIL (malfunction indicator lamp) status (0-3)."""
+        return (self.lamps[0] & 0b11000000) >> 6
+    
+    def rsl(self):
+        """RSL (red stop lamp) status (0-3)."""
+        return (self.lamps[0] & 0b00110000) >> 4
+
+    def awl(self):
+        """AWL (amber warning lamp) status (0-3)."""
+        return (self.lamps[0] & 0b00001100) >> 2
+
+    def pl(self):
+        """PL (protection lamp) status (0-3)."""
+        return (self.lamps[0] &0b00000011)
+
+    ##################
+    # DUNDER METHODS #
+    ##################
+    #region dundermethods
+
+    def __getitem__(self, index : int) -> DTC:
+        # O^2 since to_dtcs() generates a new array each time
+        # generally relatively small, but probably worth optimizing anyway
+        return self.to_dtcs(self.data)[index]
+    
+    def __setitem__(self, index : int, dtc : DTC):
+        # like getitem, this is quite unoptimized
+        data = b''
+        # add lamps
+        data += bytes(self.data[0])
+        data += bytes(self.data[1])
+        # copy old data into new data until we hit index
+        for i in range(2, index * 4 + 2):
+            data += bytes(self.data[i])
+        # copy new dtc into data
+        dtc = sanitize_msg_param(dtc)
+        for i in range(0, 4):
+            data += bytes(dtc[i])
+        # copy rest of old data
+        for i in range(index+4, len(self.data)):
+            data += bytes(self.data[i])
+        # set self.data = new data
         self.data = data
 
-    def getSPN(self) -> int:
-        """
-        Returns SPN (suspect parameter number) field from DTC.
-        """
-        # need to construct SPN from bytes 2-4
-        ret_val = (self.data[4] & 0b11100000) >> 5
-        ret_val = (ret_val << 8) | self.data[3]
-        ret_val = (ret_val << 8) | self.data[2]
-        return ret_val
+    def __iadd__(self, dtc : DTC):
+        """Add DTCs to DiagnosticMessage."""
+        self.data += sanitize_msg_param(dtc, 4)
+        return self
 
-    def getFMI(self) -> int:
-        """
-        Returns FMI (failure mode identifier) field from DTC.
-        """
-        return int(self.data[4]) & 0b00011111 # return bits 0-4 of byte 4
+    def __bytes__(self) -> bytes:
+        return self.data
 
-    def getOC(self) -> int:
-        """
-        Returns OC (occurence count) field from DTC.
-        """
-        return int(self.data[5]) & 0b01111111 # return bits 0-6 of byte 5
+    def __int__(self) -> int:
+        return int.from_bytes(self.data, 'big')
 
-    def getCM(self) -> int:
-        """
-        Returns CM (conversion method) bit in DTC.
-        """
-        return self.data[5] >> 7 & 1 # return bit in position 7 of byte 5 
+    def __str__(self) -> str:
+        """Returns string representation of data."""
+        return str(self.data)
+
+    def __len__(self) -> int:
+        """Returns number of DTCs stored in DiagnosticMessage object."""
+        dtc_bytes = len(self.data) - 2
+        num_dtcs = int(dtc_bytes / 4)
+        return max(num_dtcs, 0)
+
+    def __bool__(self) -> bool:
+        return len(self.data) >= 6
+
+    def __eq__(self, other) -> bool:
+        try:
+            return sanitize_msg_param(other) == sanitize_msg_param(self.data)
+        except Exception:
+            return False
 
 
-    def getLampStatus(self) -> int:
-        """
-        Returns a code for lamp status. Not technically part of the DTC.
-        """
-        return self.data[0]
+    #endregion
 
-    def getLampFlashingStatus(self) -> int:
-        """
-        Returns a code for flashing lamp status. Not technically part of the DTC.
-        """
-        return self.data[1]
+    ##############
+    # PROPERTIES #
+    ##############
+    #region properties
 
+    @property
+    def codes(self) -> list[DTC]:
+        """List of DTC objects parsed from DiagnosticMessage."""
+        return self.to_dtcs(self.data)
+
+    @codes.setter
+    def codes(self, val : bytes):
+        """List of DTC objects parsed from DiagnosticMessage."""
+        self.data = self.data[0:2] + val
+
+    @property
+    def lamps(self) -> bytes:
+        """Byte 0 is lamp codes; Byte 1 is reserved."""
+        if len(self.data) >= 2:
+            return self.data[0:2]
+        elif len(self.data) == 1:
+            return int.to_bytes(self.data[0], 2, 'little')
+        else:
+            return b'\x00\x00'
+
+    @lamps.setter
+    def lamps(self, val : bytes):
+        """Byte 0 is lamp codes; Byte 1 is reserved."""
+        if isinstance(val, int) or len(val) == 1:
+            lamp_code = sanitize_msg_param(val, 2, 'little')
+        else:
+            lamp_code = sanitize_msg_param(val, 2)
+        self.data = lamp_code + self.data[2:]
+
+    #endregion
+
+    ########################
+    # STATIC/CLASS METHODS #
+    ########################
+    #region staticmethods
+    @staticmethod
+    def to_dtcs(data : bytes) -> list[DTC]:
+        """
+        Parses given J1939 message data into a list of DTCs (diagnostic trouble codes).
+        """
+        dtcs = [] #type: list[DTC]
+        for i in range(2, len(data), 4): # iterate in chunks of 4 bytes
+            dtc = data[i:i+4]
+            if len(dtc) == 4:
+                dtcs.append(DTC(dtc))
+        return dtcs
+
+    #endregion
+
+############################
+# MOSTLY USELESS FUNCTIONS #
+############################
 
 def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
                 function : int, function_instance : int, ecu_instance : int, mfg_code : int, id : int) -> bytes:
     """
     Each J1939-compliant ECU needs its own 64-bit name. This function is meant to help generate such
     a name based on the component bytes that make it up.
-
-    TODO: This function has not been tested.
     """
     def add_bits(name, val, num_bits):
         mask = (1 << num_bits) - 1
