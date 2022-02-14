@@ -138,15 +138,13 @@ class DTC():
         return len(self.data)
 
     def __eq__(self, other) -> bool:
-        if isinstance(other, bytes):
-            return self.data == other
-        elif isinstance(other, DTC):
-            return self.data == other.data
-        else:
+        try:
             return self.data == sanitize_msg_param(other, 4)
+        except Exception:
+            return False
 
     def __bool__(self) -> bool:
-        return self.data != b'\x00\x00\x00\x00'
+        return self.data != b'\x00\x00\x00\x00' and len(self.data) == 4
 
     #endregion
 
@@ -239,7 +237,7 @@ class J1939Message():
         """Returns PGN (3 bytes) as int."""
         start = 4 + self.echo_offset
         end = 6 + self.echo_offset
-        return int.from_bytes(self.msg[start:end], 'little')
+        return int.from_bytes(self.msg[start:end+1], 'little')
 
     def getPriority(self) -> int:
         """Returns Priority (1 byte) as int."""
@@ -312,8 +310,10 @@ class DiagnosticMessage():
     - `bytes` - data taken directly from RP1210_ReadMessage
     - `int` - data from J1939 message (w/o PGN, etc)
     """
-    def __init__(self, msg = b'\x00\x00') -> None:
-        if isinstance(msg, J1939Message):
+    def __init__(self, msg = None) -> None:
+        if msg is None:
+            self.data = b'\x00\x00'
+        elif isinstance(msg, J1939Message):
             self.data = msg.getData()
         elif isinstance(msg, bytes):
             self.data = J1939Message(msg).getData()
@@ -326,19 +326,19 @@ class DiagnosticMessage():
 
     def mil(self):
         """MIL (malfunction indicator lamp) status (0-3)."""
-        return self.lamps[0] & 0b11000000 >> 6
+        return (self.lamps[0] & 0b11000000) >> 6
     
     def rsl(self):
         """RSL (red stop lamp) status (0-3)."""
-        return self.lamps[0] & 0b00110000 >> 4
+        return (self.lamps[0] & 0b00110000) >> 4
 
     def awl(self):
         """AWL (amber warning lamp) status (0-3)."""
-        return self.lamps[0] & 0b00001100 >> 2
+        return (self.lamps[0] & 0b00001100) >> 2
 
     def pl(self):
         """PL (protection lamp) status (0-3)."""
-        return self.lamps[0] &0b00000011
+        return (self.lamps[0] &0b00000011)
 
     ##################
     # DUNDER METHODS #
@@ -351,9 +351,54 @@ class DiagnosticMessage():
         return self.to_dtcs(self.data)[index]
     
     def __setitem__(self, index : int, dtc : DTC):
-        dtc = sanitize_msg_param(dtc, 4)
+        # like getitem, this is quite unoptimized
+        data = b''
+        # add lamps
+        data += bytes(self.data[0])
+        data += bytes(self.data[1])
+        # copy old data into new data until we hit index
+        for i in range(2, index * 4 + 2):
+            data += bytes(self.data[i])
+        # copy new dtc into data
+        dtc = sanitize_msg_param(dtc)
         for i in range(0, 4):
-            self.data[2 + 4*index + i] = dtc
+            data += bytes(dtc[i])
+        # copy rest of old data
+        for i in range(index+4, len(self.data)):
+            data += bytes(self.data[i])
+        # set self.data = new data
+        self.data = data
+
+    def __iadd__(self, dtc : DTC):
+        """Add DTCs to DiagnosticMessage."""
+        self.data += sanitize_msg_param(dtc, 4)
+        return self
+
+    def __bytes__(self) -> bytes:
+        return self.data
+
+    def __int__(self) -> int:
+        return int.from_bytes(self.data, 'big')
+
+    def __str__(self) -> str:
+        """Returns string representation of data."""
+        return str(self.data)
+
+    def __len__(self) -> int:
+        """Returns number of DTCs stored in DiagnosticMessage object."""
+        dtc_bytes = len(self.data) - 2
+        num_dtcs = int(dtc_bytes / 4)
+        return max(num_dtcs, 0)
+
+    def __bool__(self) -> bool:
+        return len(self.data) >= 6
+
+    def __eq__(self, other) -> bool:
+        try:
+            return sanitize_msg_param(other) == sanitize_msg_param(self.data)
+        except Exception:
+            return False
+
 
     #endregion
 
@@ -365,14 +410,19 @@ class DiagnosticMessage():
     @property
     def codes(self) -> list[DTC]:
         """List of DTC objects parsed from DiagnosticMessage."""
+        return self.to_dtcs(self.data)
 
+    @codes.setter
+    def codes(self, val : bytes):
+        """List of DTC objects parsed from DiagnosticMessage."""
+        self.data = self.data[0:2] + val
 
     @property
     def lamps(self) -> bytes:
         """Byte 0 is lamp codes; Byte 1 is reserved."""
-        if len(self.data >= 2):
+        if len(self.data) >= 2:
             return self.data[0:2]
-        elif len(self.data == 1):
+        elif len(self.data) == 1:
             return int.to_bytes(self.data[0], 2, 'little')
         else:
             return b'\x00\x00'
@@ -380,7 +430,7 @@ class DiagnosticMessage():
     @lamps.setter
     def lamps(self, val : bytes):
         """Byte 0 is lamp codes; Byte 1 is reserved."""
-        if len(val) == 1:
+        if isinstance(val, int) or len(val) == 1:
             lamp_code = sanitize_msg_param(val, 2, 'little')
         else:
             lamp_code = sanitize_msg_param(val, 2)

@@ -1,4 +1,5 @@
 import pytest
+from RP1210 import J1939
 from RP1210.J1939 import DTC, DiagnosticMessage, J1939Message, toJ1939Message
 from RP1210 import sanitize_msg_param
 
@@ -129,7 +130,119 @@ def test_dtc_dunder():
     assert not DTC(None, 0, 0, 0)
 
 def test_dm_init():
-    msg = toJ1939Message(0xFECA, 6, 0x12, 0xFF, b'\x72\x00' + bytes(DTC(spn=12, fmi=4, oc=21)))
-    DiagnosticMessage(msg)
-    DiagnosticMessage(J1939Message(msg))
-    DiagnosticMessage(int.from_bytes(msg, 'big'))
+    timestamp = b'\x12\x34\x56\x78'
+    dm1_data = b'\x72\x00\x31\x04\x5F\xE0'
+    msg = toJ1939Message(0xFECA, 6, 0x12, 0xFF, dm1_data)
+    assert msg == b'\xCA\xFE\x00\x06\x12\xFF\x72\x00\x31\x04\x5F\xE0'
+    j1939 = J1939Message(timestamp + msg)
+    assert j1939.getData() == dm1_data
+    assert DiagnosticMessage(timestamp + msg).data == j1939.getData()
+    assert DiagnosticMessage(j1939).data == dm1_data
+    assert DiagnosticMessage(int.from_bytes(dm1_data, 'big')) == dm1_data
+
+
+def test_diagnosticmessage_to_dtcs():
+    dtc1 = DTC(spn=0xEED, fmi=4, oc=22)
+    dtc2 = DTC(spn=432, fmi=6, oc=1)
+    dtc_list = DiagnosticMessage.to_dtcs(b'\x72\x00' + bytes(dtc1) + bytes(dtc2))
+    assert dtc1.data == toDTC(dtc1.spn, dtc1.fmi, dtc1.oc) # make sure dtc1 is ok
+    assert dtc2.data == toDTC(dtc2.spn, dtc2.fmi, dtc2.oc) # make sure dtc2 is ok
+    assert dtc_list[0] == bytes(dtc1)
+    assert dtc_list[1] == bytes(dtc2)
+
+def test_diagnosticmessage_items():
+    lamps = int.to_bytes(0b01110010, 2, 'little')
+    dtc1 = DTC(spn=0xEED, fmi=4, oc=22)
+    dtc2 = DTC(spn=432, fmi=6, oc=1)
+    timestamp = b'\x01\x02\x03\x04'
+    data = lamps + bytes(dtc1) + bytes(dtc2)
+    pgn = 0xFECA
+    pri = 6
+    sa = 0x49
+    da = 0xFF
+    j1939_msg = toJ1939Message(pgn, pri, sa, da, data)
+    dm1 = DiagnosticMessage(timestamp + j1939_msg)
+
+    assert dm1[0] == dtc1
+    assert dm1[1] == dtc2
+    assert dm1[0] != dm1[1]
+    dm1[0] = dm1[1]
+    assert sanitize_msg_param(dm1[0]) == sanitize_msg_param(dm1[1])
+    assert dm1[0] == dm1[1]
+
+def test_diagnosticmessage_lamps():
+    lamps = int.to_bytes(0b01110010, 2, 'little')
+    dtc1 = DTC(spn=0xEED, fmi=4, oc=22)
+    dtc2 = DTC(spn=432, fmi=6, oc=1)
+    timestamp = b'\x01\x02\x03\x04'
+    data = lamps + bytes(dtc1) + bytes(dtc2)
+    pgn = 0xFECA
+    pri = 6
+    sa = 0x49
+    da = 0xFF
+    j1939_msg = toJ1939Message(pgn, pri, sa, da, data)
+    dm1 = DiagnosticMessage(timestamp + j1939_msg)
+
+    assert dm1.lamps == b'\x72\x00'
+    assert dm1.lamps[0] == 0b01110010
+    assert dm1.mil() == 0b01
+    assert dm1.rsl() == 0b11
+    assert dm1.awl() == 0b00
+    assert dm1.pl() == 0b10
+
+    dm1.lamps = 0b00011011
+    assert dm1.lamps[0] == 0b00011011
+    assert dm1.mil() == 0b00
+    assert dm1.rsl() == 0b01
+    assert dm1.awl() == 0b10
+    assert dm1.pl() == 0b11
+
+def test_diagnosticmessage_iadd():
+    lamps = int.to_bytes(0b01110010, 2, 'little')
+    dtc1 = DTC(spn=0xEED, fmi=4, oc=22)
+    dtc2 = DTC(spn=432, fmi=6, oc=1)
+    timestamp = b'\x01\x02\x03\x04'
+    data = lamps + bytes(dtc1) + bytes(dtc2)
+    pgn = 0xFECA
+    pri = 6
+    sa = 0x49
+    da = 0xFF
+    j1939_msg = toJ1939Message(pgn, pri, sa, da, data)
+    dm1 = DiagnosticMessage(timestamp + j1939_msg)
+    dm2 = DiagnosticMessage(timestamp + j1939_msg)
+
+    assert dm1[0] == dtc1
+    assert dm1[1] == dtc2
+    assert sanitize_msg_param(dm1[0]) == sanitize_msg_param(dtc1)
+    assert len(sanitize_msg_param(dtc1)) == 4
+
+    assert dm1 == dm2
+    dm1 += dtc1
+    assert dm1 != dm2
+
+    assert dm1[0] == dtc1
+    assert dm1[1] == dtc2
+    assert dm1[2] == dtc1
+
+def test_diagnosticmessage_conversion():
+    lamps = int.to_bytes(0b01110010, 2, 'little')
+    dtc1 = DTC(spn=0xEED, fmi=4, oc=22)
+    dtc2 = DTC(spn=432, fmi=6, oc=1)
+    timestamp = b'\x01\x02\x03\x04'
+    data = lamps + bytes(dtc1) + bytes(dtc2)
+    pgn = 0xFECA
+    pri = 6
+    sa = 0x49
+    da = 0xFF
+    j1939_msg = toJ1939Message(pgn, pri, sa, da, data)
+    dm1 = DiagnosticMessage(timestamp + j1939_msg)
+
+    assert bytes(dm1) == J1939Message(timestamp + j1939_msg).getData()
+    assert str(dm1) == str(bytes(dm1))
+
+    assert max(int((10 - 2) / 4), 0) == 2
+    assert len(dm1) == 2
+
+    assert not DiagnosticMessage()
+    assert dm1
+    assert int.from_bytes(J1939Message(timestamp + j1939_msg).getData(), 'big') == int(dm1)
