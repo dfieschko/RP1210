@@ -6,7 +6,6 @@ While a dict of J1939 PGNs would be convenient, they are not provided here becau
 copyright of SAE.
 """
 
-from numpy import isin
 from RP1210 import sanitize_msg_param
 
 def toJ1939Message(pgn, priority, source, destination, data) -> bytes:
