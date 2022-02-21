@@ -6,7 +6,7 @@ import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 from typing import Literal
-from RP1210 import Commands
+from RP1210 import Commands, sanitize_msg_param
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -1429,7 +1429,9 @@ class RP1210Client(RP1210VendorList):
         TODO: This function has not yet been rigorously tested.
         """
         try:
-            return self.getAPI().SendMessage(self.clientID, message, msg_size)
+            if msg_size == 0:
+                msg_size = len(message)
+            return self.getAPI().SendMessage(self.clientID, sanitize_msg_param(message, msg_size), msg_size)
         except Exception:
             return 128 # DLL_NOT_INITIALIZED
 
