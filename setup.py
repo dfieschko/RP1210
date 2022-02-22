@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
   name = 'RP1210',
   packages = ['RP1210'],
-  version = '0.0.6',
+  version = '0.0.8',
   license='MIT',
   description = 'A Python32 implementation of the RP1210C standard.',
   long_description = open('README.md').read(),
