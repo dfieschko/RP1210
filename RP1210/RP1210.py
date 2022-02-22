@@ -7,6 +7,7 @@ from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 from typing import Literal
 from RP1210 import Commands, sanitize_msg_param
+from threading import Lock
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -805,6 +806,7 @@ class RP1210API:
         self._api_name = api_name
         self.dll = None
         self._conforms_to_rp1210c = True
+        self.lock = Lock() # lock to make things more thread-safe
 
     def getDLL(self) -> CDLL:
         """
@@ -812,9 +814,10 @@ class RP1210API:
 
         Will return None if cdll.LoadLibrary was unsuccessful.
         """
-        if not self.dll:
-            self.loadDLL()
-        return self.dll
+        with self.lock: # only one thread can do this at a time
+            if not self.dll:
+                self.loadDLL()
+            return self.dll
 
     def loadDLL(self) -> CDLL:
         """
