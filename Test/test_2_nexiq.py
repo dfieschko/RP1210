@@ -224,7 +224,7 @@ def test_disconnected_rp1210client_commands():
     client.setVendor(API_NAME)
     assert client.getClientID() == 128
     clientID = client.connect()
-    assert clientID in RP1210.RP1210_ERRORS.keys()
+    assert clientID in RP1210.RP1210_ERRORS.keys() or 0 <= clientID <= 128
     assert clientID == client.getClientID()
     # sampling of simpler commands
     assert client.resetDevice() in RP1210.RP1210_ERRORS.keys()

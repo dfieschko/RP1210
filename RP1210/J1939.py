@@ -8,7 +8,7 @@ copyright of SAE.
 
 from RP1210 import sanitize_msg_param
 
-def toJ1939Message(pgn, priority, source, destination, data) -> bytes:
+def toJ1939Message(pgn, priority, source, destination, data, data_size = 0) -> bytes:
     """
     Converts args to J1939 message suitable for RP1210_SendMessage function.
 
@@ -34,7 +34,7 @@ def toJ1939Message(pgn, priority, source, destination, data) -> bytes:
     ret_val += sanitize_msg_param(priority, 1)
     ret_val += sanitize_msg_param(source, 1)
     ret_val += sanitize_msg_param(destination, 1)
-    ret_val += sanitize_msg_param(data)
+    ret_val += sanitize_msg_param(data, data_size)
     return ret_val
 
 def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> bytes:

@@ -6,7 +6,7 @@ import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 from typing import Literal
-from RP1210 import Commands
+from RP1210 import Commands, sanitize_msg_param
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -870,15 +870,15 @@ class RP1210API:
         except OSError:
             self._api_valid = False
 
-    def ClientConnect(self, DeviceID : int, Protocol = b"J1939:Baud=Auto", TxBufferSize = 0, 
-                            RcvBufferSize = 0, isAppPacketizingincomingMsgs = 0) -> int:
+    def ClientConnect(self, DeviceID : int, Protocol = b"J1939:Baud=Auto", TxBufferSize = 8000, 
+                            RcvBufferSize = 8000, isAppPacketizingincomingMsgs = 0) -> int:
         """
         Attempts to connect to an RP1210 adapter.
         - nDeviceID determines which adapter it tries to connect to.
         - You can generate Protocol with a protocol format function, e.g. getJ1939ProtocolString(),
         or just do it yourself.
             - Protocol defaults to b"J1939:Baud=Auto"
-        - Tx and Rcv buffer sizes default to 8K when given an argument of 0.
+        - Tx and Rcv buffer sizes default to 8K.
         - Don't mess with argument nisAppPacketizingincomingMsgs.
 
         Returns clientID. 0 to 127 means connection was successful; >127 means it failed.
@@ -898,7 +898,7 @@ class RP1210API:
         """
         return self.getDLL().RP1210_ClientDisconnect(ClientID)
 
-    def SendMessage(self, ClientID : int, ClientMessage : str, MessageSize = 0) -> int:
+    def SendMessage(self, ClientID : int, ClientMessage : bytes, MessageSize = 0) -> int:
         """
         Send a message to the databus your adapter is connected to.
         - ClientID = clientID you got from ClientConnect
@@ -914,6 +914,7 @@ class RP1210API:
         """
         if MessageSize == 0:
             MessageSize = len(ClientMessage)
+        print("Sending", MessageSize, "bytes:", ClientMessage)
         return self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
 
     def ReadMessage(self, ClientID : int, RxBuffer : bytes, BufferSize = 0, 
@@ -944,20 +945,16 @@ class RP1210API:
         """
         Calls ReadMessage, but generates and returns its own RxBuffer as bytes.
         - ClientID = clientID you got from ClientConnect
-        - BufferSize = the size of the buffer in bytes. Defaults to 512.
+        - BufferSize = the size of the buffer in bytes. Defaults to 256.
         - BlockOnRead = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
 
         Output still includes leading 4 timestamp bytes, if applicable.
         """
         RxBuffer = create_string_buffer(BufferSize)
-        size = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
-        if size < 0: # errored out
+        size = self.ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
+        if size <= 0:
             return b''
-        ret_val = create_string_buffer(RxBuffer[:size])
-        if ret_val.value != b'':
-            return ret_val.raw
-        else:
-            return ret_val.value
+        return RxBuffer[:size]
 
     def ReadVersion(self, DLLMajorVersionBuffer : bytes, 
                         DLLMinorVersionBuffer : bytes,
@@ -1346,8 +1343,6 @@ class RP1210Client(RP1210VendorList):
         If `connect()` has not yet been called, will default to 128 (DLL_NOT_INITIALIZED).
 
         Will return -1 if there was an error calling ClientConnect.
-
-        TODO: This function has not yet been rigorously tested.
         """
         return self.clientID
 
@@ -1360,8 +1355,6 @@ class RP1210Client(RP1210VendorList):
         Calls ClientConnect w/ specified protocol string, then stores resultant clientID.
 
         Returns clientID; will return 128 (ERR_DLL_NOT_INITIALIZED) if there's an error.
-
-        TODO: This function has not yet been rigorously tested.
         """
         try:
             # if vendor .ini file is invalid, don't try to connect
@@ -1390,28 +1383,24 @@ class RP1210Client(RP1210VendorList):
         Calls RP1210_SendCommand with current clientID.
 
         MessageSize will default to len(ClientCommand) if it is left 0.
-
-        TODO: This function has not yet been rigorously tested.
         """
         try:
             return self.getAPI().SendCommand(CommandNumber, self.clientID, ClientCommand, MessageSize)
         except Exception:
             return -1
 
-    def rx(self, buffer_size = 512, blocking = False):
+    def rx(self, buffer_size = 256, blocking = 0):
         """
         Calls ReadMessage, but generates and returns its own RxBuffer value.
-        - buffer_size = the size of the buffer in bytes. Defaults to 512.
+        - buffer_size = the size of the buffer in bytes. Defaults to 256.
         - blocking = sets NON_BLOCKING_IO or BLOCKING_IO. Defaults to NON_BLOCKING_IO.
 
         Output still includes leading 4 timestamp bytes, if applicable.
 
         Unlike most of the other functions in this module, this function WILL throw an exception
         if the relevant RP1210API isn't able to be initialized!
-
-        TODO: This function has not yet been rigorously tested.
         """
-        return self.getAPI().ReadDirect(self.clientID, buffer_size, blocking)
+        return self.getAPI().ReadDirect(self.getClientID(), buffer_size, blocking)
 
     def tx(self, message, msg_size = 0):
         """
@@ -1425,11 +1414,11 @@ class RP1210Client(RP1210VendorList):
 
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
-
-        TODO: This function has not yet been rigorously tested.
         """
         try:
-            return self.getAPI().SendMessage(self.clientID, message, msg_size)
+            if msg_size == 0:
+                msg_size = len(message)
+            return self.getAPI().SendMessage(self.clientID, sanitize_msg_param(message, msg_size), msg_size)
         except Exception:
             return 128 # DLL_NOT_INITIALIZED
 
@@ -1443,8 +1432,6 @@ class RP1210Client(RP1210VendorList):
 
         RP1210_RESET_DEVICE only works if only one client is connected to the adapter, and does
         the exact same thing as if you called the function ClientDisconnect.
-
-        TODO: This function has not yet been rigorously tested.
         """
         return self.command(0)
     
@@ -1471,8 +1458,6 @@ class RP1210Client(RP1210VendorList):
 
         You can specifiy filter_flag and keyword arguments instead of entering useless values for
         pgn, source, or dest.
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 4
         cmd_data = Commands.setJ1939Filters(filter_flag, pgn, source, dest)
@@ -1491,8 +1476,6 @@ class RP1210Client(RP1210VendorList):
         - Header (4 bytes) - "Indicates what value is required for each bit of interest".
 
         This is one of those functions that you're going to want the RP1210C documentation for.
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 5
         cmd_data = Commands.setCANFilters(can_type, mask, header)
@@ -1505,8 +1488,6 @@ class RP1210Client(RP1210VendorList):
 
         Args:
         - Echo on/off (bool) - False for no echo, True for echo.
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 16
         cmd_data = Commands.setEcho(echo_on)
@@ -1525,8 +1506,6 @@ class RP1210Client(RP1210VendorList):
 
         Args:
         - Receive on/off : True = RECEIVE_ON, False = RECEIVE_OFF.
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 18
         cmd_data = Commands.setMessageReceive(receive_messages)
@@ -1546,8 +1525,6 @@ class RP1210Client(RP1210VendorList):
 
         This function automatically sanitizes str, int, and bytes inputs. str are parsed as 10-bit
         decimals! Use byte strings (b"message") if you want to pass utf-8 characters.
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 19
         cmd_data = Commands.protectJ1939Address(address_to_claim, network_mgt_name, blocking)
@@ -1563,8 +1540,6 @@ class RP1210Client(RP1210VendorList):
 
         This doesn't do anything special with the J1939 bus. All it does is tell your adapter not to
         use this address anymore.
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 31
         cmd_data = Commands.releaseJ1939Address(address)
@@ -1578,8 +1553,6 @@ class RP1210Client(RP1210VendorList):
         filter_type:
         - 0 = FILTER_INCLUSIVE
         - 1 = FILTER_EXCLUSIVE
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 25
         cmd_data = Commands.setFilterType(filter_type)
@@ -1593,8 +1566,6 @@ class RP1210Client(RP1210VendorList):
         filter_type:
         - 0 = FILTER_INCLUSIVE
         - 1 = FILTER_EXCLUSIVE
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 26
         cmd_data = Commands.setFilterType(filter_type)
@@ -1607,8 +1578,6 @@ class RP1210Client(RP1210VendorList):
 
         Args:
         - time_in_ms - interpacket time in milliseconds (unsigned 32-bit int)
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 27
         cmd_data = Commands.setJ1939InterpacketTime(time_in_ms)
@@ -1622,8 +1591,6 @@ class RP1210Client(RP1210VendorList):
         Args:
         - msg_size - value in bytes for how large error messages are allowed to be.
             - Should be between 81 and 65535
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 28
         cmd_data = Commands.setMaxErrorMsgSize(msg_size)
@@ -1648,8 +1615,6 @@ class RP1210Client(RP1210VendorList):
             - 1000k = 7
         - wait_for_msg - should we apply the baud change after the current message is finished, or
                         apply the change right away?
-
-        TODO: This function has not yet been rigorously tested.
         """
         cmd_num = 37
         cmd_data = Commands.setJ1939Baud(baud_code, wait_for_msg)
