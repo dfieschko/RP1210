@@ -140,8 +140,8 @@ def translateErrorCode(ClientID :int) -> str:
             return "NO_ERRORS"
         if ClientID < 0: # some functions return negative value for error code
             ClientID *= -1
-            if ClientID > 0x8000:
-                ClientID = 0xFFFF - ClientID
+        if ClientID > 0x8000:
+            ClientID = 0xFFFF - ClientID
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
 def getAPINames(rp121032_path = None) -> list[str]:
