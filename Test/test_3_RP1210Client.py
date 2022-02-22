@@ -6,7 +6,7 @@ import time
 
 from RP1210.RP1210 import RP1210API
 
-TEST_ENABLED = True
+TEST_ENABLED = False
 SKIP_REASON = "Dual adapter tests are disabled."
 
 if not TEST_ENABLED:
@@ -16,8 +16,6 @@ def test_dual_adapters_begin():
     messagebox.showinfo("Connect your dual adapter setup!", 
                         "Connect your Noregon DLA2 and Nexiq USB-Link 2 together and power them up!")
 
-def test_RP1210API_tx_rx():
-    """Test RP1210API w/o using RP1210Client."""
 
 def test_dual_clients_tx_rx():
     nexiq = RP1210Client()

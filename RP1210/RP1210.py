@@ -952,6 +952,8 @@ class RP1210API:
         """
         RxBuffer = create_string_buffer(BufferSize)
         size = self.ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
+        if size <= 0:
+            return b''
         return RxBuffer[:size]
 
     def ReadVersion(self, DLLMajorVersionBuffer : bytes, 
