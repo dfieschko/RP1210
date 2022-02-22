@@ -915,7 +915,12 @@ class RP1210API:
         if MessageSize == 0:
             MessageSize = len(ClientMessage)
         print("Sending", MessageSize, "bytes:", ClientMessage)
-        return self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
+        ret_val = self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
+        # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
+        # to negative signed int.
+        if ret_val >= 0x08000:
+            ret_val = (ret_val - 0x10000)
+        return ret_val
 
     def ReadMessage(self, ClientID : int, RxBuffer : bytes, BufferSize = 0, 
                         BlockOnRead = 0) -> int:
