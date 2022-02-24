@@ -195,7 +195,6 @@ class RP1210Protocol:
         """Returns ProtocolSpeed parameters as a list of strings."""
         try:
             speeds = []
-            print(self.section["ProtocolSpeed"])
             section_list = str(self.section["ProtocolSpeed"]).split(',')
             for speed in section_list:
                 speeds.append(speed)
@@ -916,7 +915,6 @@ class RP1210API:
         """
         if MessageSize == 0:
             MessageSize = len(ClientMessage)
-        print("Sending", MessageSize, "bytes:", ClientMessage)
         ret_val = self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
         # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
         # to negative signed int.
