@@ -75,7 +75,7 @@ def test_clientid_translation():
     assert RP1210.translateErrorCode(207) == "ERR_DEVICE_NOT_SUPPORTED"
     assert RP1210.translateErrorCode(454) == "ERR_CAN_BAUD_SET_NONSTANDARD"
     assert RP1210.translateErrorCode(601) == "ERR_NULL_PARAMETER"
-    assert RP1210.translateErrorCode(623423401) == "623423401"
+    assert RP1210.translateErrorCode(0xFFFF - 128) == "ERR_DLL_NOT_INITIALIZED"
     assert RP1210.translateErrorCode(-128) == "ERR_DLL_NOT_INITIALIZED"
 
 def test_RP1210Interface_InvalidAPIName():

@@ -139,6 +139,8 @@ def translateErrorCode(ClientID :int) -> str:
             return "NO_ERRORS"
         if ClientID < 0: # some functions return negative value for error code
             ClientID *= -1
+        if ClientID > 0x8000:
+            ClientID = 0xFFFF - ClientID
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
 def getAPINames(rp121032_path = None) -> list[str]:
@@ -193,7 +195,6 @@ class RP1210Protocol:
         """Returns ProtocolSpeed parameters as a list of strings."""
         try:
             speeds = []
-            print(self.section["ProtocolSpeed"])
             section_list = str(self.section["ProtocolSpeed"]).split(',')
             for speed in section_list:
                 speeds.append(speed)
@@ -914,8 +915,12 @@ class RP1210API:
         """
         if MessageSize == 0:
             MessageSize = len(ClientMessage)
-        print("Sending", MessageSize, "bytes:", ClientMessage)
-        return self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
+        ret_val = self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
+        # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
+        # to negative signed int.
+        if ret_val >= 0x08000:
+            ret_val = (ret_val - 0x10000)
+        return ret_val
 
     def ReadMessage(self, ClientID : int, RxBuffer : bytes, BufferSize = 0, 
                         BlockOnRead = 0) -> int:
