@@ -236,12 +236,17 @@ class J1939Message():
         """Returns PGN (3 bytes) as int."""
         start = 4 + self.echo_offset
         end = 6 + self.echo_offset
-        return int.from_bytes(self.msg[start:end+1], 'little')
+        pgn = self.msg[start:(end+1)]
+        pgn_int = int.from_bytes(pgn, 'little')
+        # PDU1 (destination specific) - RP1210 adapters handle this in a dumb way
+        if pgn[1] < 0xF0 and pgn[0] == 0x00:
+            pgn_int += self.getDestination()
+        return pgn_int
 
     def getPriority(self) -> int:
         """Returns Priority (1 byte) as int."""
         loc = 7 + self.echo_offset
-        return int(self.msg[loc])
+        return int(self.msg[loc]) & 0b111
 
     def getSource(self) -> int:
         """Returns Source Address (1 byte) as int."""
