@@ -135,6 +135,8 @@ def translateErrorCode(ClientID :int) -> str:
         
         If there is no match, returns the clientID as str.
         """
+        if isinstance(ClientID, str): # if this got passed a string, return the string
+            return ClientID
         if 0 <= ClientID < 128:
             return "NO_ERRORS"
         if ClientID < 0: # some functions return negative value for error code
