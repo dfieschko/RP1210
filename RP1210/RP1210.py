@@ -807,6 +807,10 @@ class RP1210API:
         self.dll = None
         self._conforms_to_rp1210c = True
 
+    def getAPIName(self) -> str:
+        """Returns API name for this API."""
+        return self._api_name
+
     def getDLL(self) -> CDLL:
         """
         Returns CDLL object for this RP1210 API.
@@ -890,7 +894,7 @@ class RP1210API:
         """
         clientID = self.getDLL().RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
                                                 RcvBufferSize, isAppPacketizingincomingMsgs)
-        return self.__dla2_clientid_fix(clientID)
+        return self.__driver_clientid_fix(clientID)
     
     def ClientDisconnect(self, ClientID : int) -> int:
         """
@@ -1120,15 +1124,21 @@ class RP1210API:
         """
         return os.path.join(os.environ["WINDIR"], self._api_name + ".dll")
 
-    def __dla2_clientid_fix(self, clientID) -> int:
+    def __driver_clientid_fix(self, clientID) -> int:
         """
         Noregon DLA2 adapters have an issue where they return a bunch of garbage along with the
         ClientID when calling ClientConnect. This is the fix for that.
+
+        PCAN adapters also have an issue when trying to connect to adapters that aren't plugged in,
+        so they get to join the hall of shame.
         """
         if not self.__is_valid_clientid(clientID):
             cid = int(hex(clientID)[5:], 16) # snip off first 5 hex characters, translate back to int
             if self.__is_valid_clientid(cid):
                 clientID = cid
+        if self._api_name == "PEAKRP32" and clientID > 64:
+            # PCAN drivers give invalid ClientID if it equals 114 (but cover wider range for safety) 
+            clientID = 129  # ERR_INVALID_CLIENT_ID
         return clientID
     
     def __is_valid_clientid(self, clientID) -> bool:
@@ -1369,7 +1379,6 @@ class RP1210Client(RP1210VendorList):
                 return 128 # DLL_NOT_INITIALIZED
             deviceID = self.getDeviceID()
             self.clientID = self.getAPI().ClientConnect(deviceID, protocol)
-            return self.clientID
         except Exception:
             return 128 # DLL_NOT_INITIALIZED
 
