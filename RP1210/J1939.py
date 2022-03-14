@@ -48,6 +48,7 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> by
     - priority: priority of request; default is 6
     """
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
+    pgn_request += b'\x00\x00\x00\x00\x00'
     return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
 
 class DTC():
