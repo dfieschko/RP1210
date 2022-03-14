@@ -1379,6 +1379,7 @@ class RP1210Client(RP1210VendorList):
                 return 128 # DLL_NOT_INITIALIZED
             deviceID = self.getDeviceID()
             self.clientID = self.getAPI().ClientConnect(deviceID, protocol)
+            return self.clientID
         except Exception:
             return 128 # DLL_NOT_INITIALIZED
 
