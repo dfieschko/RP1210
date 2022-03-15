@@ -312,12 +312,12 @@ class RP1210Config(ConfigParser):
 
     You can use str(this_object) to generate a string to display in your Vendors dropdown.
     """
-    def __init__(self, api_name : str, workingPath : str = None) -> None:
+    def __init__(self, api_name : str, api_path : str = None, config_path : str = None) -> None:
         super().__init__()
         self._api_name = api_name
         self._api_valid = True
-        self.api = RP1210API(api_name, workingPath)
-        self._workingDir = workingPath
+        self.api = RP1210API(api_name, api_path)
+        self._configDir = config_path
         self.populate()
 
     def __str__(self) -> str:
@@ -795,8 +795,25 @@ class RP1210Config(ConfigParser):
 
     def getPath(self) -> str:
         """Returns absolute path to API config file."""
-        if(self._workingDir != None):
-            return os.path.join(self._workingDir, self._api_name + ".ini")
+       
+        if(self._configDir != None):
+            if(os.path.abspath(self._configDir)):
+
+                if(os.path.isfile(self._configDir)):
+                    # [provided absolute path]
+                    return self._configDir
+                else:
+                    # [provided absolute dir] + [api name].ini
+                    return os.path.join(self._configDir, self._api_name + ".ini")
+
+            else:
+                if(os.path.isfile(os.path.join(os.curdir, self._configDir))):
+                    # [current directory] + [provided relative path]
+                    return os.path.join(os.curdir, self._configDir)
+                else:
+                    return os.path.join(os.curdir, self._configDir + self._api_name + ".ini")
+                    # [current directory] + [provided relative dir] + [api name].ini
+                
         else:
             return os.path.join(os.environ["WINDIR"], self._api_name + ".ini")
 
@@ -811,7 +828,7 @@ class RP1210API:
         self._api_name = api_name
         self.dll = None
         self._conforms_to_rp1210c = True
-        self._workingDir = WorkingAPIDirectory
+        self._libDir = WorkingAPIDirectory
 
     def getAPIName(self) -> str:
         """Returns API name for this API."""
@@ -827,7 +844,7 @@ class RP1210API:
             self.loadDLL()
         return self.dll
 
-    def loadDLL(self, SearchDirectory = None) -> CDLL:
+    def loadDLL(self) -> CDLL:
         """
         Loads and returns CDLL for this API.
         
@@ -836,16 +853,16 @@ class RP1210API:
         load DLL corresponding to self._api_name from that directory. If a working directory is not provided at
         initialization of RP1210API(), will assume relative to launch path.
         """
-        if(SearchDirectory != None):
+        if(self._libDir != None):
             path = ""
-            if(not os.path.isabs(SearchDirectory)):
+            if(not os.path.isabs(self._libDir)):
                 # If path given is relative, get the working directory
-                if(self._workingDir != None):
-                    path += self._workingDir
+                if(self._libDir != None):
+                    path += self._libDir
                 else:
                     path += os.path.abspath(os.curdir)
 
-            path += SearchDirectory
+            path += self._libDir
                 
             if(not os.path.isfile(path)):
                 # Append API name to complete path

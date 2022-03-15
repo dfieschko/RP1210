@@ -9,8 +9,8 @@ def test_RP1210Interface(apiname : str):
 
     You must have these drivers installed to run this test.
     """
-    assert apiname in RP1210.getAPINames(os.path.abspath(os.curdir) + "/test-files/RP121032.ini")
-    rp1210 = RP1210.RP1210Config(apiname, "/test-files/dlls")
+    assert apiname in RP1210.getAPINames(os.sep.join([os.path.abspath(os.curdir), "/test-files/RP121032.ini"]))
+    rp1210 = RP1210.RP1210Config(apiname, "/test-files/dlls", "/test-files/ini-files")
     assert rp1210.isValid() == True
     #assert str(rp1210) == API_NAME + " - DG Technologies DPA 5 Multi Application"
     assert rp1210.getAPIName() == API_NAME
