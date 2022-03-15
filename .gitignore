@@ -116,3 +116,5 @@ dmypy.json
 # Custom ignores
 Test/RP1210/
 .vscode/settings.json
+*.INI
+*.DLL

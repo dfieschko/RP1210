@@ -312,11 +312,12 @@ class RP1210Config(ConfigParser):
 
     You can use str(this_object) to generate a string to display in your Vendors dropdown.
     """
-    def __init__(self, api_name : str) -> None:
+    def __init__(self, api_name : str, workingPath : str = None) -> None:
         super().__init__()
         self._api_name = api_name
         self._api_valid = True
-        self.api = RP1210API(api_name)
+        self.api = RP1210API(api_name, workingPath)
+        self._workingDir = workingPath
         self.populate()
 
     def __str__(self) -> str:
@@ -781,6 +782,7 @@ class RP1210Config(ConfigParser):
 
     def populate(self):
         """Reads .ini file for the specified RP1210 API."""
+        
         try:
             path = self.getPath()
             if not os.path.exists(path):
@@ -793,7 +795,10 @@ class RP1210Config(ConfigParser):
 
     def getPath(self) -> str:
         """Returns absolute path to API config file."""
-        return os.path.join(os.environ["WINDIR"], self._api_name + ".ini")
+        if(self._workingDir != None):
+            return os.path.join(self._workingDir, self._api_name + ".ini")
+        else:
+            return os.path.join(os.environ["WINDIR"], self._api_name + ".ini")
 
 class RP1210API:
     """
@@ -801,12 +806,12 @@ class RP1210API:
 
     See function docstrings for details on each function.
     """
-    def __init__(self, api_name : str, WorkingDirectory = None) -> None:
+    def __init__(self, api_name : str, WorkingAPIDirectory : str = None) -> None:
         self._api_valid = False
         self._api_name = api_name
         self.dll = None
         self._conforms_to_rp1210c = True
-        self.workingDir = WorkingDirectory
+        self._workingDir = WorkingAPIDirectory
 
     def getAPIName(self) -> str:
         """Returns API name for this API."""
@@ -827,16 +832,16 @@ class RP1210API:
         Loads and returns CDLL for this API.
         
         If you already called loadDLL(), you can call getDLL() to get the DLL you loaded previously.
-        Can take in a relative and absolute files and directories. If given a directory, will attempt to
-        load DLL corresponding to self._api_name. If a working directory is not provided at initialization of
-        RP1210API(), will assume relative to launch path.
+        Can take in a relative and absolute paths files and directories. If given a directory, will attempt to
+        load DLL corresponding to self._api_name from that directory. If a working directory is not provided at
+        initialization of RP1210API(), will assume relative to launch path.
         """
         if(SearchDirectory != None):
             path = ""
             if(not os.path.isabs(SearchDirectory)):
                 # If path given is relative, get the working directory
-                if(self.workingDir != None):
-                    path += self.workingDir
+                if(self._workingDir != None):
+                    path += self._workingDir
                 else:
                     path += os.path.abspath(os.curdir)
 
