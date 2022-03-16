@@ -1,7 +1,7 @@
 def pytest_addoption(parser):
     parser.addoption(
         "--apiname",
-        action="store",
+        action="append",
         default=None,
         help="Name of API",
     )

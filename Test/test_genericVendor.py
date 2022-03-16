@@ -13,40 +13,41 @@ def test_RP1210Interface(apiname : str):
     """
 
     config = configparser.ConfigParser()
-    config.read(os.sep.join([os.path.abspath(os.curdir), "/test-files/" + apiname + ".ini"]))
+    config.read(os.sep.join([os.path.abspath(os.curdir), "Test\\test-files\\ini-files\\" + apiname + ".ini" ]))
 
-    assert apiname in RP1210.getAPINames(os.sep.join([os.path.abspath(os.curdir), "/test-files/RP121032.ini"]))
-    rp1210 = RP1210.RP1210Config(apiname, "/test-files/dlls", "/test-files/ini-files")
+    assert apiname in RP1210.getAPINames(os.sep.join([os.path.abspath(os.curdir), "Test\\test-files\\RP121032.ini"]))
+    rp1210 = RP1210.RP1210Config(apiname, "Test\\test-files\\dlls", "Test\\test-files\\ini-files")
     assert rp1210.isValid() == True
     #assert str(rp1210) == API_NAME + " - DG Technologies DPA 5 Multi Application"
     assert rp1210.getAPIName() == apiname
-    assert rp1210.getName() == config['VendorInformation']['Name'] == rp1210.getDescription()
-    assert rp1210.getAddress1() == config['VendorInformation']['Address1']
-    assert rp1210.getAddress2() == config['VendorInformation']['Address2']
-    assert rp1210.getCity() == config['VendorInformation']['City']
-    assert rp1210.getState() == config['VendorInformation']['State']
-    assert rp1210.getCountry() == config['VendorInformation']['Country']
-    assert rp1210.getPostal() == config['VendorInformation']['Postal']
-    assert rp1210.getTelephone() == config['VendorInformation']['Telephone']
-    assert rp1210.getFax() == config['VendorInformation']['Fax']
-    assert rp1210.getVendorURL() == config['VendorInformation']['VendorURL']
+    assert rp1210.getName() == config.get("VendorInformation", "Name") == rp1210.getDescription()
+    assert rp1210.getAddress1() == config.get("VendorInformation", "Address1")
+    assert rp1210.getAddress2() == config.get("VendorInformation", "Address2")
+    assert rp1210.getCity() == config.get("VendorInformation", "City")
+    assert rp1210.getState() == config.get("VendorInformation", "State")
+    assert rp1210.getCountry() == config.get("VendorInformation", "Country")
+    assert rp1210.getPostal() == config.get("VendorInformation", "Postal")
+    assert rp1210.getTelephone() == config.get("VendorInformation", "Telephone")
+    assert rp1210.getFax() == config.get("VendorInformation", "Fax")
+    assert rp1210.getVendorURL() == config.get("VendorInformation", "VendorURL")
     assert rp1210.getVersion() == config['VendorInformation']['Version']
-    assert rp1210.autoDetectCapable() == config['VendorInformation']['AutoDetectCapable'] == rp1210.getAutoDetectCapable()
-    assert rp1210.getTimeStampWeight() == config['VendorInformation']['TimestampWeight']
-    assert rp1210.getMessageString() == config['VendorInformation']['MessageString']
-    assert rp1210.getErrorString() == config['VendorInformation']['ErrorString']
-    assert rp1210.getRP1210Version() == config['VendorInformation']['RP1210']
-    assert rp1210.getDebugLevel() == config['VendorInformation']['DebugLevel']
-    assert rp1210.getDebugFile() == config['VendorInformation']['DebugFile']
-    assert rp1210.getDebugMode() == config['VendorInformation']['DebugMode']
-    assert rp1210.getDebugFileSize() == config['VendorInformation']['DebugFileSize']
-    assert rp1210.getNumberOfSessions() == config['VendorInformation']['NumberOfRTSCTSSessions']
-    assert rp1210.getCANAutoBaud() == config['VendorInformation']['CANAutoBaud'] == rp1210.autoBaudEnabled()
-    assert rp1210.getCANFormatsSupported() == config['VendorInformation']['CANFormatsSupported']
-    assert rp1210.getJ1939FormatsSupported() == config['VendorInformation']['J1939FormatsSupported']
-    assert rp1210.getDeviceIDs() == config['VendorInformation']['Devices']
-    assert rp1210.getProtocolIDs() == config['VendorInformation']['Protocols']
+    assert rp1210.autoDetectCapable() == config.getboolean('VendorInformation', 'AutoDetectCapable') == rp1210.getAutoDetectCapable()
+    assert rp1210.getTimeStampWeight() == config.getfloat("VendorInformation", "TimeStampWeight")
+    assert rp1210.getMessageString() == config.get("VendorInformation", "MessageString")
+    assert rp1210.getErrorString() == config.get("VendorInformation", "ErrorString")
+    assert rp1210.getRP1210Version() == config.get("VendorInformation", "RP1210")
+    assert rp1210.getDebugLevel() == config.getint("VendorInformation", "DebugLevel")
+    assert rp1210.getDebugFile() == config.get("VendorInformation", "DebugFile")
+    assert rp1210.getDebugMode() == config.getint("VendorInformation", "DebugMode")
+    assert rp1210.getDebugFileSize() == config.getint("VendorInformation", "DebugFileSize")
+    assert rp1210.getNumberOfSessions() == config.getint("VendorInformation", "NumberOfRTSCTSSessions")
+    assert rp1210.getCANAutoBaud() == config.getboolean("VendorInformation", "CANAutoBaud") == rp1210.autoBaudEnabled()
+    assert rp1210.getCANFormatsSupported() == list(map(int, config['VendorInformation']['CANFormatsSupported'].split(',')))
+    assert rp1210.getJ1939FormatsSupported() == list(map(int, config['VendorInformation']['J1939FormatsSupported'].split(',')))
+    assert rp1210.getDeviceIDs() == list(map(int, config['VendorInformation']['Devices'].split(',')))
+    assert rp1210.getProtocolIDs() == list(map(int, config['VendorInformation']['Protocols'].split(',')))
 
+''' 
 def test_Devices():
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Config(API_NAME)
@@ -198,3 +199,5 @@ def test_disconnected_rp1210client_commands():
     assert client.setBlockingTimeout(20, 30) in RP1210.RP1210_ERRORS.keys()
     assert client.flushBuffers() in RP1210.RP1210_ERRORS.keys()
     assert client.setCANBaud(5) in RP1210.RP1210_ERRORS.keys()
+
+'''
