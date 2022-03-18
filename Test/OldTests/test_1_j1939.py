@@ -66,9 +66,14 @@ def test_toJ1939Message():
 def test_J1939Request():
     """Test toJ1939Request()"""
     sa = 2
-    request = 0xFEEE # engine temperature
+    request = 0x00FEEE # engine temperature
     msg = J1939.toJ1939Request(request, sa)
-    assert msg == b'\x00\xEA\x00\x06\x02\xFF\xEE\xFE\x00'
+    assert msg == b'\x00\xEA\x00\x06\x02\xFF\xEE\xFE\x00\x00\x00\x00\x00\x00'
+    j1939msg = J1939.J1939Message(msg)
+    assert j1939msg.getPGN() == 0x00EA00
+    assert j1939msg.getSourceAddress() == 2
+    assert j1939msg.getDestination() == 0xFF
+    assert j1939msg.getPriority() == 6
 
 def test_J1939MessageParser():
     """Test J1939MessageParser class"""
@@ -259,7 +264,7 @@ def test_J1939MessageParser_isDM_hex():
     """
     def makeMessage(pgn):
         # 4-byte timestamp
-        msg = b'0000' + J1939.toJ1939Message(pgn, 3, 0xFE, 0xAA, b'Bingus')
+        msg = b'0000' + J1939.toJ1939Message(pgn, 3, 0xFE, pgn & 0xFF, b'Bingus')
         return J1939.J1939Message(msg)
 
     msg = makeMessage(0x1111)
@@ -272,17 +277,10 @@ def test_J1939MessageParser_isDM_hex():
     assert not msg.isDM11()
     assert not msg.isDM12()
 
-    msg = makeMessage(0xEA00)
-    assert msg.isDMRequest()
-    msg = makeMessage(0xFECA)
-    assert msg.isDM1()
-    msg = makeMessage(0xFECB)
-    assert msg.isDM2()
-    msg = makeMessage(0xFECC)
-    assert msg.isDM3()
-    msg = makeMessage(0xFECD)
-    assert msg.isDM4()
-    msg = makeMessage(0xFED3)
-    assert msg.isDM11()
-    msg = makeMessage(0xFED4)
-    assert msg.isDM12()
+    assert makeMessage(0xEA00).isDMRequest()
+    assert makeMessage(0xFECA).isDM1()
+    assert makeMessage(0xFECB).isDM2()
+    assert makeMessage(0xFECC).isDM3()
+    assert makeMessage(0xFECD).isDM4()
+    assert makeMessage(0xFED3).isDM11()
+    assert makeMessage(0xFED4).isDM12()

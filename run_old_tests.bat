@@ -16,10 +16,10 @@ REM py -m pip install -U -q pytest
 REM py -m pip install -U -q pytest-cov
 ECHO Preparing test directory...
 ECHO Removing old source code from Test directory...
-rmdir /s /q Test\RP1210
+rmdir /s /q Test\OldTests\RP1210
 ECHO Copying source code into Test directory...
-xcopy /v /s /y /q RP1210 Test\RP1210\
-cd Test
+xcopy /v /s /y /q RP1210 Test\OldTests\RP1210\
+cd Test\OldTests
 ECHO Done!
 ECHO ..............................................................................................
 ECHO Disconnect all RP1210 adapters before continuing.
