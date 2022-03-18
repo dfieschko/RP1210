@@ -1,8 +1,10 @@
 import RP1210, os, configparser
+from utilities import TestUtility
 from ctypes import create_string_buffer
 
-API_NAME = "DGDPA5MA"
-
+API_NAME = "CMNSI632"
+config = configparser.ConfigParser()
+utility = TestUtility(config)
 
 
 def test_RP1210Interface(apiname : str):
@@ -11,44 +13,46 @@ def test_RP1210Interface(apiname : str):
 
     You must have these drivers installed to run this test.
     """
-
-    config = configparser.ConfigParser()
+    
     config.read(os.sep.join([os.path.abspath(os.curdir), "Test\\test-files\\ini-files\\" + apiname + ".ini" ]))
-
     assert apiname in RP1210.getAPINames(os.sep.join([os.path.abspath(os.curdir), "Test\\test-files\\RP121032.ini"]))
     rp1210 = RP1210.RP1210Config(apiname, "Test\\test-files\\dlls", "Test\\test-files\\ini-files")
     assert rp1210.isValid() == True
-    #assert str(rp1210) == API_NAME + " - DG Technologies DPA 5 Multi Application"
+    #assert str(rp1210) == apiname + config.get("VendorInformation", "Name")        //FRAGILE
     assert rp1210.getAPIName() == apiname
-    assert rp1210.getName() == config.get("VendorInformation", "Name") == rp1210.getDescription()
-    assert rp1210.getAddress1() == config.get("VendorInformation", "Address1")
-    assert rp1210.getAddress2() == config.get("VendorInformation", "Address2")
-    assert rp1210.getCity() == config.get("VendorInformation", "City")
-    assert rp1210.getState() == config.get("VendorInformation", "State")
-    assert rp1210.getCountry() == config.get("VendorInformation", "Country")
-    assert rp1210.getPostal() == config.get("VendorInformation", "Postal")
-    assert rp1210.getTelephone() == config.get("VendorInformation", "Telephone")
-    assert rp1210.getFax() == config.get("VendorInformation", "Fax")
-    assert rp1210.getVendorURL() == config.get("VendorInformation", "VendorURL")
-    assert rp1210.getVersion() == config['VendorInformation']['Version']
-    assert rp1210.autoDetectCapable() == config.getboolean('VendorInformation', 'AutoDetectCapable') == rp1210.getAutoDetectCapable()
-    assert rp1210.getTimeStampWeight() == config.getfloat("VendorInformation", "TimeStampWeight")
-    assert rp1210.getMessageString() == config.get("VendorInformation", "MessageString")
-    assert rp1210.getErrorString() == config.get("VendorInformation", "ErrorString")
-    assert rp1210.getRP1210Version() == config.get("VendorInformation", "RP1210")
-    assert rp1210.getDebugLevel() == config.getint("VendorInformation", "DebugLevel")
-    assert rp1210.getDebugFile() == config.get("VendorInformation", "DebugFile")
-    assert rp1210.getDebugMode() == config.getint("VendorInformation", "DebugMode")
-    assert rp1210.getDebugFileSize() == config.getint("VendorInformation", "DebugFileSize")
-    assert rp1210.getNumberOfSessions() == config.getint("VendorInformation", "NumberOfRTSCTSSessions")
-    assert rp1210.getCANAutoBaud() == config.getboolean("VendorInformation", "CANAutoBaud") == rp1210.autoBaudEnabled()
-    assert rp1210.getCANFormatsSupported() == list(map(int, config['VendorInformation']['CANFormatsSupported'].split(',')))
-    assert rp1210.getJ1939FormatsSupported() == list(map(int, config['VendorInformation']['J1939FormatsSupported'].split(',')))
-    assert rp1210.getDeviceIDs() == list(map(int, config['VendorInformation']['Devices'].split(',')))
-    assert rp1210.getProtocolIDs() == list(map(int, config['VendorInformation']['Protocols'].split(',')))
 
-''' 
-def test_Devices():
+    assert utility.verifydata(rp1210.getName, "VendorInformation", "Name")
+    assert utility.verifydata(rp1210.getAddress1, "VendorInformation", "Address1")
+    assert utility.verifydata(rp1210.getAddress2, "VendorInformation", "Address2")
+    assert utility.verifydata(rp1210.getCity, "VendorInformation", "City")
+    assert utility.verifydata(rp1210.getState, "VendorInformation", "State")
+    assert utility.verifydata(rp1210.getCountry, "VendorInformation", "Country")
+    assert utility.verifydata(rp1210.getPostal, "VendorInformation", "Postal")
+    assert utility.verifydata(rp1210.getTelephone, "VendorInformation", "Telephone")
+    assert utility.verifydata(rp1210.getFax, "VendorInformation", "Fax")
+    assert utility.verifydata(rp1210.getVendorURL, "VendorInformation", "VendorURL")
+    assert utility.verifydata(rp1210.getVersion, "VendorInformation", "Version")
+    assert utility.verifydata(rp1210.autoDetectCapable, "VendorInformation", "AutoDetectCapable")
+    assert utility.verifydata(rp1210.getAutoDetectCapable, "VendorInformation", "AutoDetectCapable")
+    assert utility.verifydata(rp1210.getTimeStampWeight, "VendorInformation", "TimeStampWeight")
+    assert utility.verifydata(rp1210.getMessageString, "VendorInformation", "MessageString")
+    assert utility.verifydata(rp1210.getErrorString, "VendorInformation", "ErrorString")
+
+    assert utility.verifydata(rp1210.getRP1210Version, "VendorInformation", "RP1210")
+    assert utility.verifydata(rp1210.getDebugLevel, "VendorInformation", "DebugLevel")
+    assert utility.verifydata(rp1210.getDebugFile, "VendorInformation", "DebugFile")
+    assert utility.verifydata(rp1210.getDebugMode, "VendorInformation", "DebugMode")
+    assert utility.verifydata(rp1210.getDebugFileSize, "VendorInformation", "DebugFileSize")
+    assert utility.verifydata(rp1210.getNumberOfSessions, "VendorInformation", "NumberOfRTSCTSSessions")
+    assert utility.verifydata(rp1210.getCANAutoBaud, "VendorInformation", "CANAutoBaud")
+    assert utility.verifydata(rp1210.getCANFormatsSupported, "VendorInformation", "CANFormatsSupported")
+    assert utility.verifydata(rp1210.getJ1939FormatsSupported, "VendorInformation", "J1939FormatsSupported")
+    assert utility.verifydata(rp1210.getDeviceIDs, "VendorInformation", "Devices")
+    assert utility.verifydata(rp1210.getProtocolIDs, "VendorInformation", "Protocols")
+    
+
+'''
+def test_Devices(apiname : str):
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Config(API_NAME)
     deviceIDs = rp1210.getDeviceIDs()
@@ -70,7 +74,7 @@ def test_Devices():
     assert device2.getMultiJ1939Channels() == 4
     assert str(device2) == str(device2.getID()) + " - " + device2.getDescription()
 
-def test_Protocols():
+def test_Protocols(apiname : str):
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Config(API_NAME)
     protocolIDs = rp1210.getProtocolIDs()
@@ -91,13 +95,13 @@ def test_Protocols():
     assert protocol2.getDevices() == [1, 2]
     assert protocol2.getSpeed() == ["125","250","500","666","1000","Auto"]
 
-def test_load_DLL():
+def test_load_DLL(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     assert rp1210.api.getDLL() != None
     rp12102 = RP1210.RP1210Config(API_NAME)
     assert rp12102.api.loadDLL() != None
 
-def test_disconnected_ClientConnect():
+def test_disconnected_ClientConnect(apiname : str):
     """Tests whether ClientConnect follows expected behavior when disconnected from device."""
     rp1210 = RP1210.RP1210Config(API_NAME)
     clientID = rp1210.api.ClientConnect(1, b"J1939:Baud=Auto")
@@ -105,13 +109,13 @@ def test_disconnected_ClientConnect():
                                                     "ERR_HARDWARE_NOT_RESPONDING",
                                                     "ERR_INVALID_PROTOCOL"]
 
-def test_disconnected_ClientDisconnect():
+def test_disconnected_ClientDisconnect(apiname : str):
     """Tests whether ClientDisconnect follows expected behavior when disconnected from device."""
     rp1210 = RP1210.RP1210Config(API_NAME)
     code = rp1210.api.ClientDisconnect(0)
     assert code >= 128
 
-def test_disconnected_ReadVersion():
+def test_disconnected_ReadVersion(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     buff1 = create_string_buffer(16)
     buff2 = create_string_buffer(16)
@@ -123,11 +127,11 @@ def test_disconnected_ReadVersion():
     assert buff3.value == b"3"
     assert buff4.value == b"0"
 
-def test_disconnected_ReadVersionDirect():
+def test_disconnected_ReadVersionDirect(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     assert rp1210.api.ReadVersionDirect() == ("0.0", "3.0")
 
-def test_disconnected_ReadDetailedVersion():
+def test_disconnected_ReadDetailedVersion(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     buff1 = create_string_buffer(17)
     buff2 = create_string_buffer(17)
@@ -135,29 +139,29 @@ def test_disconnected_ReadDetailedVersion():
     ret_val = rp1210.api.ReadDetailedVersion(0, buff1, buff2, buff3)
     assert RP1210.translateErrorCode(ret_val) in ["ERR_DLL_NOT_INITIALIZED", "ERR_HARDWARE_NOT_RESPONDING", "ERR_INVALID_CLIENT_ID"]
 
-def test_disconnected_GetErrorMsg():
+def test_disconnected_GetErrorMsg(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     for code in RP1210.RP1210_ERRORS:
         msg = rp1210.api.GetErrorMsg(code)
         # Dearborn DPA5 has nonstandard error codes - don't check against dict for correctness
 
-def test_disconnected_SendCommand():
+def test_disconnected_SendCommand(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     for command in RP1210.RP1210_COMMANDS:
         assert rp1210.api.SendCommand(command, 0) in RP1210.RP1210_ERRORS
 
-def test_disconnected_GetHardwareStatus():
+def test_disconnected_GetHardwareStatus(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     buffer = create_string_buffer(64)
     ret_val = rp1210.api.GetHardwareStatus(0, buffer, 64)
     assert not buffer.value
     assert ret_val in RP1210.RP1210_ERRORS
 
-def test_disconnected_GetHardwareStatusDirect():
+def test_disconnected_GetHardwareStatusDirect(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     assert not rp1210.api.GetHardwareStatusDirect(0).value
 
-def test_disconnected_RemainingFunctions():
+def test_disconnected_RemainingFunctions(apiname : str):
     """Tests whether API functions follow expected behavior when disconnected from device."""
     rp1210 = RP1210.RP1210Config(API_NAME)
     ret_val = rp1210.api.SendMessage(0, b"", 0)
@@ -175,7 +179,7 @@ def test_disconnected_RemainingFunctions():
     assert not rp1210.api.ReadDirect(0)
     assert rp1210.api.ReadDetailedVersionDirect(0) == ("", "", "")
 
-def test_disconnected_rp1210client_commands():
+def test_disconnected_rp1210client_commands(apiname : str):
     """Tests RP1210Client command functions when adapter is disconnected."""
     client = RP1210.RP1210Client()
     client.setVendor(API_NAME)
