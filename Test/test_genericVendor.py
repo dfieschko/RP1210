@@ -2,6 +2,15 @@ import RP1210, os, configparser
 from utilities import TestUtility
 from ctypes import create_string_buffer
 
+"""
+GenericVendor can only test VendorInformation for now until I can work on the
+rest of the commands.
+
+USAGE:
+pytest -q --apiname="[api1.ini]" --apiname="[api2.ini]" --apiname="[apin.ini]" --tb=native Test/test_genericVendor.py
+"""
+
+
 config = configparser.ConfigParser()
 utility = TestUtility(config)
 

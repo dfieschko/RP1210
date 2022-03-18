@@ -3,8 +3,6 @@ import configparser, RP1210
 from inspect import signature
 import warnings
 
-
-
 class TestUtility():
 
     def __init__(self, config : configparser.ConfigParser):
