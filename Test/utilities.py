@@ -33,5 +33,5 @@ class TestUtility():
         if retType is float:
             return func() == self._config.getfloat(section, field)
             
-        elif type(retType[0]) is int:
+        else:
             return func() == list(map(int, self._config.get(section, field).split(',')))
