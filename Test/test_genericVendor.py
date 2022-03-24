@@ -22,9 +22,9 @@ def test_RP1210Interface(apiname : str):
     You must have these drivers installed to run this test.
     """
     
-    config.read(os.sep.join([os.path.abspath(os.curdir), "Test\\test-files\\ini-files\\" + apiname + ".ini" ]))
-    assert apiname in RP1210.getAPINames(os.sep.join([os.path.abspath(os.curdir), "Test\\test-files\\RP121032.ini"]))
-    rp1210 = RP1210.RP1210Config(apiname, "Test\\test-files\\dlls", "Test\\test-files\\ini-files")
+    config.read(os.sep.join([os.path.abspath(os.curdir), "..\\..\\test-files\\ini-files\\" + apiname + ".ini" ]))
+    assert apiname in RP1210.getAPINames(os.sep.join([os.path.abspath(os.curdir), "..\\..\\test-files\\RP121032.ini"]))
+    rp1210 = RP1210.RP1210Config(apiname, "..\\..\\test-files\\dlls", "..\\..\\test-files\\ini-files")
     assert rp1210.isValid() == True     
     assert rp1210.getAPIName() == apiname
     assert utility.verifydata(rp1210.getName, "VendorInformation", "Name")
