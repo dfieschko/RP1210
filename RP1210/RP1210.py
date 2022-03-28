@@ -145,7 +145,7 @@ def translateErrorCode(ClientID :int) -> str:
             ClientID = 0xFFFF - ClientID
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
-def getAPINames(rp121032_path = None) -> list[str]:
+def getAPINames(rp121032_path : str = None) -> list[str]:
     """
     A function for reading API names from RP121032.ini. Returns a list of strings.
 
