@@ -25,6 +25,7 @@ def test_api_files_exist(api_name : str):
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     assert os.path.isfile(ini_path)
     assert os.path.isfile(dll_path)
+    assert os.path.isfile(RP121032_PATH)
 
 def test_getAPINames():
     """
@@ -124,11 +125,13 @@ def test_Protocols(api_name : str):
 def test_load_DLL(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     # try to load it twice, to make sure they don't collide or something
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    assert rp1210.getAPI().isValid()
     assert rp1210.api.getDLL() != None
-    rp12102 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-    assert rp12102.api.loadDLL() != None
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    assert rp1210.api.loadDLL() != None
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ClientConnect(api_name : str):
@@ -141,7 +144,8 @@ def test_disconnected_ClientConnect(api_name : str):
     assert RP1210.translateErrorCode(clientID) in [ "ERR_OPENING_PORT", 
                                                     "ERR_HARDWARE_NOT_RESPONDING",
                                                     "ERR_INVALID_PROTOCOL",
-                                                    "ERR_CONNECT_NOT_ALLOWED"]
+                                                    "ERR_CONNECT_NOT_ALLOWED",
+                                                    "ERR_INVALID_CLIENT_ID"]
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ClientDisconnect(api_name : str):
@@ -150,10 +154,14 @@ def test_disconnected_ClientDisconnect(api_name : str):
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     code = rp1210.api.ClientDisconnect(0)
+    if code < 0:
+        code += 65536
     assert code >= 128
 
-
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadVersion(api_name : str):
+    if api_name == "PEAKRP32":
+        pytest.skip("The test PEAKCAN drivers don't return a value for RP1210_ReadVersion.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
