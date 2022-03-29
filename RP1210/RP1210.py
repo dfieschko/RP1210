@@ -1138,11 +1138,8 @@ class RP1210API:
         
         You really want to read the RP1210C documentation for this one.
         """
-        if MessageSize == 0:
-            if ClientCommand == b"":
-                MessageSize = 0
-            else:
-                MessageSize = len(ClientCommand)
+        if MessageSize == 0 and ClientCommand != b"":
+            MessageSize = len(ClientCommand)
         return self.getDLL().RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize)
 
     def __init_functions(self):
@@ -1684,16 +1681,8 @@ class RP1210Client(RP1210VendorList):
         """
         cmd_num = 37
         cmd_data = Commands.setJ1939Baud(baud_code, wait_for_msg)
-        self.baud_code = baud_code
         cmd_size = 2
         return self.command(cmd_num, cmd_data, cmd_size)
-    
-    def getBaud(self, humanReadable = True) -> string:
-        if not humanReadable:
-            return self.baud_code
-        else:
-            return self.baudCodeToHumanReadable(self.baud_code)
-
 
     def setBlockingTimeout(self, block1 : int, block2 : int) -> int:
         """
@@ -1712,6 +1701,17 @@ class RP1210Client(RP1210VendorList):
         Flush the Send/Receive Buffers (39) (0 bytes)
         """
         return self.command(39)
+
+    def getBaud(self) -> string:
+        """
+        Calls the RP1210_Get_Protocol_Connection_Speed (45) command and returns the value that is
+        received as a string of up to 16 characters.
+        """
+        cmd_num = 45
+        cmd_buffer = create_string_buffer(17)
+        cmd_size = 17
+        self.command(cmd_num, cmd_buffer, cmd_size)
+        return str(cmd_buffer[:cmd_size]) # return first 16 bytes
 
     def setCANBaud(self, baud_code : int, wait_for_msg = True):
         """
