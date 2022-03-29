@@ -165,6 +165,34 @@ def getAPINames(rp121032_path : str = None) -> list[str]:
     parser.read(rp121032_path)
     return parser.get("RP1210Support", "APIImplementations").split(",")
 
+def detectMangledConfig(parser : configparser) -> bool:
+    # TODO: Test this, specifically the emptyset
+    if(parser.has_option("RP1210Support", "APIImplementations")):
+        items = parser.get("RP1210Support", "APIImplementations").split(",")
+        emptyset = list(filter(lambda x: x == '' or x == ' ', items)) # Filters out empty and blank api names
+        return emptyset == True
+    else:
+        return False
+        
+
+def repairConfig(parser : configparser):
+    # TODO: Test the passes
+    if(not parser.has_option("RP1210Support", "APIImplementations")):
+        search = dict(parser.items('RP1210Support'))
+        for field in search:
+            parser["RP1210Support"]["APIImplementations"] = parser["RP1210Support"][field] # Move API names into proper field
+    
+    items = parser.get("RP1210Support", "APIImplementations").split(",")
+    firstpass = list(filter(lambda x: x != '' or x != ' ', items)) # Filters out empty and blank api names
+
+    secondpass = [] # Remove duplicates
+    for i in firstpass:
+        if i not in secondpass:
+            secondpass.append(i)
+
+    parser["RP1210Support"]["APIImplementations"] = secondpass
+
+
 class RP1210Protocol:
     """
     Stores information for an RP1210 protocol, e.g. info stored in ProtocolInformationXXX sections.
