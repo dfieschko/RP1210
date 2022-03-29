@@ -159,7 +159,7 @@ def getAPINames(rp121032_path : str = None) -> list[str]:
     """
     if not rp121032_path: # find our own path if none is given
         rp121032_path = os.path.join(os.environ["WINDIR"], "RP121032.ini")
-    if not os.path.isfile(rp121032_path): # check if file exists
+    elif not os.path.isfile(rp121032_path): # check if file exists
         raise FileNotFoundError(f"RP121032.ini not found at {rp121032_path}.")
     parser = ConfigParser()
     parser.read(rp121032_path)
