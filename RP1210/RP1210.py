@@ -1684,8 +1684,16 @@ class RP1210Client(RP1210VendorList):
         """
         cmd_num = 37
         cmd_data = Commands.setJ1939Baud(baud_code, wait_for_msg)
+        self.baud_code = baud_code
         cmd_size = 2
         return self.command(cmd_num, cmd_data, cmd_size)
+    
+    def getBaud(self, humanReadable = True) -> string:
+        if not humanReadable:
+            return self.baud_code
+        else:
+            return self.baudCodeToHumanReadable(self.baud_code)
+
 
     def setBlockingTimeout(self, block1 : int, block2 : int) -> int:
         """
