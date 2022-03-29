@@ -1,5 +1,4 @@
 import configparser
-import warnings
 
 class RP1210ConfigTestUtility():
 
@@ -13,8 +12,7 @@ class RP1210ConfigTestUtility():
             assert TestUtility.verifydata([function to test], [section], "[field]")
         """
         if not self._config.has_option(section, field):
-            warnings.warn(UserWarning("could not find data at [" + section + "][" + field + "]"))
-            return True
+            return func() in ("", None, [], False, 0, 1, -1, 1024, "(Vendor Name Missing)")
     
         retType = func.__annotations__["return"]
         if retType is str:
