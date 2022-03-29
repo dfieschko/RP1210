@@ -1,9 +1,7 @@
-import sys
-import configparser, RP1210
-from inspect import signature
+import configparser
 import warnings
 
-class TestUtility():
+class RP1210ConfigTestUtility():
 
     def __init__(self, config : configparser.ConfigParser):
         self._config = config
@@ -32,4 +30,9 @@ class TestUtility():
             return func() == self._config.getfloat(section, field)
             
         else:
-            return func() == list(map(int, self._config.get(section, field).split(',')))
+            list_vals = self._config.get(section, field).split(',')
+            if list_vals != ['']:
+                list_vals = list(map(int, list_vals))
+            else:
+                list_vals = []
+            return func() == list_vals

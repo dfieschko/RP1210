@@ -1,30 +1,32 @@
+import pytest
 import RP1210, os, configparser
-from utilities import TestUtility
-from ctypes import create_string_buffer
+from utilities import RP1210ConfigTestUtility
 
-"""
-GenericVendor can only test VendorInformation for now until I can work on the
-rest of the commands.
+API_NAMES = ["PEAKRP32", "DLAUSB32", "NULN2R32", "CMNSI632", "DGDPA5MA"]
 
-USAGE:
-pytest -q --apiname="[api1.ini]" --apiname="[api2.ini]" --apiname="[apin.ini]" --tb=native Test/test_genericVendor.py
-"""
+# These tests are meant to be run with cwd @ repository's highest-level directory
+CWD = os.getcwd()
+TEST_FILES_DIRECTORY = CWD + ".\\Test\\test-files"
+INI_DIRECTORY = TEST_FILES_DIRECTORY + "\\ini-files"
+DLL_DIRECTORY = TEST_FILES_DIRECTORY + "\\dlls"
+RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
 
+def test_getAPINames():
+    """Test the getAPINames() function with a custom directory."""
+    assert RP1210.getAPINames(RP121032_PATH) == API_NAMES
 
-config = configparser.ConfigParser()
-utility = TestUtility(config)
-
-
-def test_RP1210Interface(apiname : str):
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210Config(api_name):
     """
     Tests RP1210Config class with all sample files provided in test-files folder.
     """
-    config.read(os.sep.join([os.path.abspath(os.curdir), "..\\..\\test-files\\ini-files\\" + apiname + ".ini" ]))
-    rp121032_path = os.sep.join([os.path.abspath(os.curdir), "..\\..\\test-files\\RP121032.ini"])
-    assert apiname in RP1210.getAPINames(rp121032_path)
-    rp1210 = RP1210.RP1210Config(apiname, "..\\..\\test-files\\dlls", "..\\..\\test-files\\ini-files")
+    config = configparser.ConfigParser()
+    utility = RP1210ConfigTestUtility(config)
+    config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
+    assert api_name in RP1210.getAPINames(RP121032_PATH)
+    rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
     assert rp1210.isValid() == True     
-    assert rp1210.getAPIName() == apiname
+    assert rp1210.getAPIName() == api_name
     assert utility.verifydata(rp1210.getName, "VendorInformation", "Name")
     assert utility.verifydata(rp1210.getAddress1, "VendorInformation", "Address1")
     assert utility.verifydata(rp1210.getAddress2, "VendorInformation", "Address2")
