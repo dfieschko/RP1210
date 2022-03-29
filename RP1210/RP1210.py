@@ -167,6 +167,10 @@ def getAPINames(rp121032_path : str = None) -> list[str]:
 
 def detectMangledConfig(parser : configparser) -> bool:
     # TODO: Test this, specifically the emptyset
+    '''
+    Detects if the config file is mangled.
+    Checks for empty items, as well as typos in the field
+    '''
     if(parser.has_option("RP1210Support", "APIImplementations")):
         items = parser.get("RP1210Support", "APIImplementations").split(",")
         emptyset = list(filter(lambda x: x == '' or x == ' ', items)) # Filters out empty and blank api names
@@ -181,7 +185,7 @@ def repairConfig(parser : configparser):
         search = dict(parser.items('RP1210Support'))
         for field in search:
             parser["RP1210Support"]["APIImplementations"] = parser["RP1210Support"][field] # Move API names into proper field
-    
+    parser["RP1210Support"]["APIImplementations_OLD"] = parser["RP1210Support"]["APIImplementations"] # Backs up old section in case we break something and want to roll back
     items = parser.get("RP1210Support", "APIImplementations").split(",")
     firstpass = list(filter(lambda x: x != '' or x != ' ', items)) # Filters out empty and blank api names
 
