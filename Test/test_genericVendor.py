@@ -1,3 +1,4 @@
+from ctypes import create_string_buffer
 import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
@@ -16,6 +17,14 @@ def test_cwd():
     cwd = os.getcwd()
     assert "RP1210" in cwd
     assert "Test" not in cwd
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_api_files_exist(api_name : str):
+    """Makes sure all the relevant API files are in test-files directory."""
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    assert os.path.isfile(ini_path)
+    assert os.path.isfile(dll_path)
 
 def test_getAPINames():
     """
@@ -97,7 +106,7 @@ def test_Devices(api_name : str):
 def test_Protocols(api_name : str):
     config = configparser.ConfigParser()
     utility = RP1210ConfigTestUtility(config)
-    rp1210 = RP1210.RP1210Config(api_name)
+    rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     protocolIDs = rp1210.getProtocolIDs()
     for id in protocolIDs:
@@ -134,24 +143,30 @@ def test_disconnected_ClientConnect(api_name : str):
                                                     "ERR_INVALID_PROTOCOL",
                                                     "ERR_CONNECT_NOT_ALLOWED"]
 
-'''
-def test_disconnected_ClientDisconnect(apiname : str):
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_ClientDisconnect(api_name : str):
     """Tests whether ClientDisconnect follows expected behavior when disconnected from device."""
-    rp1210 = RP1210.RP1210Config(API_NAME)
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     code = rp1210.api.ClientDisconnect(0)
     assert code >= 128
 
-def test_disconnected_ReadVersion(apiname : str):
-    rp1210 = RP1210.RP1210Config(API_NAME)
+
+def test_disconnected_ReadVersion(api_name : str):
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     buff1 = create_string_buffer(16)
     buff2 = create_string_buffer(16)
     buff3 = create_string_buffer(16)
     buff4 = create_string_buffer(16)
     rp1210.api.ReadVersion(buff1, buff2, buff3, buff4)
-    assert buff1.value == b"0"
-    assert buff2.value == b"0"
-    assert buff3.value == b"3"
-    assert buff4.value == b"0"
+    assert buff1.value not in (b"", b"\x00")
+    assert buff2.value not in (b"", b"\x00")
+    assert buff3.value not in (b"", b"\x00")
+    assert buff4.value not in (b"", b"\x00")
+'''
 
 def test_disconnected_ReadVersionDirect(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
