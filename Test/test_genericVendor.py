@@ -145,7 +145,8 @@ def test_disconnected_ClientConnect(api_name : str):
                                                     "ERR_HARDWARE_NOT_RESPONDING",
                                                     "ERR_INVALID_PROTOCOL",
                                                     "ERR_CONNECT_NOT_ALLOWED",
-                                                    "ERR_INVALID_CLIENT_ID"]
+                                                    "ERR_INVALID_CLIENT_ID",
+                                                    "NO_ERRORS"]
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ClientDisconnect(api_name : str):
@@ -156,6 +157,9 @@ def test_disconnected_ClientDisconnect(api_name : str):
     code = rp1210.api.ClientDisconnect(0)
     if code < 0:
         code += 65536
+    if api_name == "NULN2R32": # Nexiq drivers can trick computer into thinking it's connected
+        assert code == 0 or code >= 128
+        return
     assert code >= 128
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
