@@ -14,6 +14,7 @@ RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
 
 # try to get Windows Server to load DLLs w/ GitHub Actions
 os.add_dll_directory(DLL_DIRECTORY)
+os.add_dll_directory(DLL_DIRECTORY + "\\NEXIQ")
 os.add_dll_directory(os.getcwd())
 os.environ['PATH'] += os.pathsep + DLL_DIRECTORY
 for d in os.environ['path'].split(';'): # overboard
