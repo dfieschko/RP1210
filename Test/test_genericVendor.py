@@ -11,6 +11,7 @@ TEST_FILES_DIRECTORY = CWD + ".\\Test\\test-files"
 INI_DIRECTORY = TEST_FILES_DIRECTORY + "\\ini-files"
 DLL_DIRECTORY = TEST_FILES_DIRECTORY + "\\dlls"
 RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
+os.add_dll_directory(DLL_DIRECTORY)
 
 def test_cwd():
     """Make sure cwd isn't in Test folder."""
