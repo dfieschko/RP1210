@@ -26,20 +26,15 @@ def test_getAPINames():
     RP1210.getAPINames()
     assert RP1210.getAPINames(RP121032_PATH) == API_NAMES
 
-@pytest.mark.parametrize("rp121032_path", [
-    pytest.param("bork", marks=pytest.mark.xfail),
-    pytest.param("bork.ini", marks=pytest.mark.xfail),
-    pytest.param(1234, marks=pytest.mark.xfail),
-    pytest.param("RP121032", marks=pytest.mark.xfail),
-    pytest.param(RP121032_PATH + "x", marks=pytest.mark.xfail)
-])
+@pytest.mark.parametrize("rp121032_path", ["bork", "bork.ini", 1234, "RP121032", RP121032_PATH + "x"])
 def test_getAPINames_invalid(rp121032_path):
     """
     Makes sure we get an exception if we provide an invalid path for getAPINames().
     - xfail = success
     - xpass = fail
     """
-    RP1210.getAPINames(rp121032_path)
+    with pytest.raises(FileNotFoundError):
+        RP1210.getAPINames(rp121032_path)
 
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
