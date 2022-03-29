@@ -13,6 +13,7 @@ DLL_DIRECTORY = TEST_FILES_DIRECTORY + "\\dlls"
 RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
 
 os.add_dll_directory(DLL_DIRECTORY)
+os.add_dll_directory(os.getcwd())
 os.environ['PATH'] += os.pathsep + DLL_DIRECTORY
 for d in os.environ['path'].split(';'): # overboard
     if os.path.isdir(d):
@@ -32,8 +33,6 @@ def test_api_files_exist(api_name : str):
     assert os.path.exists(DLL_DIRECTORY)
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
-    os.add_dll_directory(DLL_DIRECTORY)
-    os.add_dll_directory(dll_path)
     assert os.path.isfile(ini_path)
     assert os.path.isfile(dll_path)
     assert os.path.isfile(RP121032_PATH)
