@@ -111,13 +111,16 @@ def test_Protocols(api_name : str):
         utility.verifyprotocoldata(protocol.getDevices, id, "Devices")
         utility.verifyprotocoldata(protocol.getSpeed, id, "ProtocolSpeed")
 
-'''
-def test_load_DLL(apiname : str):
-    rp1210 = RP1210.RP1210Config(API_NAME)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_load_DLL(api_name : str):
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     assert rp1210.api.getDLL() != None
-    rp12102 = RP1210.RP1210Config(API_NAME)
+    rp12102 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     assert rp12102.api.loadDLL() != None
 
+'''
 def test_disconnected_ClientConnect(apiname : str):
     """Tests whether ClientConnect follows expected behavior when disconnected from device."""
     rp1210 = RP1210.RP1210Config(API_NAME)
