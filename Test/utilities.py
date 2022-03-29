@@ -34,3 +34,7 @@ class RP1210ConfigTestUtility():
             else:
                 list_vals = []
             return func() == list_vals
+
+    def verifydevicedata(self, func, device_id, field):
+        section = "DeviceInformation" + str(device_id)
+        return self.verifydata(func, section, field)

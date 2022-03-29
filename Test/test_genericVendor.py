@@ -11,12 +11,23 @@ INI_DIRECTORY = TEST_FILES_DIRECTORY + "\\ini-files"
 DLL_DIRECTORY = TEST_FILES_DIRECTORY + "\\dlls"
 RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
 
+def test_cwd():
+    """Make sure cwd isn't in Test folder."""
+    cwd = os.getcwd()
+    assert "RP1210" in cwd
+    assert "Test" not in cwd
+
 def test_getAPINames():
-    """Test the getAPINames() function with a custom directory."""
+    """
+    Test the getAPINames() function with a custom directory.
+    
+    Also calls getAPINames() with no argument to make sure there isn't an exception.
+    """
+    RP1210.getAPINames()
     assert RP1210.getAPINames(RP121032_PATH) == API_NAMES
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
-def test_RP1210Config(api_name):
+def test_RP1210Config(api_name : str):
     """
     Tests RP1210Config class with all sample files provided in test-files folder.
     """
@@ -55,30 +66,24 @@ def test_RP1210Config(api_name):
     assert utility.verifydata(rp1210.getDeviceIDs, "VendorInformation", "Devices")
     assert utility.verifydata(rp1210.getProtocolIDs, "VendorInformation", "Protocols")
     
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_Devices(api_name : str):
+    config = configparser.ConfigParser()
+    utility = RP1210ConfigTestUtility(config)
+    config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
+    rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
+    deviceIDs = rp1210.getDeviceIDs()
+    for id in deviceIDs:
+        device = rp1210.getDevice(id)
+        assert utility.verifydevicedata(device.getID, id, "DeviceID")
+        assert utility.verifydevicedata(device.getDescription, id, "DeviceDescription")
+        assert utility.verifydevicedata(device.getName, id, "DeviceName")
+        assert utility.verifydevicedata(device.getParams, id, "DeviceParams")
+        assert utility.verifydevicedata(device.getMultiJ1939Channels, id, "MultiJ1939Channels")
+        assert utility.verifydevicedata(device.getMultiCANChannels, id, "MultiCANChannels")
+        assert str(device) == str(device.getID()) + " - " + device.getDescription()
 
 '''
-def test_Devices(apiname : str):
-    assert API_NAME in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Config(API_NAME)
-    deviceIDs = rp1210.getDeviceIDs()
-    assert deviceIDs == [1, 2]
-    device1 = rp1210.getDevice(1)
-    assert device1.getID() == 1
-    assert device1.getDescription() == "DG DPA 5 Dual CAN (MA) USB,USB"
-    assert device1.getName() == "DG DPA 5 Dual CAN (MA) USB"
-    assert device1.getParams() == "DG USB,Type=3"
-    assert device1.getMultiCANChannels() == 2
-    assert device1.getMultiJ1939Channels() == 2
-    assert str(device1) == str(device1.getID()) + " - " + device1.getDescription()
-    device2 = rp1210.getDevice(2)
-    assert device2.getID() == 2
-    assert device2.getDescription() == "DG DPA 5 Pro (MA) USB,USB"
-    assert device2.getName() == "DG DPA 5 Pro (MA) USB"
-    assert device2.getParams() == "DG USB,Type=4"
-    assert device2.getMultiCANChannels() == 4
-    assert device2.getMultiJ1939Channels() == 4
-    assert str(device2) == str(device2.getID()) + " - " + device2.getDescription()
-
 def test_Protocols(apiname : str):
     assert API_NAME in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Config(API_NAME)
