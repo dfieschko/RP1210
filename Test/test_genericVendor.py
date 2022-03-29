@@ -36,7 +36,6 @@ def test_getAPINames_invalid(rp121032_path):
     with pytest.raises(FileNotFoundError):
         RP1210.getAPINames(rp121032_path)
 
-
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_RP1210Config(api_name : str):
     """
@@ -49,33 +48,33 @@ def test_RP1210Config(api_name : str):
     rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
     assert rp1210.isValid() == True     
     assert rp1210.getAPIName() == api_name
-    assert utility.verifydata(rp1210.getName, "VendorInformation", "Name")
-    assert utility.verifydata(rp1210.getAddress1, "VendorInformation", "Address1")
-    assert utility.verifydata(rp1210.getAddress2, "VendorInformation", "Address2")
-    assert utility.verifydata(rp1210.getCity, "VendorInformation", "City")
-    assert utility.verifydata(rp1210.getState, "VendorInformation", "State")
-    assert utility.verifydata(rp1210.getCountry, "VendorInformation", "Country")
-    assert utility.verifydata(rp1210.getPostal, "VendorInformation", "Postal")
-    assert utility.verifydata(rp1210.getTelephone, "VendorInformation", "Telephone")
-    assert utility.verifydata(rp1210.getFax, "VendorInformation", "Fax")
-    assert utility.verifydata(rp1210.getVendorURL, "VendorInformation", "VendorURL")
-    assert utility.verifydata(rp1210.getVersion, "VendorInformation", "Version")
-    assert utility.verifydata(rp1210.autoDetectCapable, "VendorInformation", "AutoDetectCapable")
-    assert utility.verifydata(rp1210.getAutoDetectCapable, "VendorInformation", "AutoDetectCapable")
-    assert utility.verifydata(rp1210.getTimeStampWeight, "VendorInformation", "TimeStampWeight")
-    assert utility.verifydata(rp1210.getMessageString, "VendorInformation", "MessageString")
-    assert utility.verifydata(rp1210.getErrorString, "VendorInformation", "ErrorString")
-    assert utility.verifydata(rp1210.getRP1210Version, "VendorInformation", "RP1210")
-    assert utility.verifydata(rp1210.getDebugLevel, "VendorInformation", "DebugLevel")
-    assert utility.verifydata(rp1210.getDebugFile, "VendorInformation", "DebugFile")
-    assert utility.verifydata(rp1210.getDebugMode, "VendorInformation", "DebugMode")
-    assert utility.verifydata(rp1210.getDebugFileSize, "VendorInformation", "DebugFileSize")
-    assert utility.verifydata(rp1210.getNumberOfSessions, "VendorInformation", "NumberOfRTSCTSSessions")
-    assert utility.verifydata(rp1210.getCANAutoBaud, "VendorInformation", "CANAutoBaud")
-    assert utility.verifydata(rp1210.getCANFormatsSupported, "VendorInformation", "CANFormatsSupported")
-    assert utility.verifydata(rp1210.getJ1939FormatsSupported, "VendorInformation", "J1939FormatsSupported")
-    assert utility.verifydata(rp1210.getDeviceIDs, "VendorInformation", "Devices")
-    assert utility.verifydata(rp1210.getProtocolIDs, "VendorInformation", "Protocols")
+    utility.verifydata(rp1210.getName, "VendorInformation", "Name")
+    utility.verifydata(rp1210.getAddress1, "VendorInformation", "Address1")
+    utility.verifydata(rp1210.getAddress2, "VendorInformation", "Address2")
+    utility.verifydata(rp1210.getCity, "VendorInformation", "City")
+    utility.verifydata(rp1210.getState, "VendorInformation", "State")
+    utility.verifydata(rp1210.getCountry, "VendorInformation", "Country")
+    utility.verifydata(rp1210.getPostal, "VendorInformation", "Postal")
+    utility.verifydata(rp1210.getTelephone, "VendorInformation", "Telephone")
+    utility.verifydata(rp1210.getFax, "VendorInformation", "Fax")
+    utility.verifydata(rp1210.getVendorURL, "VendorInformation", "VendorURL")
+    utility.verifydata(rp1210.getVersion, "VendorInformation", "Version")
+    utility.verifydata(rp1210.autoDetectCapable, "VendorInformation", "AutoDetectCapable")
+    utility.verifydata(rp1210.getAutoDetectCapable, "VendorInformation", "AutoDetectCapable")
+    utility.verifydata(rp1210.getTimeStampWeight, "VendorInformation", "TimeStampWeight")
+    utility.verifydata(rp1210.getMessageString, "VendorInformation", "MessageString")
+    utility.verifydata(rp1210.getErrorString, "VendorInformation", "ErrorString")
+    utility.verifydata(rp1210.getRP1210Version, "VendorInformation", "RP1210")
+    utility.verifydata(rp1210.getDebugLevel, "VendorInformation", "DebugLevel")
+    utility.verifydata(rp1210.getDebugFile, "VendorInformation", "DebugFile")
+    utility.verifydata(rp1210.getDebugMode, "VendorInformation", "DebugMode")
+    utility.verifydata(rp1210.getDebugFileSize, "VendorInformation", "DebugFileSize")
+    utility.verifydata(rp1210.getNumberOfSessions, "VendorInformation", "NumberOfRTSCTSSessions")
+    utility.verifydata(rp1210.getCANAutoBaud, "VendorInformation", "CANAutoBaud")
+    utility.verifydata(rp1210.getCANFormatsSupported, "VendorInformation", "CANFormatsSupported")
+    utility.verifydata(rp1210.getJ1939FormatsSupported, "VendorInformation", "J1939FormatsSupported")
+    utility.verifydata(rp1210.getDeviceIDs, "VendorInformation", "Devices")
+    utility.verifydata(rp1210.getProtocolIDs, "VendorInformation", "Protocols")
     
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_Devices(api_name : str):
@@ -86,36 +85,33 @@ def test_Devices(api_name : str):
     deviceIDs = rp1210.getDeviceIDs()
     for id in deviceIDs:
         device = rp1210.getDevice(id)
-        assert utility.verifydevicedata(device.getID, id, "DeviceID")
-        assert utility.verifydevicedata(device.getDescription, id, "DeviceDescription")
-        assert utility.verifydevicedata(device.getName, id, "DeviceName")
-        assert utility.verifydevicedata(device.getParams, id, "DeviceParams")
-        assert utility.verifydevicedata(device.getMultiJ1939Channels, id, "MultiJ1939Channels")
-        assert utility.verifydevicedata(device.getMultiCANChannels, id, "MultiCANChannels")
+        utility.verifydevicedata(device.getID, id, "DeviceID")
+        utility.verifydevicedata(device.getDescription, id, "DeviceDescription")
+        utility.verifydevicedata(device.getName, id, "DeviceName")
+        utility.verifydevicedata(device.getParams, id, "DeviceParams")
+        utility.verifydevicedata(device.getMultiJ1939Channels, id, "MultiJ1939Channels")
+        utility.verifydevicedata(device.getMultiCANChannels, id, "MultiCANChannels")
         assert str(device) == str(device.getID()) + " - " + device.getDescription()
 
-'''
-def test_Protocols(apiname : str):
-    assert API_NAME in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Config(API_NAME)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_Protocols(api_name : str):
+    config = configparser.ConfigParser()
+    utility = RP1210ConfigTestUtility(config)
+    rp1210 = RP1210.RP1210Config(api_name)
+    config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     protocolIDs = rp1210.getProtocolIDs()
-    assert protocolIDs == [100,101,102,103,104,105,106,107,108,109,110,111]
-    assert rp1210.getProtocolNames() == ["J1939", "J1708", "CAN", "J1850_104K", "J1850_416K", "PLC", "ISO15765",
-                                    "ISO14230", "ISO9141", "J2284", "IESCAN", "J1850"]
-    assert rp1210.getProtocol("J1939").getString() == "J1939"
-    protocol1 = rp1210.getProtocol(100)
-    assert protocol1.getDescription() == "SAE J1939 Protocol"
-    assert protocol1.getString() == "J1939"
-    assert protocol1.getParams() == "FAST_TRANSPORT"
-    assert protocol1.getDevices() == [1, 2]
-    assert protocol1.getSpeed() == ["125","250","500","666","1000","Auto"]
-    protocol2 = rp1210.getProtocol(102)
-    assert protocol2.getDescription() == "CAN Network Protocol"
-    assert protocol2.getString() == "CAN"
-    assert protocol2.getParams() == ""
-    assert protocol2.getDevices() == [1, 2]
-    assert protocol2.getSpeed() == ["125","250","500","666","1000","Auto"]
+    for id in protocolIDs:
+        protocol = rp1210.getProtocol(id)
+        name = protocol.getString()
+        assert name in rp1210.getProtocolNames()
+        assert rp1210.getProtocol(name).getString() == name
+        utility.verifyprotocoldata(protocol.getDescription, id, "ProtocolDescription")
+        utility.verifyprotocoldata(protocol.getString, id, "ProtocolString")
+        utility.verifyprotocoldata(protocol.getParams, id, "ProtocolParams")
+        utility.verifyprotocoldata(protocol.getDevices, id, "Devices")
+        utility.verifyprotocoldata(protocol.getSpeed, id, "ProtocolSpeed")
 
+'''
 def test_load_DLL(apiname : str):
     rp1210 = RP1210.RP1210Config(API_NAME)
     assert rp1210.api.getDLL() != None
