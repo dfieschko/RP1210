@@ -5,6 +5,7 @@ import os
 import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
+import string
 from typing import Literal
 from RP1210 import Commands, sanitize_msg_param
 
@@ -145,7 +146,7 @@ def translateErrorCode(ClientID :int) -> str:
             ClientID = 0xFFFF - ClientID
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
-def getAPINames(rp121032_path = None) -> list[str]:
+def getAPINames(rp121032_path : str = None) -> list[str]:
     """
     A function for reading API names from RP121032.ini. Returns a list of strings.
 
@@ -158,14 +159,43 @@ def getAPINames(rp121032_path = None) -> list[str]:
     """
     if not rp121032_path: # find our own path if none is given
         rp121032_path = os.path.join(os.environ["WINDIR"], "RP121032.ini")
-    if not os.path.isfile(rp121032_path): # check if file exists
-        return []
-    try:    # read from file
-        parser = ConfigParser()
-        parser.read(rp121032_path)
-        return parser["RP1210Support"]["APIImplementations"].split(",")
-    except Exception:
-        return []
+    elif not os.path.isfile(rp121032_path): # check if file exists
+        raise FileNotFoundError(f"RP121032.ini not found at {rp121032_path}.")
+    parser = ConfigParser()
+    parser.read(rp121032_path)
+    return parser.get("RP1210Support", "APIImplementations").split(",")
+
+def detectMangledConfig(parser : configparser) -> bool:
+    # TODO: Test this, specifically the emptyset
+    '''
+    Detects if the config file is mangled.
+    Checks for empty items, as well as typos in the field
+    '''
+    if(parser.has_option("RP1210Support", "APIImplementations")):
+        items = parser.get("RP1210Support", "APIImplementations").split(",")
+        emptyset = list(filter(lambda x: x == '' or x == ' ', items)) # Filters out empty and blank api names
+        return emptyset == True
+    else:
+        return False
+        
+
+def repairConfig(parser : configparser):
+    # TODO: Test the passes
+    if(not parser.has_option("RP1210Support", "APIImplementations")):
+        search = dict(parser.items('RP1210Support'))
+        for field in search:
+            parser["RP1210Support"]["APIImplementations"] = parser["RP1210Support"][field] # Move API names into proper field
+    parser["RP1210Support"]["APIImplementations_OLD"] = parser["RP1210Support"]["APIImplementations"] # Backs up old section in case we break something and want to roll back
+    items = parser.get("RP1210Support", "APIImplementations").split(",")
+    firstpass = list(filter(lambda x: x != '' or x != ' ', items)) # Filters out empty and blank api names
+
+    secondpass = [] # Remove duplicates
+    for i in firstpass:
+        if i not in secondpass:
+            secondpass.append(i)
+
+    parser["RP1210Support"]["APIImplementations"] = secondpass
+
 
 class RP1210Protocol:
     """
@@ -312,11 +342,12 @@ class RP1210Config(ConfigParser):
 
     You can use str(this_object) to generate a string to display in your Vendors dropdown.
     """
-    def __init__(self, api_name : str) -> None:
+    def __init__(self, api_name : str, api_path : str = None, config_path : str = None) -> None:
         super().__init__()
         self._api_name = api_name
         self._api_valid = True
-        self.api = RP1210API(api_name)
+        self.api = RP1210API(api_name, api_path)
+        self._configDir = config_path
         self.populate()
 
     def __str__(self) -> str:
@@ -781,6 +812,7 @@ class RP1210Config(ConfigParser):
 
     def populate(self):
         """Reads .ini file for the specified RP1210 API."""
+        
         try:
             path = self.getPath()
             if not os.path.exists(path):
@@ -793,7 +825,27 @@ class RP1210Config(ConfigParser):
 
     def getPath(self) -> str:
         """Returns absolute path to API config file."""
-        return os.path.join(os.environ["WINDIR"], self._api_name + ".ini")
+       
+        if(self._configDir != None):
+            if(os.path.abspath(self._configDir)):
+
+                if(os.path.isfile(self._configDir)):
+                    # [provided absolute path]
+                    return self._configDir
+                else:
+                    # [provided absolute dir] + [api name].ini
+                    return os.path.join(self._configDir, self._api_name + ".ini")
+
+            else:
+                if(os.path.isfile(os.path.join(os.curdir, self._configDir))):
+                    # [current directory] + [provided relative path]
+                    return os.path.join(os.curdir, self._configDir)
+                else:
+                    return os.path.join(os.curdir, self._configDir + self._api_name + ".ini")
+                    # [current directory] + [provided relative dir] + [api name].ini
+                
+        else:
+            return os.path.join(os.environ["WINDIR"], self._api_name + ".ini")
 
 class RP1210API:
     """
@@ -801,11 +853,12 @@ class RP1210API:
 
     See function docstrings for details on each function.
     """
-    def __init__(self, api_name : str) -> None:
+    def __init__(self, api_name : str, WorkingAPIDirectory : str = None) -> None:
         self._api_valid = False
         self._api_name = api_name
         self.dll = None
         self._conforms_to_rp1210c = True
+        self._libDir = WorkingAPIDirectory
 
     def getAPIName(self) -> str:
         """Returns API name for this API."""
@@ -826,20 +879,45 @@ class RP1210API:
         Loads and returns CDLL for this API.
         
         If you already called loadDLL(), you can call getDLL() to get the DLL you loaded previously.
+        Can take in a relative and absolute paths files and directories. If given a directory, will attempt to
+        load DLL corresponding to self._api_name from that directory. If a working directory is not provided at
+        initialization of RP1210API(), will assume relative to launch path.
         """
-        try:
+        if(self._libDir != None):
+            path = ""
+            if(not os.path.isabs(self._libDir)):
+                # If path given is relative, get the working directory
+                if(self._libDir != None):
+                    path += self._libDir
+                else:
+                    path += os.path.abspath(os.curdir)
+
+            path += self._libDir
+                
+            if(not os.path.isfile(path)):
+                # Append API name to complete path
+                path += self._api_name + ".dll"
             try:
-                path = self._api_name + ".dll"
                 dll = cdll.LoadLibrary(path)
-            except WindowsError:
-                # Try "DLL installed in wrong directory" band-aid
-                path = self.__get_dll_path_aux()
-                dll = cdll.LoadLibrary(path)
-            self.setDLL(dll)
-            return dll
-        except Exception: # RIP
-            self._api_valid = False
-            return None
+                self.setDLL(dll)
+                return dll
+            except Exception: # Couldn't load from input
+                self._api_valid = False
+                return None
+        else:
+            try:
+                try:
+                    path = self._api_name + ".dll"
+                    dll = cdll.LoadLibrary(path)
+                except WindowsError:
+                    # Try "DLL installed in wrong directory" band-aid
+                    path = self.__get_dll_path_aux()
+                    dll = cdll.LoadLibrary(path)
+                self.setDLL(dll)
+                return dll
+            except Exception: # RIP
+                self._api_valid = False
+                return None
 
     def isValid(self) -> bool:
         """
@@ -1092,11 +1170,8 @@ class RP1210API:
         
         You really want to read the RP1210C documentation for this one.
         """
-        if MessageSize == 0:
-            if ClientCommand == b"":
-                MessageSize = 0
-            else:
-                MessageSize = len(ClientCommand)
+        if MessageSize == 0 and ClientCommand != b"":
+            MessageSize = len(ClientCommand)
         return self.getDLL().RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize)
 
     def __init_functions(self):
@@ -1309,6 +1384,9 @@ class RP1210VendorList:
             return self.vendors[self.vendorIndex]
         except Exception:
             return None
+
+    def getVendorName(self) -> string:
+        return self.getCurrentVendor().getName()
 
     def getCurrentDevice(self) -> RP1210Device:
         """
@@ -1655,6 +1733,17 @@ class RP1210Client(RP1210VendorList):
         Flush the Send/Receive Buffers (39) (0 bytes)
         """
         return self.command(39)
+
+    def getBaud(self) -> string:
+        """
+        Calls the RP1210_Get_Protocol_Connection_Speed (45) command and returns the value that is
+        received as a string of up to 16 characters.
+        """
+        cmd_num = 45
+        cmd_buffer = create_string_buffer(17)
+        cmd_size = 17
+        self.command(cmd_num, cmd_buffer, cmd_size)
+        return str(cmd_buffer[:cmd_size]) # return first 16 bytes
 
     def setCANBaud(self, baud_code : int, wait_for_msg = True):
         """
