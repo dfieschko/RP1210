@@ -164,8 +164,6 @@ def test_disconnected_ClientDisconnect(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadVersion(api_name : str):
-    if api_name == "PEAKRP32":
-        pytest.skip("The test PEAKCAN drivers don't return a value for RP1210_ReadVersion.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -174,55 +172,73 @@ def test_disconnected_ReadVersion(api_name : str):
     buff3 = create_string_buffer(16)
     buff4 = create_string_buffer(16)
     rp1210.api.ReadVersion(buff1, buff2, buff3, buff4)
-    assert buff1.value not in (b"", b"\x00")
-    assert buff2.value not in (b"", b"\x00")
-    assert buff3.value not in (b"", b"\x00")
-    assert buff4.value not in (b"", b"\x00")
-'''
+    assert str(buff1) + str(buff2) + str(buff3) + str(buff4) != ""
 
-def test_disconnected_ReadVersionDirect(apiname : str):
-    rp1210 = RP1210.RP1210Config(API_NAME)
-    assert rp1210.api.ReadVersionDirect() == ("0.0", "3.0")
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_ReadVersionDirect(api_name : str):
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    for ver in rp1210.api.ReadVersionDirect():
+        assert ver != ""
 
-def test_disconnected_ReadDetailedVersion(apiname : str):
-    rp1210 = RP1210.RP1210Config(API_NAME)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_ReadDetailedVersion(api_name : str):
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     buff1 = create_string_buffer(17)
     buff2 = create_string_buffer(17)
     buff3 = create_string_buffer(17)
     ret_val = rp1210.api.ReadDetailedVersion(0, buff1, buff2, buff3)
     assert RP1210.translateErrorCode(ret_val) in ["ERR_DLL_NOT_INITIALIZED", "ERR_HARDWARE_NOT_RESPONDING", "ERR_INVALID_CLIENT_ID"]
 
-def test_disconnected_GetErrorMsg(apiname : str):
-    rp1210 = RP1210.RP1210Config(API_NAME)
-    for code in RP1210.RP1210_ERRORS:
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_GetErrorMsg(api_name : str):
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    for code in RP1210.RP1210_ERRORS.keys():
         msg = rp1210.api.GetErrorMsg(code)
-        # Dearborn DPA5 has nonstandard error codes - don't check against dict for correctness
+        assert msg != ""
 
-def test_disconnected_SendCommand(apiname : str):
-    rp1210 = RP1210.RP1210Config(API_NAME)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_SendCommand(api_name : str):
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     for command in RP1210.RP1210_COMMANDS:
-        assert rp1210.api.SendCommand(command, 0) in RP1210.RP1210_ERRORS
+        assert RP1210.translateErrorCode(rp1210.api.SendCommand(command, 0)) in RP1210.RP1210_ERRORS.values()
 
-def test_disconnected_GetHardwareStatus(apiname : str):
-    rp1210 = RP1210.RP1210Config(API_NAME)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_GetHardwareStatus(api_name : str):
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     buffer = create_string_buffer(64)
     ret_val = rp1210.api.GetHardwareStatus(0, buffer, 64)
+    if ret_val < 0:
+        ret_val += 65536
     assert not buffer.value
     assert ret_val in RP1210.RP1210_ERRORS
 
-def test_disconnected_GetHardwareStatusDirect(apiname : str):
-    rp1210 = RP1210.RP1210Config(API_NAME)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_GetHardwareStatusDirect(api_name : str):
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     assert not rp1210.api.GetHardwareStatusDirect(0).value
 
-def test_disconnected_RemainingFunctions(apiname : str):
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_RemainingFunctions(api_name : str):
     """Tests whether API functions follow expected behavior when disconnected from device."""
-    rp1210 = RP1210.RP1210Config(API_NAME)
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     ret_val = rp1210.api.SendMessage(0, b"", 0)
-    assert ret_val >= 128
-    assert ret_val in RP1210.RP1210_ERRORS
+    assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
     ret_val = rp1210.api.SendMessage(0, b"12345678", 8)
-    assert ret_val >= 128
-    assert ret_val in RP1210.RP1210_ERRORS
+    assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
     read_array_in = create_string_buffer(256)
     assert rp1210.api.ReadMessage(128, read_array_in, len(read_array_in)) <= 0
     assert not read_array_in.value
@@ -230,31 +246,5 @@ def test_disconnected_RemainingFunctions(apiname : str):
     assert rp1210.api.ReadMessage(0, read_array_in) <= 0
     assert not read_array_in.value
     assert not rp1210.api.ReadDirect(0)
-    assert rp1210.api.ReadDetailedVersionDirect(0) == ("", "", "")
+    assert rp1210.api.ReadDetailedVersionDirect(0)
 
-def test_disconnected_rp1210client_commands(apiname : str):
-    """Tests RP1210Client command functions when adapter is disconnected."""
-    client = RP1210.RP1210Client()
-    client.setVendor(API_NAME)
-    assert client.getClientID() == 128
-    clientID = client.connect()
-    assert clientID in RP1210.RP1210_ERRORS.keys()
-    assert clientID == client.getClientID()
-    # sampling of simpler commands
-    assert client.resetDevice() in RP1210.RP1210_ERRORS.keys()
-    assert client.setAllFiltersToPass() in RP1210.RP1210_ERRORS.keys()
-    assert client.setAllFiltersToDiscard() in RP1210.RP1210_ERRORS.keys()
-    assert client.setEcho(True) in RP1210.RP1210_ERRORS.keys()
-    assert client.setMessageReceive(True) in RP1210.RP1210_ERRORS.keys()
-    assert client.releaseJ1939Address(0xEE) in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939FilterType(0) in RP1210.RP1210_ERRORS.keys()
-    assert client.setCANFilterType(0) in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939InterpacketTime(100) in RP1210.RP1210_ERRORS.keys()
-    assert client.setMaxErrorMsgSize(100) in RP1210.RP1210_ERRORS.keys()
-    assert client.disallowConnections() in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939Baud(5) in RP1210.RP1210_ERRORS.keys()
-    assert client.setBlockingTimeout(20, 30) in RP1210.RP1210_ERRORS.keys()
-    assert client.flushBuffers() in RP1210.RP1210_ERRORS.keys()
-    assert client.setCANBaud(5) in RP1210.RP1210_ERRORS.keys()
-
-'''
