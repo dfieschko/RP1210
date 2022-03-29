@@ -1,4 +1,4 @@
-from ctypes import cdll, create_string_buffer, windll
+from ctypes import cdll, create_string_buffer
 import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
@@ -25,10 +25,11 @@ def test_api_files_exist(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     os.add_dll_directory(DLL_DIRECTORY)
+    os.add_dll_directory(dll_path)
     assert os.path.isfile(ini_path)
     assert os.path.isfile(dll_path)
     assert os.path.isfile(RP121032_PATH)
-    assert windll.LoadLibrary(dll_path) != None
+    assert cdll.LoadLibrary(dll_path) != None
 
 def test_getAPINames():
     """
