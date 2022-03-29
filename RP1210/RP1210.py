@@ -161,9 +161,12 @@ def getAPINames(rp121032_path : str = None) -> list[str]:
         rp121032_path = os.path.join(os.environ["WINDIR"], "RP121032.ini")
     elif not os.path.isfile(rp121032_path): # check if file exists
         raise FileNotFoundError(f"RP121032.ini not found at {rp121032_path}.")
-    parser = ConfigParser()
-    parser.read(rp121032_path)
-    return parser.get("RP1210Support", "APIImplementations").split(",")
+    try:
+        parser = ConfigParser()
+        parser.read(rp121032_path)
+        return parser.get("RP1210Support", "APIImplementations").split(",")
+    except Exception:
+        return []
 
 def detectMangledConfig(parser : configparser) -> bool:
     # TODO: Test this, specifically the emptyset
