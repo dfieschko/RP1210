@@ -11,8 +11,17 @@ TEST_FILES_DIRECTORY = CWD + ".\\Test\\test-files"
 INI_DIRECTORY = TEST_FILES_DIRECTORY + "\\ini-files"
 DLL_DIRECTORY = TEST_FILES_DIRECTORY + "\\dlls"
 RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
-os.add_dll_directory(DLL_DIRECTORY)
 
+try: # tell system to allow DLLs to be loaded from DLL directory
+    os.add_dll_directory(DLL_DIRECTORY)
+    os.environ['PATH'] += os.pathsep + DLL_DIRECTORY
+    if "add_dll_directory" in dir(os): # overboard
+        for d in os.environ['path'].split(';'):
+            if os.path.isdir(d):
+                os.add_dll_directory(d)
+except Exception:
+    pass
+    
 def test_cwd():
     """Make sure cwd isn't in Test folder."""
     cwd = os.getcwd()
@@ -22,6 +31,9 @@ def test_cwd():
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_api_files_exist(api_name : str):
     """Makes sure all the relevant API files are in test-files directory."""
+    assert os.path.exists(TEST_FILES_DIRECTORY)
+    assert os.path.exists(INI_DIRECTORY)
+    assert os.path.exists(DLL_DIRECTORY)
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     os.add_dll_directory(DLL_DIRECTORY)
