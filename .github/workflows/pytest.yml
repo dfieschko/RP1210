@@ -22,4 +22,5 @@ jobs:
         pip install -r RP1210/requirements.txt
     - name: Test with pytest
       run: |
+        tree /F
         python -m pytest -v
