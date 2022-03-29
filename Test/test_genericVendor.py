@@ -115,20 +115,26 @@ def test_Protocols(api_name : str):
 def test_load_DLL(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    # try to load it twice, to make sure they don't collide or something
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     assert rp1210.api.getDLL() != None
     rp12102 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     assert rp12102.api.loadDLL() != None
 
-'''
-def test_disconnected_ClientConnect(apiname : str):
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_ClientConnect(api_name : str):
     """Tests whether ClientConnect follows expected behavior when disconnected from device."""
-    rp1210 = RP1210.RP1210Config(API_NAME)
-    clientID = rp1210.api.ClientConnect(1, b"J1939:Baud=Auto")
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    deviceID = rp1210.getProtocol("J1939").getDevices()[0]
+    clientID = rp1210.api.ClientConnect(deviceID, b"J1939:Baud=Auto")
     assert RP1210.translateErrorCode(clientID) in [ "ERR_OPENING_PORT", 
                                                     "ERR_HARDWARE_NOT_RESPONDING",
-                                                    "ERR_INVALID_PROTOCOL"]
+                                                    "ERR_INVALID_PROTOCOL",
+                                                    "ERR_CONNECT_NOT_ALLOWED"]
 
+'''
 def test_disconnected_ClientDisconnect(apiname : str):
     """Tests whether ClientDisconnect follows expected behavior when disconnected from device."""
     rp1210 = RP1210.RP1210Config(API_NAME)
