@@ -12,15 +12,11 @@ INI_DIRECTORY = TEST_FILES_DIRECTORY + "\\ini-files"
 DLL_DIRECTORY = TEST_FILES_DIRECTORY + "\\dlls"
 RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
 
-try: # tell system to allow DLLs to be loaded from DLL directory
-    os.add_dll_directory(DLL_DIRECTORY)
-    os.environ['PATH'] += os.pathsep + DLL_DIRECTORY
-    if "add_dll_directory" in dir(os): # overboard
-        for d in os.environ['path'].split(';'):
-            if os.path.isdir(d):
-                os.add_dll_directory(d)
-except Exception:
-    pass
+os.add_dll_directory(DLL_DIRECTORY)
+os.environ['PATH'] += os.pathsep + DLL_DIRECTORY
+for d in os.environ['path'].split(';'): # overboard
+    if os.path.isdir(d):
+        os.add_dll_directory(d)
     
 def test_cwd():
     """Make sure cwd isn't in Test folder."""
