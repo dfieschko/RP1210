@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
   name = 'RP1210',
   packages = ['RP1210'],
-  version = '0.0.11',
+  version = '0.0.12',
   license='MIT',
   description = 'A Python32 implementation of the RP1210C standard.',
   long_description = open('README.md').read(),
@@ -11,7 +11,7 @@ setup(
   author = 'Darius Fieschko',
   author_email = 'dfieschko@gmail.com',
   url = 'https://github.com/dfieschko/RP1210',
-  keywords = ['RP1210', 'RP1210C', 'J1939'],
+  keywords = ['RP1210', 'RP1210C', 'J1939', 'CAN'],
   install_requires=[],
   classifiers=[
     'Development Status :: 3 - Alpha',      # "3 - Alpha", "4 - Beta" or "5 - Production/Stable"
@@ -20,11 +20,13 @@ setup(
     'License :: OSI Approved :: MIT License',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
     'Operating System :: Microsoft :: Windows'
   ],
   project_urls = {
     'Wiki' : 'https://github.com/dfieschko/RP1210/wiki',
     'Issues' : 'https://github.com/dfieschko/RP1210/issues',
     'Discussions' : 'https://github.com/dfieschko/RP1210/discussions'
-  }
+  },
+  python_requires='>=3.9'
 )
