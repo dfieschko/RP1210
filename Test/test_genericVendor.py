@@ -3,7 +3,7 @@ import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
 
-API_NAMES = ["PEAKRP32", "DLAUSB32", "NULN2R32", "CMNSI632", "DGDPA5MA"]
+API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA"]
 
 # These tests are meant to be run with cwd @ repository's highest-level directory
 CWD = os.getcwd()
@@ -14,7 +14,6 @@ RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
 
 # try to get Windows Server to load DLLs w/ GitHub Actions
 os.add_dll_directory(DLL_DIRECTORY)
-os.add_dll_directory(DLL_DIRECTORY + "\\NEXIQ")
 os.add_dll_directory(os.getcwd())
 os.environ['PATH'] += os.pathsep + DLL_DIRECTORY
 for d in os.environ['path'].split(';'): # overboard
