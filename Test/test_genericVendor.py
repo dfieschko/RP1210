@@ -3,7 +3,7 @@ import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
 
-API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA"]
+API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632"]
 
 # These tests are meant to be run with cwd @ repository's highest-level directory
 CWD = os.getcwd()
@@ -19,7 +19,22 @@ os.environ['PATH'] += os.pathsep + DLL_DIRECTORY
 for d in os.environ['path'].split(';'): # overboard
     if os.path.isdir(d):
         os.add_dll_directory(d)
-    
+
+invalid_apis = []
+
+# Check which APIs are missing dependencies so they can be skipped
+for api_name in API_NAMES:
+    valid = True
+    try:
+        ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+        dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+        rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+        rp1210.getAPI().loadDLL()
+    except Exception:
+        valid = False
+    if not valid:
+        invalid_apis.append(api_name)
+
 def test_cwd():
     """Make sure cwd isn't in Test folder."""
     cwd = os.getcwd()
@@ -46,7 +61,8 @@ def test_getAPINames():
     Also calls getAPINames() with no argument to make sure there isn't an exception.
     """
     RP1210.getAPINames()
-    assert RP1210.getAPINames(RP121032_PATH) == API_NAMES
+    for name in RP1210.getAPINames(RP121032_PATH):
+        assert name in API_NAMES
 
 @pytest.mark.parametrize("rp121032_path", ["bork", "bork.ini", 1234, "RP121032", RP121032_PATH + "x"])
 def test_getAPINames_invalid(rp121032_path):
@@ -66,7 +82,6 @@ def test_RP1210Config(api_name : str):
     config = configparser.ConfigParser()
     utility = RP1210ConfigTestUtility(config)
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
-    assert api_name in RP1210.getAPINames(RP121032_PATH)
     rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
     assert rp1210.isValid() == True     
     assert rp1210.getAPIName() == api_name
@@ -135,6 +150,9 @@ def test_Protocols(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_load_DLL(api_name : str):
+    """Loads an API's DLL and checks for validity."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -148,6 +166,8 @@ def test_load_DLL(api_name : str):
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ClientConnect(api_name : str):
     """Tests whether ClientConnect follows expected behavior when disconnected from device."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -158,6 +178,8 @@ def test_disconnected_ClientConnect(api_name : str):
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ClientDisconnect(api_name : str):
     """Tests whether ClientDisconnect follows expected behavior when disconnected from device."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -171,6 +193,9 @@ def test_disconnected_ClientDisconnect(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadVersion(api_name : str):
+    """Test RP1210_ReadVersion while adapter is disconnected."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -183,6 +208,7 @@ def test_disconnected_ReadVersion(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadVersionDirect(api_name : str):
+    """Test ReadVersionDirect while adapter is disconnected."""
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -191,6 +217,7 @@ def test_disconnected_ReadVersionDirect(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadDetailedVersion(api_name : str):
+    """Test ReadDetailedVersion while adapter is disconnected."""
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -202,6 +229,9 @@ def test_disconnected_ReadDetailedVersion(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_GetErrorMsg(api_name : str):
+    """Test GetErrorMsg while adapter is disconnected."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -211,6 +241,9 @@ def test_disconnected_GetErrorMsg(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_SendCommand(api_name : str):
+    """Test SendCommand while adapter is disconnected."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -219,6 +252,9 @@ def test_disconnected_SendCommand(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_GetHardwareStatus(api_name : str):
+    """Test GetHardwareStatus while adapter is disconnected."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -231,6 +267,9 @@ def test_disconnected_GetHardwareStatus(api_name : str):
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_GetHardwareStatusDirect(api_name : str):
+    """Test GetHardwareStatusDirect while adapter is disconnected."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
