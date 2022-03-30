@@ -137,12 +137,13 @@ def translateErrorCode(ClientID :int) -> str:
         """
         if isinstance(ClientID, str): # if this got passed a string, return the string
             return ClientID
+        ClientID &= 0xFFFF # Noregon can add garbage to leading bytes
         if 0 <= ClientID < 128:
             return "NO_ERRORS"
         if ClientID < 0: # some functions return negative value for error code
             ClientID *= -1
-        # if ClientID > 0x8000:
-        #     ClientID = 0xFFFF - ClientID
+        if ClientID > 0x8000:
+            ClientID = 0xFFFF - ClientID
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
 def getAPINames(rp121032_path : str = None) -> list[str]:
@@ -1210,7 +1211,8 @@ class RP1210API:
         so they get to join the hall of shame.
         """
         if not self.__is_valid_clientid(clientID):
-            cid = int(hex(clientID)[5:], 16) # snip off first 5 hex characters, translate back to int
+            # cid = int(hex(clientID)[5:], 16) # snip off first 5 hex characters, translate back to int
+            cid = clientID & 0xFFFF
             if self.__is_valid_clientid(cid):
                 clientID = cid
         if self._api_name == "PEAKRP32" and clientID > 64:
