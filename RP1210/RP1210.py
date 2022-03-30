@@ -5,7 +5,6 @@ import os
 import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
-import string
 from typing import Literal
 from RP1210 import Commands, sanitize_msg_param
 
@@ -138,12 +137,13 @@ def translateErrorCode(ClientID :int) -> str:
         """
         if isinstance(ClientID, str): # if this got passed a string, return the string
             return ClientID
-        if 0 <= ClientID < 128:
-            return "NO_ERRORS"
         if ClientID < 0: # some functions return negative value for error code
             ClientID *= -1
+        ClientID &= 0xFFFF # Noregon can add garbage to leading bytes
         if ClientID > 0x8000:
             ClientID = 0xFFFF - ClientID
+        if 0 <= ClientID < 128:
+            return "NO_ERRORS"
         return RP1210_ERRORS.get(ClientID, str(ClientID))
 
 def getAPINames(rp121032_path : str = None) -> list[str]:
@@ -161,9 +161,12 @@ def getAPINames(rp121032_path : str = None) -> list[str]:
         rp121032_path = os.path.join(os.environ["WINDIR"], "RP121032.ini")
     elif not os.path.isfile(rp121032_path): # check if file exists
         raise FileNotFoundError(f"RP121032.ini not found at {rp121032_path}.")
-    parser = ConfigParser()
-    parser.read(rp121032_path)
-    return parser.get("RP1210Support", "APIImplementations").split(",")
+    try:
+        parser = ConfigParser()
+        parser.read(rp121032_path)
+        return parser.get("RP1210Support", "APIImplementations").split(",")
+    except Exception:
+        return []
 
 def detectMangledConfig(parser : configparser) -> bool:
     # TODO: Test this, specifically the emptyset
@@ -938,7 +941,6 @@ class RP1210API:
         
         You can do this more easily by reading the RP1210 Version field in RP1210Interface.
         """
-        self.getDLL()
         if not self.isValid():
             return False
         return self._conforms_to_rp1210c
@@ -981,7 +983,7 @@ class RP1210API:
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
         """
-        return self.getDLL().RP1210_ClientDisconnect(ClientID)
+        return self.getDLL().RP1210_ClientDisconnect(ClientID) & 0xFFFF
 
     def SendMessage(self, ClientID : int, ClientMessage : bytes, MessageSize = 0) -> int:
         """
@@ -999,7 +1001,7 @@ class RP1210API:
         """
         if MessageSize == 0:
             MessageSize = len(ClientMessage)
-        ret_val = self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0)
+        ret_val = self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0) & 0xFFFF
         # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
         # to negative signed int.
         if ret_val >= 0x08000:
@@ -1023,10 +1025,10 @@ class RP1210API:
         """
         if not BufferSize:
             BufferSize = len(RxBuffer)
-        ret_val = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead)
+        ret_val = self.getDLL().RP1210_ReadMessage(ClientID, RxBuffer, BufferSize, BlockOnRead) & 0xFFFF
         # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
         # to negative signed int.
-        if ret_val >= 0x08000:
+        if ret_val >= 0x8000:
             ret_val = (ret_val - 0x10000)
         return ret_val
 
@@ -1057,7 +1059,7 @@ class RP1210API:
         Usage of ReadVersionDirect() instead of this function is highly recommended.
         """
         return self.getDLL().RP1210_ReadVersion(DLLMajorVersionBuffer, DLLMinorVersionBuffer, 
-                                                APIMajorVersionBuffer, APIMinorVersionBuffer)
+                                                APIMajorVersionBuffer, APIMinorVersionBuffer) & 0xFFFF
 
     def ReadVersionDirect(self, BufferSize = 16) -> tuple:
         """
@@ -1148,7 +1150,7 @@ class RP1210API:
 
         You can also just use GetHardwareStatusDirect() and not worry about buffers.
         """
-        return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0)
+        return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0) & 0xFFFF
 
 
     def GetHardwareStatusDirect(self, ClientID : int, InfoSize = 64) -> bytes:
@@ -1172,7 +1174,7 @@ class RP1210API:
         """
         if MessageSize == 0 and ClientCommand != b"":
             MessageSize = len(ClientCommand)
-        return self.getDLL().RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize)
+        return self.getDLL().RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize) & 0xFFFF
 
     def __init_functions(self):
         """Give Python type hints for interfacing with the DLL."""
@@ -1208,7 +1210,8 @@ class RP1210API:
         so they get to join the hall of shame.
         """
         if not self.__is_valid_clientid(clientID):
-            cid = int(hex(clientID)[5:], 16) # snip off first 5 hex characters, translate back to int
+            # cid = int(hex(clientID)[5:], 16) # snip off first 5 hex characters, translate back to int
+            cid = clientID & 0xFFFF
             if self.__is_valid_clientid(cid):
                 clientID = cid
         if self._api_name == "PEAKRP32" and clientID > 64:
@@ -1385,7 +1388,7 @@ class RP1210VendorList:
         except Exception:
             return None
 
-    def getVendorName(self) -> string:
+    def getVendorName(self) -> str:
         return self.getCurrentVendor().getName()
 
     def getCurrentDevice(self) -> RP1210Device:
@@ -1456,7 +1459,7 @@ class RP1210Client(RP1210VendorList):
             if not self.getCurrentVendor().isValid():
                 return 128 # DLL_NOT_INITIALIZED
             deviceID = self.getDeviceID()
-            self.clientID = self.getAPI().ClientConnect(deviceID, protocol)
+            self.clientID = self.getAPI().ClientConnect(deviceID, protocol) & 0xFFFF
             return self.clientID
         except Exception:
             return 128 # DLL_NOT_INITIALIZED
@@ -1469,7 +1472,7 @@ class RP1210Client(RP1210VendorList):
             You can use translateClientID() to translate the failure code.
         """
         try:
-            return self.getAPI().ClientDisconnect(self.clientID)
+            return self.getAPI().ClientDisconnect(self.clientID) & 0xFFFF
         except Exception:
             return 128 # DLL_NOT_INITIALIZED
 
@@ -1480,7 +1483,7 @@ class RP1210Client(RP1210VendorList):
         MessageSize will default to len(ClientCommand) if it is left 0.
         """
         try:
-            return self.getAPI().SendCommand(CommandNumber, self.clientID, ClientCommand, MessageSize)
+            return self.getAPI().SendCommand(CommandNumber, self.clientID, ClientCommand, MessageSize)  & 0xFFFF
         except Exception:
             return -1
 
@@ -1734,7 +1737,7 @@ class RP1210Client(RP1210VendorList):
         """
         return self.command(39)
 
-    def getBaud(self) -> string:
+    def getBaud(self) -> str:
         """
         Calls the RP1210_Get_Protocol_Connection_Speed (45) command and returns the value that is
         received as a string of up to 16 characters.
@@ -1765,5 +1768,5 @@ class RP1210Client(RP1210VendorList):
         cmd_num = 47
         cmd_data = Commands.setCANBaud(baud_code, wait_for_msg)
         cmd_size = 2
-        return self.command(cmd_num, cmd_data, cmd_size)
+        return self.command(cmd_num, cmd_data, cmd_size) & 0xFFFF
 
