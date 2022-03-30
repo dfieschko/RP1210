@@ -4,9 +4,6 @@ from RP1210 import sanitize_msg_param
 import RP1210
 import pytest
 
-NEMESIS_TEST_ENABLED = False
-NEMESIS_SKIP_REASON = "Not testing NEMESIS"
-
 def delete_file(path : str):
     if os.path.exists(path):
         os.remove(path)
@@ -160,22 +157,6 @@ def test_InvalidAPIName_conforms_to_rp1210C():
     assert api_name not in RP1210.getAPINames()
     rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.api.conformsToRP1210C() == False
-
-@pytest.mark.skipif(NEMESIS_TEST_ENABLED == False, reason = NEMESIS_SKIP_REASON)
-def test_RP1210Interface_NEMESIS():
-    """
-    Tests the RP1210Interface class with Cummins' NEMESIS dummy drivers, which are invalid.
-
-    You must have these drivers installed to run this test.
-    """
-    api_name = "CMNSIM32"
-    assert api_name in RP1210.getAPINames()
-    rp1210 = RP1210.RP1210Config(api_name)
-    assert rp1210.isValid() == False
-    assert str(rp1210) == api_name + " - Cummins Inc. NEMESIS Mock RP1210 Driver - (drivers invalid)"
-    devices = rp1210.getDeviceIDs()
-    device = rp1210.getDevice(devices[0])
-    assert str(device) == str(device.getID()) + " - " + device.getDescription()
 
 def test_sanitize_msg_param_bytes():
     assert sanitize_msg_param(b'0') == b'0'
