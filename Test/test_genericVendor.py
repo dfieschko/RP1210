@@ -153,12 +153,7 @@ def test_disconnected_ClientConnect(api_name : str):
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     deviceID = rp1210.getProtocol("J1939").getDevices()[0]
     clientID = rp1210.api.ClientConnect(deviceID, b"J1939:Baud=Auto")
-    assert RP1210.translateErrorCode(clientID) in [ "ERR_OPENING_PORT", 
-                                                    "ERR_HARDWARE_NOT_RESPONDING",
-                                                    "ERR_INVALID_PROTOCOL",
-                                                    "ERR_CONNECT_NOT_ALLOWED",
-                                                    "ERR_INVALID_CLIENT_ID",
-                                                    "NO_ERRORS"]
+    assert RP1210.translateErrorCode(clientID) in RP1210.RP1210_ERRORS.values()
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ClientDisconnect(api_name : str):
