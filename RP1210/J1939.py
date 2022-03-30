@@ -317,7 +317,7 @@ class DiagnosticMessage():
     msg param types:
     - `J1939Message` - copies data directly from message data
     - `bytes` - data taken directly from RP1210_ReadMessage
-    - `int` - data from J1939 message (w/o PGN, etc)
+    - `int` - J1939 message data (w/o PGN, etc)
     """
     def __init__(self, msg = None) -> None:
         if msg is None:
@@ -347,7 +347,7 @@ class DiagnosticMessage():
 
     def pl(self):
         """PL (protection lamp) status (0-3)."""
-        return (self.lamps[0] &0b00000011)
+        return self.lamps[0] &0b00000011
 
     ##################
     # DUNDER METHODS #
@@ -470,10 +470,10 @@ class DiagnosticMessage():
 ############################
 
 def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
-                function : int, function_instance : int, ecu_instance : int, mfg_code : int, id : int) -> bytes:
+                function : int, function_instance : int, ecu_instance : int, mfg_code : int, id_num : int) -> bytes:
     """
     Each J1939-compliant ECU needs its own 64-bit name. This function is meant to help generate such
-    a name based on the component bytes that make it up.
+    a name.
     """
     def add_bits(name, val, num_bits):
         mask = (1 << num_bits) - 1
@@ -499,7 +499,7 @@ def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance 
     # manufacturer code (11 bits)
     name = add_bits(name, mfg_code, 11)
     # identity number (21 bits)
-    name = add_bits(name, id, 21)
+    name = add_bits(name, id_num, 21)
     return sanitize_msg_param(name)
 
 def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = -1,

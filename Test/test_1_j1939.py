@@ -286,3 +286,7 @@ def test_J1939MessageParser_isDM_hex():
     assert makeMessage(0xFECD).isDM4()
     assert makeMessage(0xFED3).isDM11()
     assert makeMessage(0xFED4).isDM12()
+
+def test_J1939Message_canid():
+    """Tests CANID in J1939Message class."""
+    pytest.skip("Tests for J1939Message.getCANID() haven't been implemented yet.")
