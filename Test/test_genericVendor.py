@@ -209,6 +209,8 @@ def test_disconnected_ReadVersion(api_name : str):
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadVersionDirect(api_name : str):
     """Test ReadVersionDirect while adapter is disconnected."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -218,6 +220,8 @@ def test_disconnected_ReadVersionDirect(api_name : str):
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadDetailedVersion(api_name : str):
     """Test ReadDetailedVersion while adapter is disconnected."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
@@ -278,6 +282,8 @@ def test_disconnected_GetHardwareStatusDirect(api_name : str):
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_RemainingFunctions(api_name : str):
     """Tests whether API functions follow expected behavior when disconnected from device."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
