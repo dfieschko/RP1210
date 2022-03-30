@@ -6,14 +6,17 @@ jobs:
   test:
 
     runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.8","3.9", "3.10"]
 
     steps:
     - name: Check out repo contents
       uses: actions/checkout@v3
-    - name: Set up Python 3.9
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
-        python-version: "3.9"
+        python-version: ${{ matrix.python-version }}
         architecture: "x86"
     - name: Install dependencies
       run: |
