@@ -52,7 +52,8 @@ def test_api_files_exist(api_name : str):
     assert os.path.isfile(ini_path)
     assert os.path.isfile(dll_path)
     assert os.path.isfile(RP121032_PATH)
-    assert cdll.LoadLibrary(dll_path) != None
+    if not api_name in invalid_apis:
+        assert cdll.LoadLibrary(dll_path) != None
 
 def test_getAPINames():
     """
