@@ -244,6 +244,10 @@ class J1939Message():
             pgn_int += self.getDestination()
         return pgn_int
 
+    def getCANID(self) -> int:
+        """Returns CANID (composed of priority & pgn)."""
+        return self.getPriority() << 26 + self.getPGN()
+
     def getPriority(self) -> int:
         """Returns Priority (1 byte) as int."""
         loc = 7 + self.echo_offset
