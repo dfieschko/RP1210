@@ -1161,7 +1161,7 @@ class RP1210API:
         to default to 64.
         """
         ClientInfo = create_string_buffer(InfoSize)
-        self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, InfoSize, 0) & 0xFFFF
+        self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, InfoSize, 0)
         return ClientInfo
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
