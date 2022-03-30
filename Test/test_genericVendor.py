@@ -29,7 +29,7 @@ for api_name in API_NAMES:
         ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
         dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
         rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-        rp1210.getAPI().loadDLL()
+        valid = rp1210.getAPI().isValid()
     except Exception:
         valid = False
     if not valid:
