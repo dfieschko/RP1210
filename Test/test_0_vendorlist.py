@@ -5,7 +5,7 @@ from RP1210 import sanitize_msg_param
 import RP1210
 from RP1210.RP1210 import RP1210VendorList, getAPINames
 
-pytest.skip("Custom paths for VendorList haven't been implemented yet.")
+pytest.skip("Custom paths for VendorList haven't been implemented yet.", allow_module_level=True)
 
 def test_vendorlist_init():
     """
