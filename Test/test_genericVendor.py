@@ -301,3 +301,30 @@ def test_disconnected_RemainingFunctions(api_name : str):
     assert not rp1210.api.ReadDirect(0)
     assert rp1210.api.ReadDetailedVersionDirect(0)
 
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_rp1210client_commands(api_name):
+    """Tests RP1210Client command functions when adapter is disconnected."""
+    pytest.skip("Tests for RP1210Client are invalid until modular API loading is implemented.")
+    # TODO: this is copied from old tests & will need to be updated before use!
+    client = RP1210.RP1210Client()
+    client.setVendor(api_name)
+    assert client.getClientID() == 128
+    clientID = client.connect()
+    assert clientID in RP1210.RP1210_ERRORS.keys()
+    assert clientID == client.getClientID()
+    # sampling of simpler commands
+    assert client.resetDevice() in RP1210.RP1210_ERRORS.keys()
+    assert client.setAllFiltersToPass() in RP1210.RP1210_ERRORS.keys()
+    assert client.setAllFiltersToDiscard() in RP1210.RP1210_ERRORS.keys()
+    assert client.setEcho(True) in RP1210.RP1210_ERRORS.keys()
+    assert client.setMessageReceive(True) in RP1210.RP1210_ERRORS.keys()
+    assert client.releaseJ1939Address(0xEE) in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939FilterType(0) in RP1210.RP1210_ERRORS.keys()
+    assert client.setCANFilterType(0) in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939InterpacketTime(100) in RP1210.RP1210_ERRORS.keys()
+    assert client.setMaxErrorMsgSize(100) in RP1210.RP1210_ERRORS.keys()
+    assert client.disallowConnections() in RP1210.RP1210_ERRORS.keys()
+    assert client.setJ1939Baud(5) in RP1210.RP1210_ERRORS.keys()
+    assert client.setBlockingTimeout(20, 30) in RP1210.RP1210_ERRORS.keys()
+    assert client.flushBuffers() in RP1210.RP1210_ERRORS.keys()
+    assert client.setCANBaud(5) in RP1210.RP1210_ERRORS.keys()
