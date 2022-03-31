@@ -88,13 +88,13 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getVersion() == ""
     assert rp1210.autoDetectCapable() == False
     assert rp1210.getCANAutoBaud() == False
-    assert rp1210.getTimeStampWeight() == None
+    assert rp1210.getTimeStampWeight() == 1.0
     assert rp1210.getMessageString() == ""
     assert rp1210.getErrorString() == ""
     assert rp1210.getRP1210Version() == ""
     assert rp1210.getDebugLevel() == -1
     assert rp1210.getDebugFile() == ""
-    assert rp1210.getDebugMode() == None
+    assert rp1210.getDebugMode() == -1
     assert rp1210.getDebugFileSize() == 1024
     assert rp1210.getNumberOfSessions() == 1
     assert rp1210.getCANFormatsSupported() == []
