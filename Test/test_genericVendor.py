@@ -3,7 +3,8 @@ import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
 
-API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "empty_api"]
+API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "CIL7R32",
+            "empty_api", "invalid_api", "extra_empty_api"]
 
 # These tests are meant to be run with cwd @ repository's highest-level directory
 CWD = os.getcwd()
@@ -20,7 +21,7 @@ for d in os.environ['path'].split(';'): # overboard
     if os.path.isdir(d):
         os.add_dll_directory(d)
 
-invalid_apis = ["empty_api"]
+invalid_apis = ["empty_api", "invalid_api", "extra_empty_api"]
 
 # Check which APIs are missing dependencies so they can be skipped
 for api_name in API_NAMES:
@@ -83,7 +84,7 @@ def test_RP1210Config(api_name : str):
     utility = RP1210ConfigTestUtility(config)
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
-    assert rp1210.isValid() == True     
+    assert rp1210.isValid() == True or api_name == "extra_empty_api"
     assert rp1210.getAPIName() == api_name
     utility.verifydata(rp1210.getName, "VendorInformation", "Name")
     utility.verifydata(rp1210.getAddress1, "VendorInformation", "Address1")

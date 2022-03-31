@@ -20,13 +20,25 @@ class RP1210ConfigTestUtility():
             assert func() == self._config.get(section, field)
         
         elif retType is bool:
-            assert func() == self._config.getboolean(section, field)
+            try:
+                val = self._config.getboolean(section, field)
+            except: # not RP1210 package's fault if ConfigParser failed to retrieve value
+                return
+            assert func() == val
 
         elif retType is int:
-            assert func() == self._config.getint(section, field)
+            try:
+                val = self._config.getint(section, field)
+            except: # not RP1210 package's fault if ConfigParser failed to retrieve value
+                return
+            assert func() == val
 
         elif retType is float:
-            assert func() == self._config.getfloat(section, field)
+            try:
+                val = self._config.getfloat(section, field)
+            except: # not RP1210 package's fault if ConfigParser failed to retrieve value
+                return
+            assert func() == val
             
         elif retType is list[int]:
             list_vals = self._config.get(section, field).split(',')

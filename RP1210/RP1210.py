@@ -482,10 +482,7 @@ class RP1210Config(ConfigParser):
         """
         if not self.has_option("VendorInformation", "Version"):
             return ""
-        try:
-            return self.get("VendorInformation", "Version")
-        except (ValueError, KeyError):
-            return ""
+        return self.get("VendorInformation", "Version")
 
     def getAutoDetectCapable(self) -> bool:
         """
