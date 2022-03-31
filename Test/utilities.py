@@ -60,10 +60,10 @@ class RP1210ConfigTestUtility():
                 list_vals = []
             assert func_return == list_vals
 
-    def verifydevicedata(self, func, device_id, field):
+    def verifydevicedata(self, func, device_id, field, fallback=None):
         section = "DeviceInformation" + str(device_id)
-        return self.verifydata(func, section, field)
+        return self.verifydata(func, section, field, fallback)
 
-    def verifyprotocoldata(self, func, protocol_id, field):
+    def verifyprotocoldata(self, func, protocol_id, field, fallback=None):
         section = "ProtocolInformation" + str(protocol_id)
-        return self.verifydata(func, section, field)
+        return self.verifydata(func, section, field, fallback)

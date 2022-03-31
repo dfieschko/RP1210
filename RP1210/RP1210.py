@@ -248,7 +248,11 @@ class RP1210Device:
         self.section = section
 
     def getID(self) -> int:
-        """Returns DeviceID parameter as int."""
+        """
+        Returns DeviceID parameter as int.
+        
+        Returns -1 if DeviceID is invalid.
+        """
         try:
             return int(self.section["DeviceID"])
         except Exception:

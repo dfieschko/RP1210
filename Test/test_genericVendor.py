@@ -4,7 +4,7 @@ import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
 
 API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "CIL7R32"]
-INVALID_API_NAMES = ["empty_api", "invalid_api", "extra_empty_api"]
+INVALID_API_NAMES = ["empty_api", "invalid_api", "extra_empty_api", "invalid_pd_api"]
 
 # These tests are meant to be run with cwd @ repository's highest-level directory
 CWD = os.getcwd()
@@ -127,13 +127,16 @@ def test_Devices(api_name : str):
     deviceIDs = rp1210.getDeviceIDs()
     for id in deviceIDs:
         device = rp1210.getDevice(id)
-        utility.verifydevicedata(device.getID, id, "DeviceID")
+        utility.verifydevicedata(device.getID, id, "DeviceID", fallback=-1)
         utility.verifydevicedata(device.getDescription, id, "DeviceDescription")
         utility.verifydevicedata(device.getName, id, "DeviceName")
         utility.verifydevicedata(device.getParams, id, "DeviceParams")
-        utility.verifydevicedata(device.getMultiJ1939Channels, id, "MultiJ1939Channels")
-        utility.verifydevicedata(device.getMultiCANChannels, id, "MultiCANChannels")
-        assert str(device) == str(device.getID()) + " - " + device.getDescription()
+        utility.verifydevicedata(device.getMultiJ1939Channels, id, "MultiJ1939Channels", fallback=0)
+        utility.verifydevicedata(device.getMultiCANChannels, id, "MultiCANChannels", fallback=0)
+        if device.getID() == -1:
+            assert "(Invalid Device)" in str(device)
+        else:
+            assert str(device) == str(device.getID()) + " - " + device.getDescription()
         assert device in rp1210.getDevices()
         with pytest.raises(TypeError):
             assert device != "dingus"
