@@ -129,7 +129,7 @@ class DTC():
         return self.data
 
     def __int__(self) -> int:
-        return int.from_bytes(self.data)
+        return int.from_bytes(self.data, 'big')
 
     def __len__(self) -> int:
         return len(self.data)
@@ -319,7 +319,7 @@ class DiagnosticMessage():
     - `bytes` - data taken directly from RP1210_ReadMessage
     - `int` - J1939 message data (w/o PGN, etc)
 
-    It easy to loop through DTCs within a DiagnosticMessage:
+    It's easy to loop through DTCs within a DiagnosticMessage:
     ```
     for dtc in DiagnosticMessage(msg_data):
         process_dtc(dtc)

@@ -109,13 +109,14 @@ def test_dtc_properties():
             for k in range(int(126/16)):
                 testproperties(i*32767, j, k*15)
     
-def test_dtc_dunder():
-    spn = 0xBEEF
-    fmi = 22
+@pytest.mark.parametrize("spn,fmi", argvalues=[
+    (0xBEEF, 22), (0x0000, 0), (0xDEAD, 24)
+])
+def test_dtc_dunder(spn, fmi):
     oc = 0
     dtc = DTC(None, spn, fmi, oc)
     # += should increment OC
-    assert dtc.oc == 0
+    assert dtc.oc == oc
     for i in range(1, 150):
         dtc += 1
         assert dtc.oc == min(i, 126)
@@ -125,9 +126,9 @@ def test_dtc_dunder():
     assert dtc == toDTC(spn, fmi, 126)
     assert dtc == DTC(None, spn, fmi, 126)
     assert dtc != "fasdfkasdlfjadsfk"
-    assert dtc != toDTC(spn - 6, fmi - 1, oc-3)
     assert dtc
     assert not DTC(None, 0, 0, 0)
+    assert int(dtc) == int.from_bytes(bytes(dtc), byteorder='big')
 
 def test_dm_init():
     timestamp = b'\x12\x34\x56\x78'

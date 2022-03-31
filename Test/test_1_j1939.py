@@ -290,3 +290,12 @@ def test_J1939MessageParser_isDM_hex():
 def test_J1939Message_canid():
     """Tests CANID in J1939Message class."""
     pytest.skip("Tests for J1939Message.getCANID() haven't been implemented yet.")
+
+@pytest.mark.parametrize("pgn,sa,da,pri", argvalues=[
+    (0,0,0,0), (0xBEEF,0xF9,0xFF, 3), (0xFFFFFF, 0xFF, 0xFF, 6)
+])
+def test_toJ1939Request(pgn, sa, da, pri):
+    """Tests J1939.toJ1939Request() function."""
+    msg_data = J1939.toJ1939Request(pgn, sa, da, pri)
+    pgn_bytes = sanitize_msg_param(pgn, 3, 'little')
+    assert msg_data == J1939.toJ1939Message(0xEA00, pri, sa, da, pgn_bytes + b'\x00\x00\x00\x00\x00')

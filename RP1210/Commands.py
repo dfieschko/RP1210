@@ -131,10 +131,6 @@ Dict for different broadcast functions.
 - LIST_LENGTH : 5
 """
 
-BAUD_RATES = {
-
-}
-
 def resetDevice():
     """
     Reset Device (0) (0 bytes)
