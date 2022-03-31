@@ -63,6 +63,7 @@ def test_clientid_translation():
     assert RP1210.translateErrorCode(-128) == "ERR_DLL_NOT_INITIALIZED"
     assert RP1210.translateErrorCode(0x48FFFFF) == "NO_ERRORS"
     assert RP1210.translateErrorCode(0x48FFF7F) == "ERR_DLL_NOT_INITIALIZED"
+    assert RP1210.translateErrorCode("chungus") == "chungus"
 
 def test_RP1210Interface_InvalidAPIName():
     """
@@ -102,6 +103,7 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getProtocolNames() == []
     assert rp1210.getProtocolIDs() == []
     assert rp1210.isValid() == False
+    assert rp1210.getName() == rp1210.getDescription()
 
 def test_InvalidAPIName_Devices_Protocols():
     api_name = "CHUNGLEBUNGUS"

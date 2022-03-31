@@ -197,11 +197,7 @@ class RP1210Protocol:
     def getSpeed(self) -> list[str]:
         """Returns ProtocolSpeed parameters as a list of strings."""
         try:
-            speeds = []
-            section_list = str(self.section["ProtocolSpeed"]).split(',')
-            for speed in section_list:
-                speeds.append(speed)
-            return speeds
+            return str(self.section["ProtocolSpeed"]).split(',')
         except Exception:
             return []
 
@@ -229,6 +225,11 @@ class RP1210Protocol:
             return devices
         except Exception:
             return []
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RP1210Protocol):
+            raise TypeError("Tried to compare RP1210Protocol with innappropriate object type.")
+        return self.section == __o.section
 
 class RP1210Device:
     """
@@ -298,6 +299,11 @@ class RP1210Device:
         if self.getDescription() != "":
             ret_str += " - " + self.getDescription()
         return ret_str
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RP1210Device):
+            raise TypeError("Tried to compare RP1210Device with innappropriate object type.")
+        return self.section == __o.section
          
 class RP1210Config(ConfigParser):
     """
@@ -638,10 +644,7 @@ class RP1210Config(ConfigParser):
         if not self.has_option("VendorInformation", "CANFormatsSupported"):
             return []
         try:
-            params = []
-            for param in self["VendorInformation"]["CANFormatsSupported"].split(","):
-                params.append(int(param))
-            return params
+            return [int(i) for i in self["VendorInformation"]["CANFormatsSupported"].split(",")]
         except Exception:
             return []
 

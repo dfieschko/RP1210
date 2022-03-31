@@ -113,6 +113,11 @@ def test_RP1210Config(api_name : str):
     utility.verifydata(rp1210.getJ1939FormatsSupported, "VendorInformation", "J1939FormatsSupported")
     utility.verifydata(rp1210.getDeviceIDs, "VendorInformation", "Devices")
     utility.verifydata(rp1210.getProtocolIDs, "VendorInformation", "Protocols")
+    assert rp1210.getName() == rp1210.getDescription()
+    assert rp1210.getName() in str(rp1210)
+    # test get
+    if api_name == "PEAKRP32": # pytest-cov is saying that we're not covering cases like this
+        assert rp1210.getJ1939FormatsSupported() == [1,2,5] # but if this passes we clearly are
     
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_Devices(api_name : str):
@@ -130,6 +135,9 @@ def test_Devices(api_name : str):
         utility.verifydevicedata(device.getMultiJ1939Channels, id, "MultiJ1939Channels")
         utility.verifydevicedata(device.getMultiCANChannels, id, "MultiCANChannels")
         assert str(device) == str(device.getID()) + " - " + device.getDescription()
+        assert device in rp1210.getDevices()
+        with pytest.raises(TypeError):
+            assert device != "dingus"
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_Protocols(api_name : str):
@@ -148,6 +156,9 @@ def test_Protocols(api_name : str):
         utility.verifyprotocoldata(protocol.getParams, id, "ProtocolParams")
         utility.verifyprotocoldata(protocol.getDevices, id, "Devices")
         utility.verifyprotocoldata(protocol.getSpeed, id, "ProtocolSpeed")
+        assert protocol in rp1210.getProtocols()
+        with pytest.raises(TypeError):
+            assert protocol != "dingus"
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_load_DLL(api_name : str):

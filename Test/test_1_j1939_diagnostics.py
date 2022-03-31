@@ -126,6 +126,8 @@ def test_dtc_dunder(spn, fmi):
     assert dtc == toDTC(spn, fmi, 126)
     assert dtc == DTC(None, spn, fmi, 126)
     assert dtc != "fasdfkasdlfjadsfk"
+    assert dtc != None
+    assert dtc != bytes
     assert dtc
     assert not DTC(None, 0, 0, 0)
     assert int(dtc) == int.from_bytes(bytes(dtc), byteorder='big')
