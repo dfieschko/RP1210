@@ -5,7 +5,7 @@ class RP1210ConfigTestUtility():
     def __init__(self, config : configparser.ConfigParser):
         self._config = config
 
-    def verifydata(self, func, section : str, field : str):
+    def verifydata(self, func, section : str, field : str, fallback=None):
         """
         Used to assist in testing by testing standard config information
         Usage:
@@ -22,22 +22,22 @@ class RP1210ConfigTestUtility():
         elif retType is bool:
             try:
                 val = self._config.getboolean(section, field)
-            except: # not RP1210 package's fault if ConfigParser failed to retrieve value
-                return
+            except:
+                val = fallback
             assert func() == val
 
         elif retType is int:
             try:
                 val = self._config.getint(section, field)
             except: # not RP1210 package's fault if ConfigParser failed to retrieve value
-                return
+                val = fallback
             assert func() == val
 
         elif retType is float:
             try:
                 val = self._config.getfloat(section, field)
             except: # not RP1210 package's fault if ConfigParser failed to retrieve value
-                return
+                val = fallback
             assert func() == val
             
         elif retType is list[int]:

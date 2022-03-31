@@ -3,8 +3,8 @@ import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
 
-API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "CIL7R32",
-            "empty_api", "invalid_api", "extra_empty_api"]
+API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "CIL7R32"]
+INVALID_API_NAMES = ["empty_api", "invalid_api", "extra_empty_api"]
 
 # These tests are meant to be run with cwd @ repository's highest-level directory
 CWD = os.getcwd()
@@ -21,7 +21,7 @@ for d in os.environ['path'].split(';'): # overboard
     if os.path.isdir(d):
         os.add_dll_directory(d)
 
-invalid_apis = ["empty_api", "invalid_api", "extra_empty_api"]
+invalid_apis = [] + INVALID_API_NAMES
 
 # Check which APIs are missing dependencies so they can be skipped
 for api_name in API_NAMES:
@@ -75,7 +75,7 @@ def test_getAPINames_invalid(rp121032_path):
     with pytest.raises(FileNotFoundError):
         RP1210.getAPINames(rp121032_path)
 
-@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES + INVALID_API_NAMES)
 def test_RP1210Config(api_name : str):
     """
     Tests RP1210Config class with all sample files provided in test-files folder.
@@ -84,7 +84,7 @@ def test_RP1210Config(api_name : str):
     utility = RP1210ConfigTestUtility(config)
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
-    assert rp1210.isValid() == True or api_name == "extra_empty_api"
+    assert rp1210.isValid() == True or api_name in INVALID_API_NAMES
     assert rp1210.getAPIName() == api_name
     utility.verifydata(rp1210.getName, "VendorInformation", "Name")
     utility.verifydata(rp1210.getAddress1, "VendorInformation", "Address1")
@@ -97,18 +97,18 @@ def test_RP1210Config(api_name : str):
     utility.verifydata(rp1210.getFax, "VendorInformation", "Fax")
     utility.verifydata(rp1210.getVendorURL, "VendorInformation", "VendorURL")
     utility.verifydata(rp1210.getVersion, "VendorInformation", "Version")
-    utility.verifydata(rp1210.autoDetectCapable, "VendorInformation", "AutoDetectCapable")
-    utility.verifydata(rp1210.getAutoDetectCapable, "VendorInformation", "AutoDetectCapable")
+    utility.verifydata(rp1210.autoDetectCapable, "VendorInformation", "AutoDetectCapable", fallback=False)
+    utility.verifydata(rp1210.getAutoDetectCapable, "VendorInformation", "AutoDetectCapable", fallback=False)
     utility.verifydata(rp1210.getTimeStampWeight, "VendorInformation", "TimeStampWeight")
     utility.verifydata(rp1210.getMessageString, "VendorInformation", "MessageString")
     utility.verifydata(rp1210.getErrorString, "VendorInformation", "ErrorString")
     utility.verifydata(rp1210.getRP1210Version, "VendorInformation", "RP1210")
-    utility.verifydata(rp1210.getDebugLevel, "VendorInformation", "DebugLevel")
+    utility.verifydata(rp1210.getDebugLevel, "VendorInformation", "DebugLevel", fallback=-1)
     utility.verifydata(rp1210.getDebugFile, "VendorInformation", "DebugFile")
     utility.verifydata(rp1210.getDebugMode, "VendorInformation", "DebugMode")
-    utility.verifydata(rp1210.getDebugFileSize, "VendorInformation", "DebugFileSize")
-    utility.verifydata(rp1210.getNumberOfSessions, "VendorInformation", "NumberOfRTSCTSSessions")
-    utility.verifydata(rp1210.getCANAutoBaud, "VendorInformation", "CANAutoBaud")
+    utility.verifydata(rp1210.getDebugFileSize, "VendorInformation", "DebugFileSize", fallback=1024)
+    utility.verifydata(rp1210.getNumberOfSessions, "VendorInformation", "NumberOfRTSCTSSessions", fallback=1)
+    utility.verifydata(rp1210.getCANAutoBaud, "VendorInformation", "CANAutoBaud", fallback=False)
     utility.verifydata(rp1210.getCANFormatsSupported, "VendorInformation", "CANFormatsSupported")
     utility.verifydata(rp1210.getJ1939FormatsSupported, "VendorInformation", "J1939FormatsSupported")
     utility.verifydata(rp1210.getDeviceIDs, "VendorInformation", "Devices")
@@ -118,7 +118,7 @@ def test_RP1210Config(api_name : str):
     assert rp1210.getCANAutoBaud() == rp1210.autoBaudEnabled()
     assert rp1210.getProtocol() == rp1210.getProtocol("J1939")
     
-@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES + INVALID_API_NAMES)
 def test_Devices(api_name : str):
     config = configparser.ConfigParser()
     utility = RP1210ConfigTestUtility(config)
@@ -138,7 +138,7 @@ def test_Devices(api_name : str):
         with pytest.raises(TypeError):
             assert device != "dingus"
 
-@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES +INVALID_API_NAMES)
 def test_Protocols(api_name : str):
     config = configparser.ConfigParser()
     utility = RP1210ConfigTestUtility(config)
