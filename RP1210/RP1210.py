@@ -369,9 +369,7 @@ class RP1210Config(ConfigParser):
 
         Will return "(Vendor Name Missing)" if the 'Name' field isn't found.
         """
-        if not self.has_option("VendorInformation", "Name"):
-            return "(Vendor Name Missing)"
-        return self.get("VendorInformation", "Name")
+        return self.get("VendorInformation", "Name", fallback="(Vendor Name Missing)")
 
     def getDescription(self) -> str:
         """
@@ -390,9 +388,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Address1"):
-            return ""
-        return self.get("VendorInformation", "Address1")
+        return self.get("VendorInformation", "Address1", fallback="")
 
     def getAddress2(self) -> str:
         """
@@ -400,9 +396,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Address2"):
-            return ""
-        return self.get("VendorInformation", "Address2")
+        return self.get("VendorInformation", "Address2", fallback="")
 
     def getCity(self) -> str:
         """
@@ -410,9 +404,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "City"):
-            return ""
-        return self.get("VendorInformation", "City")
+        return self.get("VendorInformation", "City", fallback="")
 
     def getState(self) -> str:
         """
@@ -420,9 +412,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "State"):
-            return ""
-        return self.get("VendorInformation", "State")
+        return self.get("VendorInformation", "State", fallback="")
 
     def getCountry(self) -> str:
         """
@@ -430,9 +420,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Country"):
-            return ""
-        return self.get("VendorInformation", "Country")
+        return self.get("VendorInformation", "Country", fallback="")
 
     def getPostal(self) -> str:
         """
@@ -440,9 +428,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Postal"):
-            return ""
-        return self.get("VendorInformation", "Postal")
+        return self.get("VendorInformation", "Postal", fallback="")
 
     def getTelephone(self) -> str:
         """
@@ -450,9 +436,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Telephone"):
-            return ""
-        return self.get("VendorInformation", "Telephone")
+        return self.get("VendorInformation", "Telephone", fallback="")
 
     def getFax(self) -> str:
         """
@@ -460,9 +444,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Fax"):
-            return ""
-        return self.get("VendorInformation", "Fax")
+        return self.get("VendorInformation", "Fax", fallback="")
 
     def getVendorURL(self) -> str:
         """
@@ -470,9 +452,7 @@ class RP1210Config(ConfigParser):
         
         Returns empty string if VendorURL field isn't found.
         """
-        if not self.has_option("VendorInformation", "VendorURL"):
-            return ""
-        return self.get("VendorInformation", "VendorURL")
+        return self.get("VendorInformation", "VendorURL", fallback="")
 
     def getVersion(self) -> str:
         """
@@ -480,9 +460,7 @@ class RP1210Config(ConfigParser):
         
         Returns empty string if Version field isn't found.
         """
-        if not self.has_option("VendorInformation", "Version"):
-            return ""
-        return self.get("VendorInformation", "Version")
+        return self.get("VendorInformation", "Version", fallback="")
 
     def getAutoDetectCapable(self) -> bool:
         """
@@ -490,10 +468,8 @@ class RP1210Config(ConfigParser):
 
         Returns False if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "AutoDetectCapable"):
-            return False
         try:
-            return self.getboolean("VendorInformation", "AutoDetectCapable")
+            return self.getboolean("VendorInformation", "AutoDetectCapable", fallback=False)
         except (ValueError, KeyError):
             return False
 
@@ -511,14 +487,12 @@ class RP1210Config(ConfigParser):
         """
         Returns the 'TimeStampWeight' field in VendorInformation section.
 
-        Returns None if the field isn't found.
+        Returns 1.0 if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "TimeStampWeight"):
-            return None
         try:
-            return self.getfloat("VendorInformation", "TimeStampWeight")
+            return self.getfloat("VendorInformation", "TimeStampWeight", fallback=1.0)
         except (ValueError, KeyError):
-            return None
+            return 1.0
 
     def getMessageString(self) -> str:
         """
@@ -526,9 +500,7 @@ class RP1210Config(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "MessageString"):
-            return ""
-        return self.get("VendorInformation", "MessageString")
+        return self.get("VendorInformation", "MessageString", fallback="")
 
     def getErrorString(self) -> str:
         """
@@ -536,9 +508,7 @@ class RP1210Config(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "ErrorString"):
-            return ""
-        return self.get("VendorInformation", "ErrorString")
+        return self.get("VendorInformation", "ErrorString", fallback="")
 
     def getRP1210Version(self) -> str:
         """
@@ -546,9 +516,7 @@ class RP1210Config(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "RP1210"):
-            return ""
-        return self.get("VendorInformation", "RP1210")
+        return self.get("VendorInformation", "RP1210", fallback="")
 
     def getDebugLevel(self) -> int:
         """
@@ -562,10 +530,8 @@ class RP1210Config(ConfigParser):
 
         Returns -1 (debugging not supported) if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "DebugLevel"):
-            return -1
         try:
-            return self.getint("VendorInformation", "DebugLevel")
+            return self.getint("VendorInformation", "DebugLevel", fallback=-1)
         except (ValueError, KeyError):
             return -1
 
@@ -577,9 +543,7 @@ class RP1210Config(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "DebugFile"):
-            return ""
-        return self.get("VendorInformation", "DebugFile")
+        return self.get("VendorInformation", "DebugFile", fallback="")
 
     def getDebugMode(self) -> int:
         """
@@ -587,14 +551,12 @@ class RP1210Config(ConfigParser):
         - 0 = Overwrite (completely destroying previous contents) 
         - 1 = Append (write to the end of the file, keeping any previous contents) 
 
-        Returns None if the field isn't found.
+        Returns -1 if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "DebugMode"):
-            return None
         try:
-            return self.getint("VendorInformation", "DebugMode")
+            return self.getint("VendorInformation", "DebugMode", fallback=-1)
         except (ValueError, KeyError):
-            return None
+            return -1
 
     def getDebugFileSize(self) -> int:
         """
@@ -606,10 +568,8 @@ class RP1210Config(ConfigParser):
         Returns 1024 (default size) if the field isn't found. Please note that if DebugLevel = -1,
         there will be no logging even if you receive a value of 1024 from this function.
         """
-        if not self.has_option("VendorInformation", "DebugFileSize"):
-            return 1024
         try:
-            return self.getint("VendorInformation", "DebugFileSize")
+            return self.getint("VendorInformation", "DebugFileSize", fallback=1024)
         except (ValueError, KeyError):
             return 1024
 
@@ -622,10 +582,8 @@ class RP1210Config(ConfigParser):
 
         Returns 1 (default value) if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "NumberOfRTSCTSSessions"):
-            return 1
         try:
-            return self.getint("VendorInformation", "NumberOfRTSCTSSessions")
+            return self.getint("VendorInformation", "NumberOfRTSCTSSessions", fallback=1)
         except (ValueError, KeyError):
             return 1
 
@@ -666,10 +624,8 @@ class RP1210Config(ConfigParser):
 
     def getCANAutoBaud(self) -> bool:
         """Returns the CANAutoBaud field in VendorInformation."""
-        if not self.has_option("VendorInformation", "CANAutoBaud"):
-            return False
         try:
-            return self.getboolean("VendorInformation", "CANAutoBaud")
+            return self.getboolean("VendorInformation", "CANAutoBaud", fallback=False)
         except (ValueError, KeyError):
             return False
 
@@ -688,8 +644,7 @@ class RP1210Config(ConfigParser):
         Returns None if the Device isn't found.
         """
         try:
-            section = self["DeviceInformation" + str(deviceID)]
-            return RP1210Device(section)
+            return RP1210Device(self["DeviceInformation" + str(deviceID)])
         except Exception:
             return None
 
