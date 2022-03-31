@@ -3,7 +3,7 @@ import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
 
-API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632"]
+API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "empty_api"]
 
 # These tests are meant to be run with cwd @ repository's highest-level directory
 CWD = os.getcwd()
@@ -20,7 +20,7 @@ for d in os.environ['path'].split(';'): # overboard
     if os.path.isdir(d):
         os.add_dll_directory(d)
 
-invalid_apis = []
+invalid_apis = ["empty_api"]
 
 # Check which APIs are missing dependencies so they can be skipped
 for api_name in API_NAMES:
@@ -29,7 +29,8 @@ for api_name in API_NAMES:
         ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
         dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
         rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-        valid = rp1210.getAPI().isValid()
+        if api_name not in invalid_apis:
+            valid = rp1210.getAPI().isValid()
     except Exception:
         valid = False
     if not valid:
@@ -50,9 +51,9 @@ def test_api_files_exist(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     assert os.path.isfile(ini_path)
-    assert os.path.isfile(dll_path)
     assert os.path.isfile(RP121032_PATH)
     if not api_name in invalid_apis:
+        assert os.path.isfile(dll_path)
         assert cdll.LoadLibrary(dll_path) != None
 
 def test_getAPINames():
@@ -69,8 +70,6 @@ def test_getAPINames():
 def test_getAPINames_invalid(rp121032_path):
     """
     Makes sure we get an exception if we provide an invalid path for getAPINames().
-    - xfail = success
-    - xpass = fail
     """
     with pytest.raises(FileNotFoundError):
         RP1210.getAPINames(rp121032_path)
@@ -115,9 +114,8 @@ def test_RP1210Config(api_name : str):
     utility.verifydata(rp1210.getProtocolIDs, "VendorInformation", "Protocols")
     assert rp1210.getName() == rp1210.getDescription()
     assert rp1210.getName() in str(rp1210)
-    # test get
-    if api_name == "PEAKRP32": # pytest-cov is saying that we're not covering cases like this
-        assert rp1210.getJ1939FormatsSupported() == [1,2,5] # but if this passes we clearly are
+    assert rp1210.getCANAutoBaud() == rp1210.autoBaudEnabled()
+    assert rp1210.getProtocol() == rp1210.getProtocol("J1939")
     
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_Devices(api_name : str):

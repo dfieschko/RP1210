@@ -777,10 +777,9 @@ class RP1210Config(ConfigParser):
     def getProtocolIDs(self) -> list[int]:
         """Returns list of ProtocolIDs described in .ini file."""
         try:
-            protocols = []
-            for protocol in self["VendorInformation"]["Protocols"].split(","):
-                protocols.append(int(protocol))
-            return protocols
+            if not self.has_option("VendorInformation", "Protocols"):
+                return []
+            return [int(i) for i in self["VendorInformation"]["Protocols"].split(",")]
         except Exception:
             return []
 
