@@ -326,7 +326,7 @@ class DiagnosticMessage():
     ```
     """
     def __init__(self, msg = None) -> None:
-        self._lamps = [0x00, 0x00]
+        self._lamps = b'\x00\x00'
         self._codes = [] #type: list[DTC]
         self._data =  b'\x00\x00'
         if msg is None:
@@ -390,9 +390,6 @@ class DiagnosticMessage():
 
     def __getitem__(self, index : int) -> DTC:
         return self._codes[index]
-        # # O^2 since to_dtcs() generates a new array each time
-        # # generally relatively small, but probably worth optimizing anyway
-        # return self.to_dtcs(self.data)[index]
     
     def __setitem__(self, index : int, dtc : DTC):
         if isinstance(dtc, DTC):
@@ -400,23 +397,6 @@ class DiagnosticMessage():
         else:
             self._codes[index] = DTC(dtc)
         self._assign_data()
-        # # like getitem, this is quite unoptimized
-        # data = b''
-        # # add lamps
-        # data += bytes(self.data[0])
-        # data += bytes(self.data[1])
-        # # copy old data into new data until we hit index
-        # for i in range(2, index * 4 + 2):
-        #     data += bytes(self.data[i])
-        # # copy new dtc into data
-        # dtc = sanitize_msg_param(dtc)
-        # for i in range(0, 4):
-        #     data += bytes(dtc[i])
-        # # copy rest of old data
-        # for i in range(index+4, len(self.data)):
-        #     data += bytes(self.data[i])
-        # # set self.data = new data
-        # self.data = data
 
     def __iadd__(self, dtc : DTC):
         """Add DTCs to DiagnosticMessage."""
@@ -468,23 +448,23 @@ class DiagnosticMessage():
         # return self.to_dtcs(self.data)
 
     @codes.setter
-    def codes(self, input):
+    def codes(self, new_codes):
         """List of DTC objects parsed from DiagnosticMessage."""
         
-        if isinstance(input, bytes):
-            self._codes = self.to_dtcs(b'\x00\x00' + input)
-        elif isinstance(input, list):
-            if input == []:
+        if isinstance(new_codes, bytes):
+            self._codes = self.to_dtcs(b'\x00\x00' + new_codes)
+        elif isinstance(new_codes, list):
+            if new_codes == []:
                 self._codes = []
-            if isinstance(input[0], DTC):
-                self._codes = input
+            if isinstance(new_codes[0], DTC):
+                self._codes = new_codes
             else:
                 self._codes = [] #type: list[DTC]
                 self._data = self._data[0:2]
-                for element in input:
+                for element in new_codes:
                     self += element
         else:
-            self._codes = self.to_dtcs(b'\x00\x00' + sanitize_msg_param(input))
+            self._codes = self.to_dtcs(b'\x00\x00' + sanitize_msg_param(new_codes))
         self._assign_data()
 
     @property
