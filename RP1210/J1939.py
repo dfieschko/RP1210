@@ -23,8 +23,8 @@ def toJ1939Message(pgn, priority, source, destination, data, data_size = 0) -> b
     - Message Data (0 - 1785 byes)
 
     If you're not sure what to do with some of these arguments due to differences between PDU1 and
-    PDU2 messages, you can most likely get away with leaving irrelevant portions blank - your RP1210
-    adapter drivers will format the message for you.
+    PDU2 messages, you can most likely get away with leaving irrelevant portions blank (set to 0);
+    your RP1210 adapter drivers will format the message for you.
 
     Arguments can be strings, ints, or bytes. This function will parse strings as UTF-8 characters,
     so don't provide it with letters or special characters unless that's what you mean to send.
@@ -37,7 +37,7 @@ def toJ1939Message(pgn, priority, source, destination, data, data_size = 0) -> b
     ret_val += sanitize_msg_param(data, data_size)
     return ret_val
 
-def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> bytes:
+def toJ1939Request(pgn_requested, source, destination = 255, priority = 6, ) -> bytes:
     """
     Formats a J1939 request message. This puts out a request for the specified PGN, and will prompt
     other devices on the network to respond.
@@ -48,7 +48,7 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6) -> by
     - priority: priority of request; default is 6
     """
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
-    pgn_request += b'\x00\x00\x00\x00\x00'
+    pgn_request += b'\xFF\xFF\xFF\xFF\xFF'
     return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
 
 class DTC():
@@ -182,7 +182,7 @@ class DTC():
         return dtc[3] >> 7 & 1
 
     @staticmethod
-    def to_bytes(spn : int, fmi : int, oc : int):
+    def to_bytes(spn : int, fmi : int, oc : int) -> bytes:
         """Generates 4-byte DTC from SPN, FMI, and OC."""
         ret_val = b''
         # bytes 0 and 1 are just SPN in little-endian format
@@ -199,7 +199,7 @@ class DTC():
         return ret_val
 
     @staticmethod
-    def to_int(spn : int, fmi : int, oc : int):
+    def to_int(spn : int, fmi : int, oc : int) -> int:
         """Generates 4-byte DTC from SPN, FMI, and OC as int."""
         ret_val = spn & 0b11111111
         ret_val = (ret_val << 8) + (spn >> 8 & 0b11111111)
@@ -210,17 +210,301 @@ class DTC():
 
 class J1939Message():
     """
-    A convenience class for parsing a J1939 message received from RP1210_ReadMessage.
-
-    Message must include timestamp (4 bytes) in its leading bytes (this conforms w/ return value
-    of RP1210_ReadMessage).
-
-    - Initialize the object with the message received from ReadMessage.
+    A class for parsing or generating an RP1210 J1939 message.
+    ---
+    Parsing a J1939 message:
+    ```
+    msg = J1939Message(client.rx()) # where client is instance of RP1210Client
+    msg_pgn = msg.pgn # access properties directly
+    ... # etc, for all properties in 'Accessible properties' below
+    ```
     - If you used the command 'Set Echo Transmitted Messages' to turn echo on, set arg echo = True.
+
+    Generating a J1939 message:
+    ```
+    msg_data = ... # bytes
+    msg = J1939Message(data=msg_data, pgn=0xEA00, sa=0xF9, da=0xBC, pri=3)
+    client.tx(msg) # where client is instance of RP1210Client
+    ```
+    - This class will intelligently handle PDU1 vs PDU2, so DA is not always needed
+    - Priority will default to 6 if it is not specified
+    - Size will default to 8 if it is not specified
+    ---
+    Params:
+    - `j1939_message`: the bytes returned from a function that calls RP1210_ReadMessage
+    - `data`: message data, usually 8 bytes (bytes)
+    - `pgn`: parameter group number (int)
+    - `da`: destination address (int)
+    - `sa`: source address (int)
+    - `pri`: message priority (defaults to 6) (int)
+    - `size`: data size (defaults to 8) - 0xFF bytes will be appended to fill space (int)
+    ---
+    Accessible properties:
+    - `msg`: the full contents of the RP1210 message, not including the 4-byte timestamp (bytes)
+    - `pgn`: Parameter Group Number (int)
+    - `da`: Destination Address (int)
+    - `sa`: Source Address (int)
+    - `pri`: Priority (int) - see NOTE
+    - `data`: Message Data (bytes)
+    - `size`: Data Size (int)
+    - `res` : Reserved bit (int)
+    - `dp` : Data Page bit (int)
+    - `timestamp`: 4-byte timestamp from RP1210_ReadMessage (int)
+    ---
+    Functions:
+    - `pdu()` - returns PDU type (PDU 1 or PDU 2)
+    - `pf()` - returns PDU Format byte as int
+    - `ps()` - returns PDU Specific byte as int
+    - `dm()` - if PGN matches a Diagnostic Message, returns int corresponding with DM type
+    - `timestamp_bytes()` - returns timestamp as 4-byte string of bytes (for external formatting)
+    ---
+    NOTE (from RP1210C 15.5):
+
+    In accordance with Section 5.2.1 of J 1939/21, the priority should be masked off by the VDA and set to zero. 
+    However VDA vendors can send back the actual message priority if they so desire. Because the priority 
+    may or may not be provided by the VDA, applications should function correctly regardless of the presence 
+    of the priority information.
+
+    NOTE: When PGN and other values like DA conflict, the most recently assigned value will take precedence.
+    When ambiguous, this class will default to assigning values from PGN rather than to it.
     """
-    def __init__(self, j1939_message : bytes, echo = False) -> None:
-        self.msg = j1939_message
-        self.echo_offset = int(echo)
+    def __init__(self, RP1210_ReadMessage_bytes : bytes = None,
+                    pgn : int = None, da : int = None, sa : int = None, data : bytes = None,
+                    pri : int = 6, size : int = 8,
+                    echo = False) -> None:
+        # init everything
+        self._echo = int(echo)
+        self._msg = b''
+        self._pgn = int(pgn or 0)
+        self._da = int(da or 0)
+        self._sa = int(sa or 0)
+        self._pri = pri
+        if data:
+            self._data = sanitize_msg_param(data)
+            if len(self._data) < size:
+                self._data += b'\xFF' * (size - len(self._data)) # fill with 0xFF based on size
+        else:
+            self._data = b'\xFF' * size # fill with 0xFF based on size
+        self._res = 0 # reserved bit
+        self._dp = 0 # data page bit
+        self.timestamp = 0
+        self._how = 0
+        # process bytes from RP1210_ReadMessage
+        if RP1210_ReadMessage_bytes:
+            if not isinstance(RP1210_ReadMessage_bytes, bytes):
+                RP1210_ReadMessage_bytes = sanitize_msg_param(RP1210_ReadMessage_bytes)
+            if len(RP1210_ReadMessage_bytes) < 10 + self._echo:
+                missing_length = 10 + self._echo - len(RP1210_ReadMessage_bytes)
+                RP1210_ReadMessage_bytes += b'\x00' * missing_length
+            self._assign_from_rp1210_readmessage(RP1210_ReadMessage_bytes, echo)
+        else: # assign message from pgn, da, sa, pri, size, etc
+            pass
+
+
+    #####################
+    # PROTECTED METHODS #
+    #####################
+
+    def _assign_from_rp1210_readmessage(self, RP1210_ReadMessage_bytes : bytes, echo : int):
+        self.timestamp = int.from_bytes(RP1210_ReadMessage_bytes[0:4], 'big')
+        self._msg = RP1210_ReadMessage_bytes[4+echo:]
+        self._assign_from_msg()
+        
+    def _assign_from_msg(self):
+        self._pgn = int.from_bytes(self._msg[0:3], 'little')
+        self._pri = int(self._msg[3]) & 0b111
+        self._sa = int(self._msg[4])
+        self._da = int(self._msg[5])
+        if len(self._msg) > 6:
+            self._data = self._msg[6:]
+        else:
+            self._data = b''
+        self._size = len(self._data)
+        self._assign_from_pgn() # PGN is king
+
+    def _assign_to_msg(self):
+        self._msg = toJ1939Message(self._pgn, self._pri, self._sa, self._da, self._data, self.size)
+
+    def _assign_from_pgn(self):
+        if(self.pdu() == 1): # destination specific
+            self._da = self.ps() # ps() = PDU Specific byte
+        self._dp = (self._pgn >> 16) & 0b01 # data page bit
+        self._res = (self._pgn >> 16) & 0b10 # reserved bit
+
+    def _assign_to_pgn(self):
+        if(self.pdu() == 1): # destination specific
+            self._pgn = (self._pgn & 0xFFFF00) + self._da # replace ps byte w/ da
+        self._pgn = (self._pgn & 0x00FFFF) + ((self._dp + (self._res << 1)) << 16) # dp & r bits
+
+    ##############
+    # PROPERTIES #
+    ##############
+
+    @property
+    def msg(self) -> bytes:
+        """
+        Full message, formatted to be passed on to RP1210_SendMessage.
+        
+        Setting this property will affect all other properties except `timestamp`.
+
+        Will be filled with bytes of 0x00 if len isn't long enough to fill a message.
+        """
+        return self._msg
+
+    @msg.setter
+    def msg(self, val : bytes):
+        # ensure correctness
+        self._echo = 0 # echo is always off if user is specifying new bytes for msg
+        new_val = sanitize_msg_param(val)
+        if len(new_val) < 6: # 6 bytes = PGN + SA + DA + PRI
+            new_val += b'\x00' * (6 - len(new_val)) # fill with empty bytes to hit 6
+        # assign values
+        self._msg = new_val
+        self._assign_from_msg()
+
+    @property
+    def pgn(self) -> int:
+        """
+        Parameter Group Number (int), consisting of:
+        - PDU Format (1 byte)
+        - PDU Specific (1 byte)
+        - Data Page & Reserved bits (2 bits in 1 byte)
+
+        Setting this property may affect properties `da`, `dp`, and `res`.
+
+        Invalid values for `pgn` may result in garbage.
+        """
+        return self._pgn
+
+    @pgn.setter
+    def pgn(self, val : int):
+        if not isinstance(val, int): # we want it to work with e.g. msg.pgn = msg_bytes[4:7]
+            val = int.from_bytes(sanitize_msg_param(val, 3), 'little')
+        self._pgn = val & 0xFFFFFF
+        self._assign_from_pgn()
+        self._assign_to_msg()
+
+    @property
+    def da(self) -> int:
+        """
+        Destination Address. Setting this may or may not update PGN.
+        
+        Invalid values for `da` may result in garbage.
+        """
+        return self._da
+
+    @da.setter
+    def da(self, val : int):
+        if not isinstance(val, int):
+            val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
+        self._da = val & 0xFF
+        self._assign_to_pgn()
+        self._assign_to_msg()
+
+    @property
+    def sa(self) -> int:
+        """
+        Source Address.
+
+        Invalid values for `sa` may result in garbage.
+        """
+        return self._sa
+
+    @sa.setter
+    def sa(self, val : int):
+        if not isinstance(val, int):
+            val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
+        self._sa = val & 0xFF
+        self._assign_to_msg()
+
+    @property
+    def pri(self) -> int:
+        """
+        Message Priority.
+        
+        In general, 6 = default priority, 3 = high priority.
+        """
+        return self._pri
+
+    @pri.setter
+    def pri(self, val : int):
+        if not isinstance(val, int):
+            val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
+        self._pri = max(min(val, 0b111), 0)
+        self._assign_to_msg()
+
+    @property
+    def size(self) -> int:
+        """
+        Returns or modifies `len(data)`. Setting `size` will add or cut bytes from `data`.
+        
+        Most J1939 messages will be 8 bytes long if not otherwise specified.
+
+        This value has no effect on `MessageSize` param to `RP1210_SendMessage`, which is set
+        in its function call.
+        """
+        return len(self._data)
+
+    @size.setter
+    def size(self, val : int):
+        if not isinstance(val, int):
+            val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
+        if len(self._data) > val:
+            self._data = self._data[:val]
+        elif len(self._data) < val:
+            self._data += b'\xFF' * (val - len(self._data))
+        self._assign_to_msg()
+
+    @property
+    def data(self) -> bytes:
+        """
+        Message Data.
+        """
+        return self._data
+
+    @data.setter
+    def data(self, val : bytes):
+        self._data = sanitize_msg_param(val)
+        self._assign_to_msg()
+
+
+    
+    #################
+    # MAGIC METHODS #
+    #################
+
+    def __bytes__(self) -> bytes:
+        return self._msg
+
+    ##################
+    # PUBLIC METHODS #
+    ##################
+
+    def timestamp_bytes(self) -> bytes:
+        """
+        Returns 4-byte timestamp code as bytes
+        (access `timestamp` property directly if you want an int).
+        """
+        return sanitize_msg_param(self.timestamp, 4)
+
+    def pf(self) -> int:
+        """Returns PDU Format byte as int."""
+        return (self._pgn & 0x00FF00) >> 8
+
+    def ps(self) -> int:
+        """Returns PDU Specific bytes as int."""
+        return self._pgn & 0xFF
+
+    def pdu(self) -> int:
+        """
+        Returns PDU type (PDU1 or PDU2) as int:
+        - 1 = PDU 1 (destination specific)
+        - 2 = PDU 2 (broadcast)
+        """
+        if self.pf() < 0xF000:
+            return 1
+        else:
+            return 2
 
     ##############
     # PROPERTIES #
@@ -471,12 +755,6 @@ class DiagnosticMessage():
     def lamps(self) -> bytes:
         """Byte 0 is lamp codes; Byte 1 is reserved."""
         return self._lamps
-        # if len(self.data) >= 2:
-        #     return self.data[0:2]
-        # elif len(self.data) == 1:
-        #     return int.to_bytes(self.data[0], 2, 'little')
-        # else:
-        #     return b'\x00\x00'
 
     @lamps.setter
     def lamps(self, val : bytes):

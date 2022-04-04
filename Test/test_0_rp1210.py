@@ -159,6 +159,8 @@ def test_sanitize_msg_param_bytes():
     assert sanitize_msg_param(b'\x43\x64\xFE\x4A') == b'\x43\x64\xFE\x4A'
     assert sanitize_msg_param(b'\x43\x64\xFE\x4A', 3) == b'\x43\x64\xFE'
     assert sanitize_msg_param(b'\x43\x64\xFE\x4A', 3, 'little') == b'\x4A\xFE\x64'
+    assert sanitize_msg_param(b'\x00\x00\x00') == b'\x00\x00\x00'
+    assert sanitize_msg_param(b'\xFF\xFF\xFF') == b'\xFF\xFF\xFF'
     
 def test_sanitize_msg_param_str():
      assert sanitize_msg_param("0") == b'0'

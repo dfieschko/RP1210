@@ -287,10 +287,6 @@ def test_J1939MessageParser_isDM_hex():
     assert makeMessage(0xFED3).isDM11()
     assert makeMessage(0xFED4).isDM12()
 
-def test_J1939Message_canid():
-    """Tests CANID in J1939Message class."""
-    pytest.skip("Tests for J1939Message.getCANID() haven't been implemented yet.")
-
 @pytest.mark.parametrize("pgn,sa,da,pri", argvalues=[
     (0,0,0,0), (0xBEEF,0xF9,0xFF, 3), (0xFFFFFF, 0xFF, 0xFF, 6)
 ])
@@ -298,4 +294,25 @@ def test_toJ1939Request(pgn, sa, da, pri):
     """Tests J1939.toJ1939Request() function."""
     msg_data = J1939.toJ1939Request(pgn, sa, da, pri)
     pgn_bytes = sanitize_msg_param(pgn, 3, 'little')
-    assert msg_data == J1939.toJ1939Message(0xEA00, pri, sa, da, pgn_bytes + b'\x00\x00\x00\x00\x00')
+    assert msg_data == J1939.toJ1939Message(0xEA00, pri, sa, da, pgn_bytes + b'\xff\xff\xff\xff\xff')
+
+def test_j1939message_parsing():
+    """
+    Runs a parametrized sequence of tests on J1939Message class when instantiated from the output of
+    RP1210_ReadMessage.
+    """
+
+def test_j1939message_parsing_invalid_length():
+    """Test that correct exception is raised when a message with invalid size is fed to J1939Message."""
+    for x in range(1, 10):
+        msg_bytes = sanitize_msg_param(0xff, x) # generate bytes w/ length of x
+        with pytest.raises(ValueError) as e:
+            J1939.J1939Message(RP1210_ReadMessage_bytes=msg_bytes)
+        assert "RP1210" in str(e.value)
+
+
+def test_j1939message_generation():
+    """
+    Runs a parametrized sequence of tests on J1939Message class when instantiated from the output of
+    RP1210_ReadMessage.
+    """
