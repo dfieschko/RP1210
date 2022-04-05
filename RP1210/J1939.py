@@ -288,7 +288,6 @@ class J1939Message():
         self._res = 0 # reserved bit
         self._dp = 0 # data page bit
         self.timestamp = 0
-        self._how = 0
         # process bytes from RP1210_ReadMessage
         if RP1210_ReadMessage_bytes:
             if not isinstance(RP1210_ReadMessage_bytes, bytes):
@@ -466,7 +465,27 @@ class J1939Message():
         self._data = sanitize_msg_param(val)
         self._assign_to_msg()
 
+    @property
+    def res(self) -> int:
+        """Reserved bit (0 or 1)."""
+        return self._res
+    
+    @res.setter
+    def res(self, val : int):
+        self._res = max(min(int(val), 1), 0)
+        self._assign_to_pgn()
+        self._assign_to_msg()
 
+    @property
+    def dp(self) -> int:
+        """Data Page bit (0 or 1)."""
+        return self._dp
+
+    @dp.setter
+    def dp(self, val : int):
+        self._dp = max(min(int(val), 1), 0)
+        self._assign_to_pgn()
+        self._assign_to_msg()
     
     #################
     # MAGIC METHODS #
