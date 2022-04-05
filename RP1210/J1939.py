@@ -231,7 +231,7 @@ class J1939Message():
     - Size will default to 8 if it is not specified
     ---
     Params:
-    - `j1939_message`: the bytes returned from a function that calls RP1210_ReadMessage
+    - `RP1210_ReadMessage_bytes`: bytes returned by RP1210_ReadMessage
     - `data`: message data, usually 8 bytes (bytes)
     - `pgn`: parameter group number (int)
     - `da`: destination address (int)
@@ -319,20 +319,19 @@ class J1939Message():
             self._data = self._msg[6:]
         else:
             self._data = b''
-        self._size = len(self._data)
         self._assign_from_pgn() # PGN is king
 
     def _assign_to_msg(self):
         self._msg = toJ1939Message(self._pgn, self._pri, self._sa, self._da, self._data, self.size)
 
     def _assign_from_pgn(self):
-        if(self.pdu() == 1): # destination specific
+        if self.pdu() == 1: # destination specific
             self._da = self.ps() # ps() = PDU Specific byte
         self._dp = (self._pgn >> 16) & 0b01 # data page bit
         self._res = (self._pgn >> 16) & 0b10 # reserved bit
 
     def _assign_to_pgn(self):
-        if(self.pdu() == 1): # destination specific
+        if self.pdu() == 1: # destination specific
             self._pgn = (self._pgn & 0xFFFF00) + self._da # replace ps byte w/ da
         self._pgn = (self._pgn & 0x00FFFF) + ((self._dp + (self._res << 1)) << 16) # dp & r bits
 
