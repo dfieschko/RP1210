@@ -272,8 +272,7 @@ class J1939Message():
     """
     def __init__(self, RP1210_ReadMessage_bytes : bytes = None,
                     pgn : int = None, da : int = None, sa : int = None, data : bytes = None,
-                    pri : int = 6, size : int = 8,
-                    echo = False) -> None:
+                    pri : int = 6, size : int = 8, how = 0, echo = False) -> None:
         # init everything
         self._msg = b''
         self._pgn = pgn
@@ -293,6 +292,7 @@ class J1939Message():
         self._dp = 0 # data page bit
         self.timestamp = 0 # will only be overwritten if RP1210_ReadMessage_bytes is provided
         self._isecho = False
+        self._how = how
         # process bytes from RP1210_ReadMessage
         if RP1210_ReadMessage_bytes:
             self._assign_from_rp1210_readmessage(RP1210_ReadMessage_bytes, int(echo))
@@ -529,7 +529,7 @@ class J1939Message():
             return False
 
     def __bool__(self) -> bool:
-        assert len(self._msg) >= 6
+        return len(self._msg) >= 6
 
     ##################
     # PUBLIC METHODS #
