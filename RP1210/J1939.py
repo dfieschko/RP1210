@@ -31,7 +31,8 @@ def toJ1939Message(pgn, pri, sa, da, data, data_size = 0, how = 0) -> bytes:
     If you want to send it 0xFF, send it as an int and not "FF". Likewise, 0 != "0".
     """
     ret_val = sanitize_msg_param(pgn, 3, 'little')
-    ret_val += sanitize_msg_param(pri, 1) + ((how & 0b1) << 7)
+    how_pri = sanitize_msg_param(pri, 1)[0] & 0b111 + ((sanitize_msg_param(how, 1)[0] & 0b1) << 7)
+    ret_val += sanitize_msg_param(how_pri, 1) # combine how & pri
     ret_val += sanitize_msg_param(sa, 1)
     ret_val += sanitize_msg_param(da, 1)
     ret_val += sanitize_msg_param(data, data_size)
