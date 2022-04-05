@@ -255,7 +255,6 @@ class J1939Message():
     - `pdu()` - returns PDU type (PDU 1 or PDU 2)
     - `pf()` - returns PDU Format byte as int
     - `ps()` - returns PDU Specific byte as int
-    - `dm()` - if PGN matches a Diagnostic Message, returns int corresponding with DM type
     - `timestamp_bytes()` - returns timestamp as 4-byte string of bytes (for external formatting)
     ---
     NOTE (from RP1210C 15.5):
@@ -494,6 +493,24 @@ class J1939Message():
     def __bytes__(self) -> bytes:
         return self._msg
 
+    def __int__(self) -> int:
+        return int.from_bytes(self._msg, 'big')
+
+    def __str__(self) -> str:
+        return str(self._msg)
+
+    def __len__(self) -> int:
+        return len(self._msg)
+
+    def __eq__(self, other) -> bool:
+        try:
+            return self._msg == sanitize_msg_param(other)
+        except Exception:
+            return False
+
+    def __bool__(self) -> bool:
+        assert len(self._msg) >= 6
+
     ##################
     # PUBLIC METHODS #
     ##################
@@ -524,93 +541,6 @@ class J1939Message():
         else:
             return 2
 
-    ##############
-    # PROPERTIES #
-    ##############
-
-    def getTimestamp(self) -> int:
-        """Returns timestamp (4 bytes) as int."""
-        return int.from_bytes(self.msg[0:4], 'big')
-
-    def getPGN(self) -> int:
-        """Returns PGN (3 bytes) as int."""
-        start = 4 + self.echo_offset
-        end = 6 + self.echo_offset
-        pgn = self.msg[start:(end+1)]
-        pgn_int = int.from_bytes(pgn, 'little')
-        # PDU1 (destination specific) - RP1210 adapters handle this in a dumb way
-        if pgn[1] < 0xF0 and pgn[0] == 0x00:
-            pgn_int += self.getDestination()
-        return pgn_int
-
-    def getCANID(self) -> int:
-        """Returns CANID (composed of priority & pgn)."""
-        return self.getPriority() << 26 + self.getPGN()
-
-    def getPriority(self) -> int:
-        """Returns Priority (1 byte) as int."""
-        loc = 7 + self.echo_offset
-        return int(self.msg[loc]) & 0b111
-
-    def getSource(self) -> int:
-        """Returns Source Address (1 byte) as int."""
-        loc = 8 + self.echo_offset
-        return int(self.msg[loc])
-
-    def getSourceAddress(self) -> int:
-        """Returns Source Address (1 byte) as int."""
-        return int(self.getSource())
-
-    def getDestination(self) -> int:
-        """Returns Destination Address (1 byte) as int."""
-        loc = 9 + self.echo_offset
-        return int(self.msg[loc])
-
-    def getData(self) -> bytes:
-        """Returns message data (0 - 1785 bytes) as bytes."""
-        loc = 10 + self.echo_offset
-        return self.msg[loc:]
-
-    def isEcho(self) -> bool:
-        """Returns True if the message is an echo of a message you transmitted, False if not."""
-        if self.echo_offset == 1:
-            return int.from_bytes(self.msg[4]) == 0x01
-        return False
-
-    def isDiagnosticMessage(self) -> bool:
-        return self.getPGN() in [0xFECA, 0xFECB, 0xFECC, 0xFECD, 0xFED3, 0xFED4]
-
-    def isRequest(self) -> bool:
-        """Returns true if PGN matches J1939 Request PGN."""
-        return self.getPGN() == 0xEA00
-
-    def isDMRequest(self) -> bool:
-        """Returns true if PGN matches Diagnostic Message Request PGN."""
-        return self.getPGN() == 0xEA00
-
-    def isDM1(self) -> bool:
-        """Returns true if PGN matches DM1 (active DTC) PGN."""
-        return self.getPGN() == 0xFECA
-    
-    def isDM2(self) -> bool:
-        """Returns true if PGN matches DM2 (previously active DTC) PGN."""
-        return self.getPGN() == 0xFECB
-    
-    def isDM3(self) -> bool:
-        """Returns true if PGN matches DM3 (clear previously active DTCs) PGN."""
-        return self.getPGN() == 0xFECC
-
-    def isDM4(self) -> bool:
-        """Returns true if PGN matches DM4 (freeze frame parameters) PGN."""
-        return self.getPGN() == 0xFECD
-
-    def isDM11(self) -> bool:
-        """Returns true if PGN matches DM11 (clear active DTCs) PGN."""
-        return self.getPGN() == 0xFED3
-
-    def isDM12(self) -> bool:
-        """Returns true if PGN matches DM12 (emission-related active DTCs) PGN."""
-        return self.getPGN() == 0xFED4
 
 class DiagnosticMessage():
     """
