@@ -8,7 +8,7 @@ copyright of SAE.
 
 from RP1210 import sanitize_msg_param
 
-def toJ1939Message(pgn, priority, source, destination, data, data_size = 0) -> bytes:
+def toJ1939Message(pgn, pri, sa, da, data, data_size = 0) -> bytes:
     """
     Converts args to J1939 message suitable for RP1210_SendMessage function.
 
@@ -31,13 +31,13 @@ def toJ1939Message(pgn, priority, source, destination, data, data_size = 0) -> b
     If you want to send it 0xFF, send it as an int and not "FF". Likewise, 0 != "0".
     """
     ret_val = sanitize_msg_param(pgn, 3, 'little')
-    ret_val += sanitize_msg_param(priority, 1)
-    ret_val += sanitize_msg_param(source, 1)
-    ret_val += sanitize_msg_param(destination, 1)
+    ret_val += sanitize_msg_param(pri, 1)
+    ret_val += sanitize_msg_param(sa, 1)
+    ret_val += sanitize_msg_param(da, 1)
     ret_val += sanitize_msg_param(data, data_size)
     return ret_val
 
-def toJ1939Request(pgn_requested, source, destination = 255, priority = 6, ) -> bytes:
+def toJ1939Request(pgn_requested, sa, da = 255, pri = 6, size = 3) -> bytes:
     """
     Formats a J1939 request message. This puts out a request for the specified PGN, and will prompt
     other devices on the network to respond.
@@ -48,8 +48,9 @@ def toJ1939Request(pgn_requested, source, destination = 255, priority = 6, ) -> 
     - priority: priority of request; default is 6
     """
     pgn_request = sanitize_msg_param(pgn_requested, 3, 'little') # must be little-endian
-    pgn_request += b'\xFF\xFF\xFF\xFF\xFF'
-    return toJ1939Message(0x00EA00, priority, source, destination, pgn_request)
+    if size > 3:
+        pgn_request += b'\xFF' * (size - 3)
+    return toJ1939Message(0x00EA00, pri, sa, da, pgn_request, size)
 
 class DTC():
     """
@@ -256,6 +257,8 @@ class J1939Message():
     - `pf()` - returns PDU Format byte as int
     - `ps()` - returns PDU Specific byte as int
     - `timestamp_bytes()` - returns timestamp as 4-byte string of bytes (for external formatting)
+    - `isEcho()` - returns True if message is an echo of a message you sent
+    - `isRequest()` - returns True if message is a J1939 Request, False if not.
     ---
     NOTE (from RP1210C 15.5):
 
@@ -265,50 +268,63 @@ class J1939Message():
     of the priority information.
 
     NOTE: When PGN and other values like DA conflict, the most recently assigned value will take precedence.
-    When ambiguous, this class will default to assigning values from PGN rather than to it.
+    When ambiguous, this class will default to assigning the destination address to the PGN rather than from it.
     """
     def __init__(self, RP1210_ReadMessage_bytes : bytes = None,
                     pgn : int = None, da : int = None, sa : int = None, data : bytes = None,
                     pri : int = 6, size : int = 8,
                     echo = False) -> None:
         # init everything
-        self._echo = int(echo)
         self._msg = b''
-        self._pgn = int(pgn or 0)
-        self._da = int(da or 0)
-        self._sa = int(sa or 0)
+        self._pgn = pgn
+        self._da = da
+        if sa is None:
+            self._sa = 0xFF # sa defaults to 0xFF if it is never set from anywhere else
+        else:
+            self._sa = sa
         self._pri = pri
-        if data:
+        if data: # if data is provided, process it
             self._data = sanitize_msg_param(data)
             if len(self._data) < size:
                 self._data += b'\xFF' * (size - len(self._data)) # fill with 0xFF based on size
-        else:
+        else: # covers when data is not set and/or when RP1210_ReadMessage_bytes doesn't set it
             self._data = b'\xFF' * size # fill with 0xFF based on size
         self._res = 0 # reserved bit
         self._dp = 0 # data page bit
-        self.timestamp = 0
+        self.timestamp = 0 # will only be overwritten if RP1210_ReadMessage_bytes is provided
+        self._isecho = False
         # process bytes from RP1210_ReadMessage
         if RP1210_ReadMessage_bytes:
-            if not isinstance(RP1210_ReadMessage_bytes, bytes):
-                RP1210_ReadMessage_bytes = sanitize_msg_param(RP1210_ReadMessage_bytes)
-            if len(RP1210_ReadMessage_bytes) < 10 + self._echo:
-                missing_length = 10 + self._echo - len(RP1210_ReadMessage_bytes)
-                RP1210_ReadMessage_bytes += b'\x00' * missing_length
-            self._assign_from_rp1210_readmessage(RP1210_ReadMessage_bytes, echo)
+            self._assign_from_rp1210_readmessage(RP1210_ReadMessage_bytes, int(echo))
         else: # assign message from pgn, da, sa, pri, size, etc
-            pass
-
+            if pgn is not None:
+                self._assign_from_pgn(assign_da=da is None) # only assign to DA if DA is none
+            if self._da is None:
+                self._da = 0xFF
+            self._assign_to_pgn()
+            self._assign_to_msg()
+        # this is a bit messy
 
     #####################
     # PROTECTED METHODS #
     #####################
 
     def _assign_from_rp1210_readmessage(self, RP1210_ReadMessage_bytes : bytes, echo : int):
+        if not isinstance(RP1210_ReadMessage_bytes, bytes):
+            RP1210_ReadMessage_bytes = sanitize_msg_param(RP1210_ReadMessage_bytes)
+        if len(RP1210_ReadMessage_bytes) < 10 + echo:
+            missing_length = 10 + echo - len(RP1210_ReadMessage_bytes)
+            RP1210_ReadMessage_bytes += b'\x00' * missing_length
         self.timestamp = int.from_bytes(RP1210_ReadMessage_bytes[0:4], 'big')
         self._msg = RP1210_ReadMessage_bytes[4+echo:]
+        if echo and RP1210_ReadMessage_bytes[4] == 0x01:
+            self._isecho = True
         self._assign_from_msg()
         
     def _assign_from_msg(self):
+        """
+        Updates all relevant properties from `msg` property.
+        """
         self._pgn = int.from_bytes(self._msg[0:3], 'little')
         self._pri = int(self._msg[3]) & 0b111
         self._sa = int(self._msg[4])
@@ -317,19 +333,24 @@ class J1939Message():
             self._data = self._msg[6:]
         else:
             self._data = b''
-        self._assign_from_pgn() # PGN is king
+        # assign dp and res bits from PGN without updating DA
+        self._assign_from_pgn(assign_da=False)
+        self._assign_to_pgn(assign_da=True)
 
     def _assign_to_msg(self):
         self._msg = toJ1939Message(self._pgn, self._pri, self._sa, self._da, self._data, self.size)
 
-    def _assign_from_pgn(self):
-        if self.pdu() == 1: # destination specific
-            self._da = self.ps() # ps() = PDU Specific byte
+    def _assign_from_pgn(self, assign_da = True):
+        if assign_da:
+            if self.pdu() == 1: # destination specific
+                self._da = self.ps() # ps() = PDU Specific byte
+            elif self.pdu() == 2: # broadcast
+                self._da = 0xFF
         self._dp = (self._pgn >> 16) & 0b01 # data page bit
         self._res = (self._pgn >> 16) & 0b10 # reserved bit
 
-    def _assign_to_pgn(self):
-        if self.pdu() == 1: # destination specific
+    def _assign_to_pgn(self, assign_da = True):
+        if assign_da and self.pdu() == 1: # destination specific
             self._pgn = (self._pgn & 0xFFFF00) + self._da # replace ps byte w/ da
         self._pgn = (self._pgn & 0x00FFFF) + ((self._dp + (self._res << 1)) << 16) # dp & r bits
 
@@ -351,7 +372,6 @@ class J1939Message():
     @msg.setter
     def msg(self, val : bytes):
         # ensure correctness
-        self._echo = 0 # echo is always off if user is specifying new bytes for msg
         new_val = sanitize_msg_param(val)
         if len(new_val) < 6: # 6 bytes = PGN + SA + DA + PRI
             new_val += b'\x00' * (6 - len(new_val)) # fill with empty bytes to hit 6
@@ -536,11 +556,23 @@ class J1939Message():
         - 1 = PDU 1 (destination specific)
         - 2 = PDU 2 (broadcast)
         """
-        if self.pf() < 0xF000:
+        if self.pf() < 0xF0:
             return 1
         else:
             return 2
 
+    def isRequest(self) -> bool:
+        return self.pgn & 0x00FF00 == 0x00EA00
+
+    def isEcho(self) -> bool:
+        """
+        Returns True if this message is an echo of a message you previously sent.
+
+        Requirements for this to detect an echoed message:
+        - You used RP1210 command `Set Echo Transmitted Messages` to turn on echo
+        - You initialized `J1939Message` with param `echo=True`
+        """
+        return self._isecho # set in __init__
 
 class DiagnosticMessage():
     """
@@ -564,9 +596,9 @@ class DiagnosticMessage():
         if msg is None:
             self.data = b'\x00\x00'
         elif isinstance(msg, J1939Message):
-            self.data = msg.getData()
+            self.data = msg.data
         elif isinstance(msg, bytes):
-            self.data = J1939Message(msg).getData()
+            self.data = J1939Message(msg).data
         else:
             self.data = sanitize_msg_param(msg)
 

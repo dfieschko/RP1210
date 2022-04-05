@@ -138,8 +138,8 @@ def test_dm_init():
     msg = toJ1939Message(0xFECA, 6, 0x12, 0xFF, dm1_data)
     assert msg == b'\xCA\xFE\x00\x06\x12\xFF\x72\x00\x31\x04\x5F\xE0'
     j1939 = J1939Message(timestamp + msg)
-    assert j1939.getData() == dm1_data
-    assert DiagnosticMessage(timestamp + msg).data == j1939.getData()
+    assert j1939.data == dm1_data
+    assert DiagnosticMessage(timestamp + msg).data == j1939.data
     assert DiagnosticMessage(j1939).data == dm1_data
     assert DiagnosticMessage(int.from_bytes(dm1_data, 'big')) == dm1_data
 
@@ -240,7 +240,7 @@ def test_diagnosticmessage_conversion():
     j1939_msg = toJ1939Message(pgn, pri, sa, da, data)
     dm1 = DiagnosticMessage(timestamp + j1939_msg)
 
-    assert bytes(dm1) == J1939Message(timestamp + j1939_msg).getData()
+    assert bytes(dm1) == J1939Message(timestamp + j1939_msg).data
     assert str(dm1) == str(bytes(dm1))
 
     assert max(int((10 - 2) / 4), 0) == 2
@@ -248,14 +248,9 @@ def test_diagnosticmessage_conversion():
 
     assert not DiagnosticMessage()
     assert dm1
-    assert int.from_bytes(J1939Message(timestamp + j1939_msg).getData(), 'big') == int(dm1)
+    assert int.from_bytes(J1939Message(timestamp + j1939_msg).data, 'big') == int(dm1)
 
 def test_diagnosticmessage_iterate():
-    pgn = 0xFECA
-    pri = 6
-    sa = 0x4E
-    da = 0xFF
-    timestamp = b'\x01\x02\x03\x04'
     dm1 = DiagnosticMessage()
     for i in range(20):
         spn = i * 23
@@ -263,7 +258,7 @@ def test_diagnosticmessage_iterate():
         oc = 1 + i*3
         dm1 += DTC(None, spn, fmi, oc)
     count = 0
-    for dtc in dm1:
+    for _ in dm1:
         count += 1
     assert count == 20
     for i in range(20):

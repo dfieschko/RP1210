@@ -251,9 +251,6 @@ def protectJ1939Address(address_to_claim, network_mgt_name, blocking = True) -> 
         - See J1939 network management standard!
         - Lowest name takes priority if two devices try to claim the same address
     - blocking (bool) - True will block until done, False will return before completion
-
-    This function automatically sanitizes str, int, and bytes inputs. str are parsed as 10-bit
-    decimals! Use byte strings (b"message") if you want to pass utf-8 characters.
     """
     addr = sanitize_msg_param(address_to_claim, 1)
     name = sanitize_msg_param(network_mgt_name, 8)
