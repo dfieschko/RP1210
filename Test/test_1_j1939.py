@@ -290,41 +290,46 @@ def test_J1939Message_echo(byte5, echo, expected):
     assert J1939.J1939Message(msg, echo=echo).isEcho() == expected
     # message with echo
 
-# @pytest.mark.parametrize("msg_bytes,msg_ex,pgn_ex,da_ex,sa_ex,pri_ex,res_ex,dp_ex,data_ex,size_ex", argvalues=[
-# ])
-# def test_J1939Message_parsing(msg_bytes, msg_ex, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, dp_ex, data_ex):
-#     """
-#     Runs a parametrized sequence of tests on J1939Message class when instantiated from the output of
-#     RP1210_ReadMessage.
-#     """
-#     msg = J1939.J1939Message(b'\x00\x00\x00\x00' + msg_bytes)
-#     assert not msg.isEcho()
-#     assert msg.timestamp_bytes() == b'\x00\x00\x00\x00'
-#     assert msg.timestamp == 0
-#     assert msg.isRequest() == (pgn_ex & 0x00FF00 == 0x00EA00)
-#     assert msg.msg == msg_ex == bytes(msg) == sanitize_msg_param(msg)
-#     assert msg.pgn == pgn_ex
-#     assert msg.da == da_ex
-#     assert msg.sa == sa_ex
-#     assert msg.pri == pri_ex
-#     assert msg.res == res_ex
-#     assert msg.dp == dp_ex
-#     assert msg.data == data_ex
-#     assert msg.pf() == (pgn_ex & 0x00FF00) >> 8
-#     assert msg.ps() == pgn_ex & 0x0000FF
-#     if msg.pf() < 0xF0: # pdu1
-#         assert msg.pdu() == 1
-#         assert msg.ps() == da_ex
-#     else: # pdu2
-#         assert msg.pdu() == 2
-#     assert int(msg) == int.from_bytes(bytes(msg), 'big')
-#     assert str(msg) == str(msg.msg) == str(msg_ex)
-#     assert len(msg) == len(msg.msg) == len(msg_ex)
-#     assert msg == msg.msg == bytes(msg) == msg_ex
-#     if msg.data:
-#         assert msg
-#     else:
-#         assert not msg
+@pytest.mark.parametrize("msg_bytes,msg_ex,pgn_ex,da_ex,sa_ex,pri_ex,res_ex,dp_ex,data_ex,size_ex,how_ex", argvalues=[
+    (b'\x00' * 6, b'\x00' * 6, 0x000000, 0x00, 0x00, 0, 0, 0, b'', 0, 0)
+])
+def test_J1939Message_parsing(msg_bytes, msg_ex, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, dp_ex, data_ex, size_ex, how_ex):
+    """
+    Runs a parametrized sequence of tests on J1939Message class when instantiated from the output of
+    RP1210_ReadMessage.
+    """
+    msg = J1939.J1939Message(b'\x00\x00\x00\x00' + msg_bytes)
+    assert not msg.isEcho()
+    assert msg.timestamp_bytes() == b'\x00\x00\x00\x00'
+    assert msg.timestamp == 0
+    assert msg.isRequest() == (pgn_ex & 0x00FF00 == 0x00EA00)
+    assert msg.msg == msg_ex == bytes(msg) == sanitize_msg_param(msg)
+    assert msg.pgn == pgn_ex
+    assert msg.da == da_ex
+    assert msg.sa == sa_ex
+    assert msg.pri == pri_ex
+    assert msg.res == res_ex
+    assert msg.dp == dp_ex
+    assert msg.data == data_ex
+    assert msg.size == size_ex
+    assert msg.how == how_ex
+    assert msg.pf() == (pgn_ex & 0x00FF00) >> 8
+    assert msg.ps() == pgn_ex & 0x0000FF
+    if msg.pf() < 0xF0: # pdu1
+        assert msg.pdu() == 1
+        assert msg.ps() == da_ex
+    else: # pdu2
+        assert msg.pdu() == 2
+    assert int(msg) == int.from_bytes(bytes(msg), 'big')
+    assert str(msg) == str(msg.msg) == str(msg_ex)
+    assert len(msg) == len(msg.msg) == len(msg_ex)
+    assert msg == msg.msg == bytes(msg) == msg_ex
+    if msg.data:
+        assert msg
+    else:
+        assert not bool(msg)
+    for x in range(len(msg_ex)):
+        assert msg[x] == msg_ex[x] == msg.msg[x]
     
 
 def test_j1939message_parsing_invalid_length():

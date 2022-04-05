@@ -8,7 +8,7 @@ copyright of SAE.
 
 from RP1210 import sanitize_msg_param
 
-def toJ1939Message(pgn, pri, sa, da, data, data_size = 0) -> bytes:
+def toJ1939Message(pgn, pri, sa, da, data, data_size = 0, how = 0) -> bytes:
     """
     Converts args to J1939 message suitable for RP1210_SendMessage function.
 
@@ -31,7 +31,7 @@ def toJ1939Message(pgn, pri, sa, da, data, data_size = 0) -> bytes:
     If you want to send it 0xFF, send it as an int and not "FF". Likewise, 0 != "0".
     """
     ret_val = sanitize_msg_param(pgn, 3, 'little')
-    ret_val += sanitize_msg_param(pri, 1)
+    ret_val += sanitize_msg_param(pri, 1) + ((how & 0b1) << 7)
     ret_val += sanitize_msg_param(sa, 1)
     ret_val += sanitize_msg_param(da, 1)
     ret_val += sanitize_msg_param(data, data_size)
@@ -239,6 +239,7 @@ class J1939Message():
     - `sa`: source address (int)
     - `pri`: message priority (defaults to 6) (int)
     - `size`: data size (defaults to 8) - 0xFF bytes will be appended to fill space (int)
+    - `how` : how to send - 0 = RTS/CTS (default); 1 = BAM (int)
     ---
     Accessible properties:
     - `msg`: the full contents of the RP1210 message, not including the 4-byte timestamp (bytes)
@@ -250,6 +251,7 @@ class J1939Message():
     - `size`: Data Size (int)
     - `res` : Reserved bit (int)
     - `dp` : Data Page bit (int)
+    - `how` : How To Send bit (int)
     - `timestamp`: 4-byte timestamp from RP1210_ReadMessage (int)
     ---
     Functions:
@@ -327,6 +329,7 @@ class J1939Message():
         """
         self._pgn = int.from_bytes(self._msg[0:3], 'little')
         self._pri = int(self._msg[3]) & 0b111
+        self._how = (int(self._msg[3]) & 0b10000000) >> 7
         self._sa = int(self._msg[4])
         self._da = int(self._msg[5])
         if len(self._msg) > 6:
@@ -338,7 +341,8 @@ class J1939Message():
         self._assign_to_pgn(assign_da=True)
 
     def _assign_to_msg(self):
-        self._msg = toJ1939Message(self._pgn, self._pri, self._sa, self._da, self._data, self.size)
+        self._msg = toJ1939Message(self._pgn, self._pri, self._sa, self._da, self._data,
+                                    size=self.size, how=self._how)
 
     def _assign_from_pgn(self, assign_da = True):
         if assign_da:
@@ -505,10 +509,38 @@ class J1939Message():
         self._dp = max(min(int(val), 1), 0)
         self._assign_to_pgn()
         self._assign_to_msg()
+
+    @property
+    def how(self) -> int:
+        return self._how
+
+    @how.setter
+    def how(self, val):
+        self._how = max(min(int(val), 1), 0)
+        self._assign_to_msg()
     
     #################
     # MAGIC METHODS #
     #################
+
+    def __getitem__(self, index : int) -> int:
+        return self._msg[index]
+
+    def __setitem__(self, index : int, val):
+        if index >= len(self._msg):
+            raise IndexError(f"Attempted to modify byte in J1939Message that doesn't exist!")
+        new_msg = b''
+        for x in range(len(self._msg)):
+            if x == index:
+                new_msg += sanitize_msg_param(val, 1)
+            else:
+                new_msg += self._msg[x]
+        self._msg = new_msg
+        self._assign_from_msg()
+
+    def __iadd__(self, val):
+        self._msg += sanitize_msg_param(val, 1)
+        self._assign_from_msg()
 
     def __bytes__(self) -> bytes:
         return self._msg
@@ -529,7 +561,7 @@ class J1939Message():
             return False
 
     def __bool__(self) -> bool:
-        return len(self._msg) >= 6
+        return len(self._msg) > 6
 
     ##################
     # PUBLIC METHODS #
