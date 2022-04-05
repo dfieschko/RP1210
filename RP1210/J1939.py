@@ -862,7 +862,7 @@ def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance 
     name = add_bits(name, id_num, 21)
     return sanitize_msg_param(name)
 
-def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = -1,
+def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = None,
                         SampleLocation = 95, SJW = 1,
                         PROP_SEG = 1, PHASE_SEG1 = 2, PHASE_SEG2 = 1,
                         TSEG1 = 2, TSEG2 = 1, SampleTimes = 1) -> bytes:
@@ -880,7 +880,7 @@ def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = -1,
     - protocol1 = J1939.getProtocolString(protocol = 1, Baud = "Auto")
     - protocol2 = J1939.getProtocolString(protocol = 3, Baud = 500, SampleLocation = 75, SJW = 3, IDSize = 29)
     """
-    if Channel != -1:
+    if Channel is not None:
         chan_arg = f",Channel={str(Channel)}"
     else:
         chan_arg = ""

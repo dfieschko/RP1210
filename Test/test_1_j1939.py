@@ -21,6 +21,13 @@ def test_getJ1939ProtocolString_format2():
     assert J1939.getJ1939ProtocolString(protocol=2, Channel=4) == b"J1939,Channel=4"
     assert J1939.getJ1939ProtocolString(protocol=2, Baud=500) == b"J1939"
 
+@pytest.mark.parametrize("Baud,SampleLocation,SJW,Channel", [
+    (500, 3, 20, 432), (0, 0, 0, 0), (5000, 500, "BAAA", "fadsfasdf")
+])
+def test_getJ1939ProtocolString_format3(Baud, SampleLocation, SJW, Channel):
+    protocol_string = J1939.getJ1939ProtocolString(protocol=3, Baud=Baud, SampleLocation=SampleLocation, SJW=SJW, Channel=Channel)
+    assert protocol_string == bytes(f"J1939:Baud={str(Baud)},SampleLocation={str(SampleLocation)},SJW={str(SJW)},IDSize=29" + f",Channel={str(Channel)}", 'utf-8')
+
 # I don't really care about protocol IDs 3 through 5 at the moment
 
 def test_getJ1939ProtocolDescription():
