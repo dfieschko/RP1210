@@ -300,10 +300,11 @@ class J1939Message():
         if RP1210_ReadMessage_bytes:
             self._assign_from_rp1210_readmessage(RP1210_ReadMessage_bytes, int(echo))
         else: # assign message from pgn, da, sa, pri, size, etc
-            if pgn is not None:
-                self._assign_from_pgn(assign_da=da is None) # only assign to DA if DA is none
-            if self._da is None:
-                self._da = 0xFF
+            if pgn is None:
+                self._pgn = 0x00FFFF
+            if self._sa is None:
+                self._sa = 0xFF
+            self._assign_from_pgn(assign_da=da is None) # only assign to DA if DA is none
             self._assign_to_pgn()
             self._assign_to_msg()
         # this is a bit messy
@@ -346,7 +347,7 @@ class J1939Message():
                                     size=self.size, how=self._how)
 
     def _assign_from_pgn(self, assign_da = True):
-        if assign_da and self.pdu() == 1: # destination specific
+        if self.pdu() == 1 and (assign_da or self._da is None): # destination specific
             self._da = self.ps() # ps() = PDU Specific byte
         elif self.pdu() == 2: # broadcast
             self._da = 0xFF
@@ -827,39 +828,6 @@ class DiagnosticMessage():
 ############################
 # MOSTLY USELESS FUNCTIONS #
 ############################
-
-def toJ1939Name(arbitrary_address : bool, industry_group : int, system_instance : int, system : int,
-                function : int, function_instance : int, ecu_instance : int, mfg_code : int, id_num : int) -> bytes:
-    """
-    Each J1939-compliant ECU needs its own 64-bit name. This function is meant to help generate such
-    a name.
-    """
-    def add_bits(name, val, num_bits):
-        mask = (1 << num_bits) - 1
-        value = int.from_bytes(sanitize_msg_param(val), (num_bits + 7) // 8)
-        return (name << num_bits) + (value & mask)
-    name = 0b0
-    # arbitrary address (1 bit)
-    name = add_bits(name, arbitrary_address, 1)
-    # industry group (3 bits)
-    name = add_bits(name, industry_group, 3)
-    # vehicle system instance (4 bits)
-    name = add_bits(name, system_instance, 4)
-    # vehicle system (7 bits)
-    name = add_bits(name, system, 7)
-    # reserved bit
-    name = add_bits(name, 1, 1)
-    # function (8 bits)
-    name = add_bits(name, function, 8)
-    # function instance (5 bits)
-    name = add_bits(name, function_instance, 5)
-    # ecu instance (3 bits)
-    name = add_bits(name, ecu_instance, 3)
-    # manufacturer code (11 bits)
-    name = add_bits(name, mfg_code, 11)
-    # identity number (21 bits)
-    name = add_bits(name, id_num, 21)
-    return sanitize_msg_param(name)
 
 def getJ1939ProtocolString(protocol = 1, Baud = "Auto", Channel = None,
                         SampleLocation = 95, SJW = 1,

@@ -4,6 +4,7 @@ import pytest
 
 def test_getJ1939ProtocolString_default():
     assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"
+    assert J1939.getJ1939ProtocolString(protocol=34234324234234) == b"J1939" # default to protocol format 2, default channel
 
 def test_getJ1939ProtocolString_format1():
     assert J1939.getJ1939ProtocolString(protocol=1, Baud=250) == b"J1939:Baud=250"
@@ -84,108 +85,6 @@ def test_toJ1939Message():
     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
     assert message == b'\xCC\xAC\x0A\x00\x16\x1E\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\x00\x00'
 
-# def test_J1939MessageParser_pdu2_specificexample():
-#     """Test J1939MessageParser class"""
-#     timestamp = sanitize_msg_param(0x01020304)
-#     assert timestamp == b'\x01\x02\x03\x04'
-#     pgn = 0x00FEEE
-#     pri = 3
-#     sa = 2
-#     da = 0x0E # this should be ignored by RP1210 since it's broadcast to 0xFF, but will still set da
-#     data = 0xDEADBEEF
-#     message = timestamp + J1939.toJ1939Message(pgn, pri, sa, da, data)
-#     assert message == b'\x01\x02\x03\x04\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
-#     msg = J1939.J1939Message(message)
-#     assert msg.timestamp == 0x01020304
-#     assert msg.pgn == pgn
-#     assert msg.sa == sa
-#     assert msg.da == da
-#     assert msg.pri == pri
-#     assert msg.res == 0
-#     assert msg.dp == 0
-#     assert msg.pdu() == 2
-#     assert msg.pf() == 0xFE
-#     assert msg.ps() == 0xEE
-#     assert msg.data == sanitize_msg_param(data)
-
-# def test_J1939Message_2():
-#     timestamp = b'\x12\34\x56\x78'
-#     pgn = 0x00FEEE
-#     pri = 3
-#     sa = 2
-#     da = 0x0E
-#     data = 0xDEADBEEF
-#     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
-#     assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
-#     j1939 = J1939.J1939Message(timestamp + message)
-#     assert j1939.timestamp == int.from_bytes(timestamp, 'big')
-#     assert j1939.pgn == pgn
-#     assert j1939.pri == pri
-#     assert j1939.sa == sa
-#     assert j1939.da == da
-#     assert j1939.data == sanitize_msg_param(data)
-#     data = b'\xDE\xAD\xBE\xEF'
-#     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
-#     assert message == b'\xEE\xFE\x00\x03\x02\x0E\xDE\xAD\xBE\xEF'
-#     j1939 = J1939.J1939Message(timestamp + message)
-#     assert j1939.timestamp == int.from_bytes(timestamp, 'big')
-#     assert j1939.pgn == pgn
-#     assert j1939.pri == pri
-#     assert j1939.sa == sa
-#     assert j1939.da == da
-#     assert j1939.data == sanitize_msg_param(data)
-#     dm1_data = b'\x72\x00\x31\x04\x5F\xE0'
-#     msg = J1939.toJ1939Message(0xFECA, 6, 0x12, 0xFF, dm1_data)
-#     assert msg ==b'\xCA\xFE\x00\x06\x12\xFF\x72\x00\x31\x04\x5F\xE0'
-#     j1939 = J1939.J1939Message(timestamp + msg)
-#     assert j1939.timestamp == int.from_bytes(timestamp, 'big')
-#     assert j1939.pgn == 0xFECA
-#     assert j1939.pri == 6
-#     assert j1939.sa == 0x12
-#     assert j1939.da == 0xFF
-#     assert j1939.data == sanitize_msg_param(dm1_data)
-
-# @pytest.mark.parametrize("pgn,res,dp,pf,ps,da", argvalues=[
-#     (0x00F004, 3, 0, 0, 0xF0, 0x04, 0xFF)
-# ])
-# def test_J1939Message_from_pgn(pgn, res, dp, pf, ps, da):
-#     """
-#     Test that values are correctly populated from PGN.
-    
-#     PGN is the variable being tested; res, dp, pf, ps, and da are expected values.
-#     """
-#     msg = J1939.J1939Message(pgn=pgn)
-#     assert msg.pgn == pgn
-
-# def test_J1939Message_3():
-#     timestamp = b'\x01\x23\x45\x67'
-#     data = b'\x72\x00\x31\x04\x5F\xE0'
-#     msg = J1939.toJ1939Message(0xFECA, 6, 0x12, 0xFF, data)
-#     assert msg == b'\xCA\xFE\x00\x06\x12\xFF\x72\x00\x31\x04\x5F\xE0'
-#     j1939 = J1939.J1939Message(timestamp + msg)
-#     assert j1939.msg == timestamp + msg
-#     assert j1939.getPriority() == 6
-#     assert j1939.getPGN() == 0xFECA
-#     assert j1939.getDestination() == 0xFF
-#     assert j1939.getSource() == 0x12
-#     assert j1939.getData() == data
-
-# def test_J1939Message_long():
-#     timestamp = b'\x12\34\x56\x78'
-#     pgn = 0x01ACCC
-#     pri = 0
-#     sa = 22
-#     da = 0x1E
-#     data = 0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF0000
-#     message = J1939.toJ1939Message(pgn, pri, sa, da, data)
-#     assert message == b'\xCC\xAC\x0A\x00\x16\x1E\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\xDE\xAD\xBE\xEF\x00\x00'
-#     j1939 = J1939.J1939Message(timestamp + message)
-#     assert j1939.timestamp == int.from_bytes(timestamp, 'big')
-#     assert hex(j1939.pgn) == hex(pgn)
-#     assert j1939.pri == pri
-#     assert j1939.sa == sa
-#     assert j1939.da == da
-#     assert j1939.data == sanitize_msg_param(data)
 @pytest.mark.parametrize("pgn,da", argvalues=[
     (0xB100, 24), (0x0000, 0xFF), (0x1111, 0x00), (0x0000, 0x00), (0xFFFF, 0xFF)
 ])
@@ -276,20 +175,6 @@ def test_setJ1939Filters():
         cmd_string = Commands.setJ1939Filters(filter_type, pgn=filter_list_int[i])
         assert messageString == cmd_string
 
-@pytest.mark.skip("This test hasn't been implemented yet.")
-def test_toJ1939Name():
-    # arbitrary address (1 bit)
-    # industry group (3 bits)
-    # vehicle system instance (4 bits)
-    # vehicle system (7 bits)
-    # reserved bit (1 bit)
-    # function (8 bits)
-    # function instance (5 bits)
-    # ecu instance (3 bits)
-    # manufacturer code (11 bits)
-    # identity number (21 bits)
-    """TODO"""
-
 @pytest.mark.parametrize("pgn,sa,da,pri", argvalues=[
     (0,0,0,0), (0xBEEF,0xF9,0xFF, 3), (0xFFFFFF, 0xFF, 0xFF, 6)
 ])
@@ -312,12 +197,13 @@ def test_J1939Message_echo(byte5, echo, expected):
     # message with echo
 
 @pytest.mark.parametrize("msg_bytes,pgn_ex,da_ex,sa_ex,pri_ex,res_ex,dp_ex,data_ex,size_ex,how_ex", argvalues=[
-    # MSG BYTES                         PGN EXP.    DA      SA      PRI RES DP  DATA            SIZE    HOW
-    (b'\x00' * 6,                       0x000000,   0x00,   0x00,   0,  0,  0,  b'',            0,      0),
-    (b'\xBC\xAA\x00\x03\xBF\x12\xFF',   0x00AA12,   0x12,   0xBF,   3,  0,  0,  b'\xFF',        1,      0), # PDU1 replaces PS w/ DA
-    (b'\xBC\xFE\x00\x03\xBF\x12\xFF',   0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF',        1,      0), # PDU2 DA = 0xFF
-    (b'\xBC\xFE\x03\x03\xBF\x12\xFF',   0x03FEBC,   0xFF,   0xBF,   3,  1,  1,  b'\xFF',        1,      0), # res & dp
-    (b'\xBC\xFE\x00\x83\xBF\x12\xFF',   0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF',        1,      1), # how
+    # MSG BYTES                             PGN EXP.    DA      SA      PRI RES DP  DATA            SIZE    HOW
+    (b'\x00' * 6,                           0x000000,   0x00,   0x00,   0,  0,  0,  b'',            0,      0),
+    (b'\xBC\xAA\x00\x03\xBF\x12\xFF',       0x00AA12,   0x12,   0xBF,   3,  0,  0,  b'\xFF',        1,      0), # PDU1 replaces PS w/ DA
+    (b'\xBC\xFE\x00\x03\xBF\x12\xFF',       0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF',        1,      0), # PDU2 DA = 0xFF
+    (b'\xBC\xFE\x03\x03\xBF\x12\xFF',       0x03FEBC,   0xFF,   0xBF,   3,  1,  1,  b'\xFF',        1,      0), # res & dp
+    (b'\xBC\xFE\x00\x83\xBF\x12\xFF',       0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF',        1,      1), # how
+    (b'\xBC\xFE\x00\x83\xBF\x12\xFF\xFF',   0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF\xFF',    2,      1), # size 2
 ])
 def test_J1939Message_parsing(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, dp_ex, data_ex, size_ex, how_ex):
     """
@@ -357,6 +243,34 @@ def test_J1939Message_parsing(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, d
     for x in range(len(msg_bytes)):
         assert msg[x] == msg_bytes[x] == msg.msg[x]
     
+@pytest.mark.parametrize("pgn, da, sa, data", [
+    #   PGN     DA      SA      DATA
+    (   None,   None,   None,   b''),
+    (   None,   None,   1,      None),
+    (   None,   1,      None,   None),
+    (   1,      None,   None,   None),
+    (   None,   None,   None,   None)
+])
+def test_J1939Message_init_params(pgn, da, sa, data):
+    """Make sure that no properties are left None when not provided."""
+    msg = J1939.J1939Message(pgn=pgn, da=da, sa=sa, data=data)
+    assert msg.pgn is not None
+    assert msg.da is not None
+    assert msg.sa is not None
+    assert msg.data is not None
+    assert msg.pri is not None
+    assert msg.how is not None
+    assert msg.size is not None
+    assert msg.res is not None
+    assert msg.dp is not None
+    assert msg.timestamp is not None
+    assert msg.pdu() is not None
+    assert msg.pf() is not None
+    assert msg.ps() is not None
+    assert msg.timestamp_bytes() is not None
+    assert msg.isEcho() is not None
+    assert msg.isRequest() is not None
+
 
 def test_j1939message_parsing_invalid_length():
     """Test J1939Message with invalid length. J1939Message should fill missing bytes with 0x00."""

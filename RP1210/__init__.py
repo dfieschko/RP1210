@@ -21,6 +21,8 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
     This function is meant for internal use in message/protocol files; it's only public because
     I didn't want to copy/paste it a bunch of times.
     """
+    if param is None:
+        param = b''
     if isinstance(param, int): # int to bytes
         if num_bytes == 0:
             num_bytes = (param.bit_length() + 7) // 8
