@@ -753,7 +753,7 @@ class DiagnosticMessage():
         elif isinstance(new_codes, list):
             if new_codes == []:
                 self._codes = []
-            if isinstance(new_codes[0], DTC):
+            elif isinstance(new_codes[0], DTC):
                 self._codes = new_codes
             else:
                 self._codes = [] #type: list[DTC]
@@ -772,15 +772,14 @@ class DiagnosticMessage():
     @lamps.setter
     def lamps(self, val : bytes):
         """Byte 0 is lamp codes; Byte 1 is reserved."""
-        if isinstance(val, bytes):
-            if len(val) == 0:
-                self._lamps = b'\x00\x00'
-            elif len(val) == 1:
-                self._lamps = sanitize_msg_param(val, 2, 'little')
-            else:
-                self._lamps = sanitize_msg_param(val, 2)
+        if not isinstance(val, bytes):
+            val = sanitize_msg_param(val)
+        if len(val) == 0:
+            self._lamps = b'\x00\x00'
+        elif len(val) == 1:
+            self._lamps = sanitize_msg_param(val, 2, 'little')
         else:
-            self.lamps = sanitize_msg_param(val) # intentionally retrigger setter
+            self._lamps = sanitize_msg_param(val, 2)
         self._assign_data()
 
     @property

@@ -249,7 +249,8 @@ def test_J1939Message_parsing(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, d
     (   None,   None,   1,      None),
     (   None,   1,      None,   None),
     (   1,      None,   None,   None),
-    (   None,   None,   None,   None)
+    (   None,   None,   None,   None),
+    (   None,   None,   None,   b'\xFF\xEF\xDF'),
 ])
 def test_J1939Message_init_params(pgn, da, sa, data):
     """Make sure that no properties are left None when not provided."""

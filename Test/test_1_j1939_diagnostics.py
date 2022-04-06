@@ -200,6 +200,40 @@ def test_diagnosticmessage_lamps():
     assert dm1.awl() == 0b10
     assert dm1.pl() == 0b11
 
+    dm1.lamps = b''
+    assert dm1.lamps == b'\x00\x00'
+    dm1.lamps = b'\x12'
+    assert dm1.lamps == b'\x12\x00'
+    dm1.lamps = b'\x12\x34'
+    assert dm1.lamps == b'\x12\x34'
+
+def test_diagnosticmessage_codes():
+    lamps = int.to_bytes(0b01110010, 2, 'little')
+    dtc1 = DTC(spn=0xEED, fmi=4, oc=22)
+    dtc2 = DTC(spn=432, fmi=6, oc=1)
+    timestamp = b'\x01\x02\x03\x04'
+    data = lamps + bytes(dtc1) + bytes(dtc2)
+    pgn = 0xFECA
+    pri = 6
+    sa = 0x49
+    da = 0xFF
+    j1939_msg = toJ1939Message(pgn, pri, sa, da, data)
+    dm1 = DiagnosticMessage(timestamp + j1939_msg)
+
+    assert dm1.codes[0] == dtc1
+    assert dm1.codes[1] == dtc2
+
+    dm1.codes[0] = dtc2
+    assert dm1.codes[0] == dtc2
+
+    dm1.codes = [dtc1, dtc2]
+    assert dm1.codes[0] == dtc1
+    assert dm1.codes[1] == dtc2
+
+    dm1.codes = bytes(dtc1) + bytes(dtc2)
+    assert dm1.codes[0] == dtc1
+    assert dm1.codes[1] == dtc2
+
 def test_diagnosticmessage_iadd():
     lamps = int.to_bytes(0b01110010, 2, 'little')
     dtc1 = DTC(spn=0xEED, fmi=4, oc=22)
