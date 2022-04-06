@@ -8,7 +8,7 @@ copyright of SAE.
 
 from RP1210 import sanitize_msg_param
 
-def toJ1939Message(pgn, pri, sa, da, data, data_size = 0, how = 0) -> bytes:
+def toJ1939Message(pgn, pri, sa, da, data, size = 0, how = 0) -> bytes:
     """
     Converts args to J1939 message suitable for RP1210_SendMessage function.
 
@@ -35,7 +35,7 @@ def toJ1939Message(pgn, pri, sa, da, data, data_size = 0, how = 0) -> bytes:
     ret_val += sanitize_msg_param(how_pri, 1) # combine how & pri
     ret_val += sanitize_msg_param(sa, 1)
     ret_val += sanitize_msg_param(da, 1)
-    ret_val += sanitize_msg_param(data, data_size)
+    ret_val += sanitize_msg_param(data, size)
     return ret_val
 
 def toJ1939Request(pgn_requested, sa, da = 255, pri = 6, size = 3) -> bytes:
@@ -346,13 +346,12 @@ class J1939Message():
                                     size=self.size, how=self._how)
 
     def _assign_from_pgn(self, assign_da = True):
-        if assign_da:
-            if self.pdu() == 1: # destination specific
-                self._da = self.ps() # ps() = PDU Specific byte
-            elif self.pdu() == 2: # broadcast
-                self._da = 0xFF
-        self._dp = (self._pgn >> 16) & 0b01 # data page bit
-        self._res = (self._pgn >> 16) & 0b10 # reserved bit
+        if assign_da and self.pdu() == 1: # destination specific
+            self._da = self.ps() # ps() = PDU Specific byte
+        elif self.pdu() == 2: # broadcast
+            self._da = 0xFF
+        self._dp = (self._pgn >> 16) & 0b1 # data page bit
+        self._res = (self._pgn >> 17) & 0b1 # reserved bit
 
     def _assign_to_pgn(self, assign_da = True):
         if assign_da and self.pdu() == 1: # destination specific
@@ -529,7 +528,7 @@ class J1939Message():
 
     def __setitem__(self, index : int, val):
         if index >= len(self._msg):
-            raise IndexError(f"Attempted to modify byte in J1939Message that doesn't exist!")
+            raise IndexError("Attempted to modify byte in J1939Message that doesn't exist!")
         new_msg = b''
         for x in range(len(self._msg)):
             if x == index:

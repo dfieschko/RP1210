@@ -28,7 +28,21 @@ def test_getJ1939ProtocolString_format3(Baud, SampleLocation, SJW, Channel):
     protocol_string = J1939.getJ1939ProtocolString(protocol=3, Baud=Baud, SampleLocation=SampleLocation, SJW=SJW, Channel=Channel)
     assert protocol_string == bytes(f"J1939:Baud={str(Baud)},SampleLocation={str(SampleLocation)},SJW={str(SJW)},IDSize=29" + f",Channel={str(Channel)}", 'utf-8')
 
-# I don't really care about protocol IDs 3 through 5 at the moment
+@pytest.mark.parametrize("Baud, PROP_SEG, PHASE_SEG1, PHASE_SEG2, SJW, Channel", argvalues=[
+    (500, 3, 20, 432, 32421, 234234), (0, 0, 0, 0, 0, 0), (5000, 500, "BAAA", "fadsfasdf", "afdsfasdf", "adsf")
+])
+def test_getJ1939ProtocolString_format4(Baud, PROP_SEG, PHASE_SEG1, PHASE_SEG2, SJW, Channel):
+    chan_arg = f",Channel={str(Channel)}"
+    val = bytes(f"J1939:Baud={str(Baud)},PROP_SEG={str(PROP_SEG)},PHASE_SEG1={str(PHASE_SEG1)},PHASE_SEG2={str(PHASE_SEG2)},SJW={str(SJW)},IDSize=29" + chan_arg, 'utf-8')
+    assert val == J1939.getJ1939ProtocolString(protocol=4, Baud=Baud, PROP_SEG=PROP_SEG, PHASE_SEG1=PHASE_SEG1, PHASE_SEG2=PHASE_SEG2, SJW=SJW, Channel=Channel)
+
+@pytest.mark.parametrize("Baud, TSEG1, TSEG2, SampleTimes, SJW, Channel", argvalues=[
+    (500, 3, 20, 432, 32421, 234234), (0, 0, 0, 0, 0, 0), (5000, 500, "BAAA", "fadsfasdf", "afdsfasdf", "adsf")
+])
+def test_getJ1939ProtocolString_format5(Baud, TSEG1, TSEG2, SampleTimes, SJW, Channel):
+    chan_arg = f",Channel={str(Channel)}"
+    val = bytes(f"J1939:Baud={str(Baud)},TSEG1={str(TSEG1)},TSEG2={str(TSEG2)},SampleTimes={str(SampleTimes)},SJW={str(SJW)},IDSize=29" + chan_arg, 'utf-8')
+    assert val == J1939.getJ1939ProtocolString(protocol=5, Baud=Baud, Channel=Channel, TSEG1=TSEG1, TSEG2=TSEG2, SampleTimes=SampleTimes, SJW=SJW)
 
 def test_getJ1939ProtocolDescription():
     assert J1939.getJ1939ProtocolDescription(1) == "Variable J1939 baud rate. Select 125, 250, 500, 1000, or Auto."
@@ -297,10 +311,15 @@ def test_J1939Message_echo(byte5, echo, expected):
     assert J1939.J1939Message(msg, echo=echo).isEcho() == expected
     # message with echo
 
-@pytest.mark.parametrize("msg_bytes,msg_ex,pgn_ex,da_ex,sa_ex,pri_ex,res_ex,dp_ex,data_ex,size_ex,how_ex", argvalues=[
-    (b'\x00' * 6, b'\x00' * 6, 0x000000, 0x00, 0x00, 0, 0, 0, b'', 0, 0)
+@pytest.mark.parametrize("msg_bytes,pgn_ex,da_ex,sa_ex,pri_ex,res_ex,dp_ex,data_ex,size_ex,how_ex", argvalues=[
+    # MSG BYTES                         PGN EXP.    DA      SA      PRI RES DP  DATA            SIZE    HOW
+    (b'\x00' * 6,                       0x000000,   0x00,   0x00,   0,  0,  0,  b'',            0,      0),
+    (b'\xBC\xAA\x00\x03\xBF\x12\xFF',   0x00AA12,   0x12,   0xBF,   3,  0,  0,  b'\xFF',        1,      0), # PDU1 replaces PS w/ DA
+    (b'\xBC\xFE\x00\x03\xBF\x12\xFF',   0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF',        1,      0), # PDU2 DA = 0xFF
+    (b'\xBC\xFE\x03\x03\xBF\x12\xFF',   0x03FEBC,   0xFF,   0xBF,   3,  1,  1,  b'\xFF',        1,      0), # res & dp
+    (b'\xBC\xFE\x00\x83\xBF\x12\xFF',   0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF',        1,      1), # how
 ])
-def test_J1939Message_parsing(msg_bytes, msg_ex, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, dp_ex, data_ex, size_ex, how_ex):
+def test_J1939Message_parsing(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, dp_ex, data_ex, size_ex, how_ex):
     """
     Runs a parametrized sequence of tests on J1939Message class when instantiated from the output of
     RP1210_ReadMessage.
@@ -310,13 +329,13 @@ def test_J1939Message_parsing(msg_bytes, msg_ex, pgn_ex, da_ex, sa_ex, pri_ex, r
     assert msg.timestamp_bytes() == b'\x00\x00\x00\x00'
     assert msg.timestamp == 0
     assert msg.isRequest() == (pgn_ex & 0x00FF00 == 0x00EA00)
-    assert msg.msg == msg_ex == bytes(msg) == sanitize_msg_param(msg)
+    assert msg.msg == msg_bytes == bytes(msg) == sanitize_msg_param(msg)
+    assert msg.res == res_ex
+    assert msg.dp == dp_ex
     assert msg.pgn == pgn_ex
     assert msg.da == da_ex
     assert msg.sa == sa_ex
     assert msg.pri == pri_ex
-    assert msg.res == res_ex
-    assert msg.dp == dp_ex
     assert msg.data == data_ex
     assert msg.size == size_ex
     assert msg.how == how_ex
@@ -328,15 +347,15 @@ def test_J1939Message_parsing(msg_bytes, msg_ex, pgn_ex, da_ex, sa_ex, pri_ex, r
     else: # pdu2
         assert msg.pdu() == 2
     assert int(msg) == int.from_bytes(bytes(msg), 'big')
-    assert str(msg) == str(msg.msg) == str(msg_ex)
-    assert len(msg) == len(msg.msg) == len(msg_ex)
-    assert msg == msg.msg == bytes(msg) == msg_ex
+    assert str(msg) == str(msg.msg) == str(msg_bytes)
+    assert len(msg) == len(msg.msg) == len(msg_bytes)
+    assert msg == msg.msg == bytes(msg) == msg_bytes
     if msg.data:
         assert msg
     else:
         assert not bool(msg)
-    for x in range(len(msg_ex)):
-        assert msg[x] == msg_ex[x] == msg.msg[x]
+    for x in range(len(msg_bytes)):
+        assert msg[x] == msg_bytes[x] == msg.msg[x]
     
 
 def test_j1939message_parsing_invalid_length():
