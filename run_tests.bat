@@ -14,7 +14,7 @@ ECHO ...........................................................................
 @REM ECHO Done!
 @REM ECHO ..............................................................................................
 ECHO Disconnect all RP1210 adapters before continuing.
-pause
+@REM pause
 python -m pytest -l -v -ra --tb=long --cov=RP1210 --cov-branch --cov-report term-missing
 ECHO Done
 pause

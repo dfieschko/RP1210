@@ -242,6 +242,56 @@ def test_J1939Message_parsing(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, d
     for x in range(len(msg_bytes)):
         assert msg[x] == msg_bytes[x] == msg.msg[x]
 
+@pytest.mark.parametrize("msg_bytes,pgn_ex,da_ex,sa_ex,pri_ex,res_ex,dp_ex,data_ex,size_ex,how_ex", argvalues=[
+    # MSG BYTES                             PGN EXP.    DA      SA      PRI RES DP  DATA            SIZE    HOW
+    (b'\x00',                               0x000000,   0x00,   0x00,   0,  0,  0,  b'',            0,      0),
+    (b'\x00' * 6,                           0x000000,   0x00,   0x00,   0,  0,  0,  b'',            0,      0),
+    (b'\xBC\xAA\x00\x03\xBF\x12\xFF',       0x00AA12,   0x12,   0xBF,   3,  0,  0,  b'\xFF',        1,      0), # PDU1 replaces PS w/ DA
+    (b'\xBC\xFE\x00\x03\xBF\x12\xFF',       0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF',        1,      0), # PDU2 DA = 0xFF
+    (b'\xBC\xFE\x03\x03\xBF\x12\xFF',       0x03FEBC,   0xFF,   0xBF,   3,  1,  1,  b'\xFF',        1,      0), # res & dp
+    (b'\xBC\xFE\x00\x83\xBF\x12\xFF',       0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF',        1,      1), # how
+    (b'\xBC\xFE\x00\x83\xBF\x12\xFF\xFF',   0x00FEBC,   0xFF,   0xBF,   3,  0,  0,  b'\xFF\xFF',    2,      1), # size 2
+])
+def test_J1939Message_msg(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, dp_ex, data_ex, size_ex, how_ex):
+    """
+    Like the above test, but sets msg property directly.
+    """
+    msg = J1939.J1939Message()
+    msg.msg = msg_bytes
+    if len(msg_bytes) < 6: # load w/ expected value
+        msg_bytes += b'\x00' * (6 - len(msg_bytes))
+    assert not msg.isEcho()
+    assert msg.timestamp_bytes() == b'\x00\x00\x00\x00'
+    assert msg.timestamp == 0
+    assert msg.isRequest() == (pgn_ex & 0x00FF00 == 0x00EA00)
+    assert msg.msg == msg_bytes == bytes(msg) == sanitize_msg_param(msg)
+    assert msg.res == res_ex
+    assert msg.dp == dp_ex
+    assert msg.pgn == pgn_ex
+    assert msg.da == da_ex
+    assert msg.sa == sa_ex
+    assert msg.pri == pri_ex
+    assert msg.data == data_ex
+    assert msg.size == size_ex
+    assert msg.how == how_ex
+    assert msg.pf() == (pgn_ex & 0x00FF00) >> 8
+    assert msg.ps() == pgn_ex & 0x0000FF
+    if msg.pf() < 0xF0: # pdu1
+        assert msg.pdu() == 1
+        assert msg.ps() == da_ex
+    else: # pdu2
+        assert msg.pdu() == 2
+    assert int(msg) == int.from_bytes(bytes(msg), 'big')
+    assert str(msg) == str(msg.msg) == str(msg_bytes)
+    assert len(msg) == len(msg.msg) == len(msg_bytes)
+    assert msg == msg.msg == bytes(msg) == msg_bytes
+    if msg.data:
+        assert msg
+    else:
+        assert not bool(msg)
+    for x in range(len(msg_bytes)):
+        assert msg[x] == msg_bytes[x] == msg.msg[x]
+
 @pytest.mark.parametrize("msg_bytes", argvalues=[
     b'', 0, 21354325342534, b'\x00\x00\x00\x00', b'\xBC\xAA\x00\x03\xBF\x12'
 ])
@@ -268,6 +318,12 @@ def test_J1939Message_size():
         assert msg
         assert msg.size == x
         assert len(msg) == 6 + x
+    msg = J1939.J1939Message(data=b'\xFF\xFF\xFF\xFF', size=2)
+    assert msg.data == b'\xFF\xFF'
+    msg = J1939.J1939Message(data=b'\xAB\xCD\x12\x34', size=2)
+    assert msg.data == b'\xAB\xCD'
+    msg = J1939.J1939Message(data=b'\xAB\xCD\x12\x34', size=6)
+    assert msg.data == b'\xAB\xCD\x12\x34\xFF\xFF'
     
 @pytest.mark.parametrize("pgn, da, sa, data", [
     #   PGN     DA      SA      DATA
@@ -374,3 +430,21 @@ def test_J1939Message_pgn_da_res_dp():
 
     msg.msg = msg.msg
     run_check(msg, 0x3EE2A, 0x2A, 1, 1) # nothing should have changed
+
+@pytest.mark.parametrize("sa", argvalues=[
+    0, 1, 2, 3, 0xFF, b'\x00', b'\x01', b'\xFF'
+])
+def test_J1939Message_sa(sa):
+    """Test sa property."""
+    sa_expected = int.from_bytes(sanitize_msg_param(sa), 'big')
+    msg = J1939.J1939Message()
+    assert msg.sa == 0xFF
+    msg.sa = sa
+    assert msg.sa == sa_expected
+    assert msg.msg[4] == sa_expected
+    assert msg[4] == sa_expected
+    msg = J1939.J1939Message(sa=sa)
+    assert msg.sa == sa_expected
+    assert msg.msg[4] == sa_expected
+    assert msg[4] == sa_expected
+

@@ -326,6 +326,8 @@ class J1939Message():
             self._data = sanitize_msg_param(self._data)
             if len(self._data) < size:
                 self._data += b'\xFF' * (size - len(self._data)) # fill with 0xFF based on size
+            elif len(self._data) > size:
+                self._data = self._data[:size]
         else: # covers when data is not set and/or when RP1210_ReadMessage_bytes doesn't set it
             self._data = b'' + b'\xFF' * size # fill with 0xFF based on size
         # distribute properties
