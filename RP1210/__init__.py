@@ -49,7 +49,7 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
         try:
             return sanitize_msg_param(bytes(param), num_bytes, byteorder)
         except Exception:
-            raise TypeError('sanitize_msg_param() param must be int, bool, str, or bytes', param)
+            raise TypeError('Invalid type used for sanitize_msg_param():', param)
     
 
 # Import everything from RP1210.py

@@ -330,6 +330,8 @@ class J1939Message():
                 self._data = self._data[:size]
         else: # covers when data is not set and/or when RP1210_ReadMessage_bytes doesn't set it
             self._data = b'' + b'\xFF' * size # fill with 0xFF based on size
+        if not isinstance(self._pri, int):
+            self._pri = int.from_bytes(sanitize_msg_param(self._pri, 1), 'big')
         # distribute properties
         self._assign_from_pgn(assign_da=self._da is None) # only assign to DA if DA is none
         self._assign_to_pgn()
@@ -544,19 +546,20 @@ class J1939Message():
 
     def __setitem__(self, index : int, val):
         if index >= len(self._msg):
-            raise IndexError("Attempted to modify byte in J1939Message that doesn't exist!")
+            self.size = index - 5
         new_msg = b''
         for x in range(len(self._msg)):
             if x == index:
                 new_msg += sanitize_msg_param(val, 1)
             else:
-                new_msg += self._msg[x]
+                new_msg += int.to_bytes(self._msg[x], 1, 'big')
         self._msg = new_msg
         self._assign_from_msg()
 
     def __iadd__(self, val):
         self._msg += sanitize_msg_param(val, 1)
         self._assign_from_msg()
+        return self
 
     def __bytes__(self) -> bytes:
         return self._msg
@@ -573,7 +576,7 @@ class J1939Message():
     def __eq__(self, other) -> bool:
         try:
             return self._msg == sanitize_msg_param(other)
-        except Exception:
+        except TypeError:
             return False
 
     def __bool__(self) -> bool:

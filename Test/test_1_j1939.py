@@ -238,7 +238,7 @@ def test_J1939Message_parsing(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, d
     if msg.data:
         assert msg
     else:
-        assert not bool(msg)
+        assert not msg
     for x in range(len(msg_bytes)):
         assert msg[x] == msg_bytes[x] == msg.msg[x]
 
@@ -288,7 +288,7 @@ def test_J1939Message_msg(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, dp_ex
     if msg.data:
         assert msg
     else:
-        assert not bool(msg)
+        assert not msg
     for x in range(len(msg_bytes)):
         assert msg[x] == msg_bytes[x] == msg.msg[x]
 
@@ -313,6 +313,11 @@ def test_J1939Message_size():
         assert msg
         assert msg.size == x
         assert len(msg) == 6 + x
+    for x in reversed(range(1, 16)):
+        msg.size = x
+        assert msg
+        assert msg.size == x
+        assert len(msg) == 6 + x
     for x in range(1, 16):
         msg.data = b'\xFF' * x
         assert msg
@@ -324,6 +329,14 @@ def test_J1939Message_size():
     assert msg.data == b'\xAB\xCD'
     msg = J1939.J1939Message(data=b'\xAB\xCD\x12\x34', size=6)
     assert msg.data == b'\xAB\xCD\x12\x34\xFF\xFF'
+    msg.size = b'\x02'
+    assert msg.data == b'\xAB\xCD'
+    assert len(msg.data) == 2
+    assert msg.size == 2
+    msg.size = b'\x04'
+    assert msg.data == b'\xAB\xCD\xFF\xFF'
+    assert len(msg.data) == 4
+    assert msg.size == 4
     
 @pytest.mark.parametrize("pgn, da, sa, data", [
     #   PGN     DA      SA      DATA
@@ -448,3 +461,47 @@ def test_J1939Message_sa(sa):
     assert msg.msg[4] == sa_expected
     assert msg[4] == sa_expected
 
+@pytest.mark.parametrize("pri,how", argvalues=[
+    (0, 0), (0, 1), (3, 0), (6, 1),
+    (0, False), (0, True), (3, False), (6, True),
+    (b'\x00', 0), (b'\x00', 1), (b'\x03', 0), (b'\x06', 1),
+])
+def test_J1939Message_pri_how(pri, how):
+    msg = J1939.J1939Message()
+    msg.pri = pri
+    msg.how = how
+    assert msg.pri == int.from_bytes(sanitize_msg_param(pri, 1), 'big')
+    assert msg.how == int(how)
+    assert msg.msg[3] == msg[3] == sanitize_msg_param(pri, 1)[0] & 0b111 + ((sanitize_msg_param(how, 1)[0] & 0b1) << 7)
+    msg = J1939.J1939Message(pri=pri, how=how)
+    assert msg.pri == int.from_bytes(sanitize_msg_param(pri, 1), 'big')
+    assert msg.how == int(how)
+    assert msg.msg[3] == msg[3] == sanitize_msg_param(pri, 1)[0] & 0b111 + ((sanitize_msg_param(how, 1)[0] & 0b1) << 7)
+
+def test_J1939Message_list():
+    """Test J1939Message when treated as a list."""
+    msg = J1939.J1939Message()
+    msg[0] = 0x22
+    msg[1] = 0xAB
+    msg[2] = 0x00
+    msg[3] = 3
+    msg[4] = 0x11
+    msg[5] = 0x22
+    assert msg.pgn == 0xAB22
+    assert msg.pri == 3
+    assert msg.sa == 0x11
+    assert msg.da == 0x22
+    assert msg.data == b''
+    msg[6] = 0xFF
+    assert msg.data == b'\xFF'
+    msg += 0x11
+    assert msg.data == b'\xFF\x11'
+
+def test_J1939Message_eq_noexception():
+    """Makes sure __eq__ evaluates to False on TypeError"""
+    msg = J1939.J1939Message()
+    assert not msg == "adsfasdf"
+    assert not msg == bool
+    assert not msg == ""
+    assert not msg == []
+    assert not msg == b'asdfasf'
