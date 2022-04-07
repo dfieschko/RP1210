@@ -692,7 +692,7 @@ class DiagnosticMessage():
             self.lamps = b'\x00\x00' # intentionally assign to property
         elif len(self._data) == 1:
             self.lamps = self._data + b'\x00' # intentionally assign to property
-        elif len(self._data) >= 2:
+        else:
             self._lamps = self._data[0:2]
 
     def _assign_codes(self):
@@ -745,8 +745,8 @@ class DiagnosticMessage():
     def __eq__(self, other) -> bool:
         """Returns True if diagnostic message data is exactly equal to some other data."""
         try:
-            return sanitize_msg_param(other) == sanitize_msg_param(self._data)
-        except Exception:
+            return sanitize_msg_param(other) == self._data
+        except TypeError:
             return False
 
     #endregion
@@ -774,10 +774,7 @@ class DiagnosticMessage():
             elif isinstance(new_codes[0], DTC):
                 self._codes = new_codes
             else:
-                self._codes = [] #type: list[DTC]
-                self._data = self._data[0:2]
-                for element in new_codes:
-                    self += element
+                raise ValueError("Invalid value assigned to DiagnosticMessage codes property.")
         else:
             self._codes = self.to_dtcs(b'\x00\x00' + sanitize_msg_param(new_codes))
         self._assign_data()

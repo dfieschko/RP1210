@@ -152,6 +152,8 @@ def test_diagnosticmessage_to_dtcs():
     assert dtc2.data == toDTC(dtc2.spn, dtc2.fmi, dtc2.oc) # make sure dtc2 is ok
     assert dtc_list[0] == bytes(dtc1)
     assert dtc_list[1] == bytes(dtc2)
+    dtc_list = DiagnosticMessage.to_dtcs(b'\x72\x00' + bytes(dtc1) + bytes(dtc2) + b'\x00\x00')
+    assert len(dtc_list) == 2 # didn't add the trailing zeros
 
 def test_diagnosticmessage_items():
     lamps = int.to_bytes(0b01110010, 2, 'little')
@@ -172,6 +174,11 @@ def test_diagnosticmessage_items():
     dm1[0] = dm1[1]
     assert sanitize_msg_param(dm1[0]) == sanitize_msg_param(dm1[1])
     assert dm1[0] == dm1[1]
+    dm1 += dtc1.data
+    assert dm1[2] == dtc1
+
+    dm1[0] = b'\x12\x34\x56\x78'
+    assert dm1[0] == DTC(b'\x12\x34\x56\x78')
 
 def test_diagnosticmessage_lamps():
     lamps = int.to_bytes(0b01110010, 2, 'little')
@@ -206,6 +213,12 @@ def test_diagnosticmessage_lamps():
     assert dm1.lamps == b'\x12\x00'
     dm1.lamps = b'\x12\x34'
     assert dm1.lamps == b'\x12\x34'
+    dm1.data = b''
+    assert dm1.lamps == b'\x00\x00'
+    dm1.data = b'\x11'
+    assert dm1.lamps == b'\x11\x00'
+    dm1.data = b'\x11\x22'
+    assert dm1.lamps == b'\x11\x22'
 
 def test_diagnosticmessage_codes():
     lamps = int.to_bytes(0b01110010, 2, 'little')
@@ -234,7 +247,16 @@ def test_diagnosticmessage_codes():
     assert dm1.codes[0] == dtc1
     assert dm1.codes[1] == dtc2
 
-def test_diagnosticmessage_iadd():
+    dm1.codes = []
+    assert dm1.codes == []
+
+    with pytest.raises(ValueError):
+        dm1.codes = ["dasfasdf"]
+    
+    dm1.codes = 0x11223344
+    assert dm1.codes[0] == b'\x11\x22\x33\x44'
+
+def test_diagnosticmessage_iadd_eq():
     lamps = int.to_bytes(0b01110010, 2, 'little')
     dtc1 = DTC(spn=0xEED, fmi=4, oc=22)
     dtc2 = DTC(spn=432, fmi=6, oc=1)
@@ -260,6 +282,10 @@ def test_diagnosticmessage_iadd():
     assert dm1[0] == dtc1
     assert dm1[1] == dtc2
     assert dm1[2] == dtc1
+
+    assert dm1 != ""
+    assert dm1 != int
+    assert dm1 != 34234234
 
 def test_diagnosticmessage_conversion():
     lamps = int.to_bytes(0b01110010, 2, 'little')
