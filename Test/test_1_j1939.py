@@ -194,7 +194,6 @@ def test_J1939Message_echo(byte5, echo, expected):
     """Tests echo parameter with isEcho()."""
     msg = b'\x00\x00\x00\x00' + byte5 + b'\x00\x00\x00\x00\x00\x00'
     assert J1939.J1939Message(msg, echo=echo).isEcho() == expected
-    # message with echo
 
 @pytest.mark.parametrize("msg_bytes,pgn_ex,da_ex,sa_ex,pri_ex,res_ex,dp_ex,data_ex,size_ex,how_ex", argvalues=[
     # MSG BYTES                             PGN EXP.    DA      SA      PRI RES DP  DATA            SIZE    HOW
@@ -242,6 +241,33 @@ def test_J1939Message_parsing(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, d
         assert not bool(msg)
     for x in range(len(msg_bytes)):
         assert msg[x] == msg_bytes[x] == msg.msg[x]
+
+@pytest.mark.parametrize("msg_bytes", argvalues=[
+    b'', 0, 21354325342534, b'\x00\x00\x00\x00', b'\xBC\xAA\x00\x03\xBF\x12'
+])
+def test_J1939Message_parsing_incomplete(msg_bytes):
+    """Tests J1939Message when initialized with incomplete information."""
+    msg = J1939.J1939Message(msg_bytes)
+    assert not msg # the most important thing is that it evaluates to False
+    assert msg.size == 0
+    assert msg.data == b''
+
+def test_J1939Message_size():
+    """Tests J1939Message's size parameter."""
+    msg = J1939.J1939Message()
+    assert not msg
+    assert msg.size == 0
+    assert len(msg) == 6
+    for x in range(1, 16):
+        msg.size = x
+        assert msg
+        assert msg.size == x
+        assert len(msg) == 6 + x
+    for x in range(1, 16):
+        msg.data = b'\xFF' * x
+        assert msg
+        assert msg.size == x
+        assert len(msg) == 6 + x
     
 @pytest.mark.parametrize("pgn, da, sa, data", [
     #   PGN     DA      SA      DATA
@@ -252,7 +278,7 @@ def test_J1939Message_parsing(msg_bytes, pgn_ex, da_ex, sa_ex, pri_ex, res_ex, d
     (   None,   None,   None,   None),
     (   None,   None,   None,   b'\xFF\xEF\xDF'),
 ])
-def test_J1939Message_init_params(pgn, da, sa, data):
+def test_J1939Message_init_params_with_none(pgn, da, sa, data):
     """Make sure that no properties are left None when not provided."""
     msg = J1939.J1939Message(pgn=pgn, da=da, sa=sa, data=data)
     assert msg.pgn is not None
@@ -273,7 +299,7 @@ def test_J1939Message_init_params(pgn, da, sa, data):
     assert msg.isRequest() is not None
 
 
-def test_j1939message_parsing_invalid_length():
+def test_J1939Message_parsing_invalid_length():
     """Test J1939Message with invalid length. J1939Message should fill missing bytes with 0x00."""
     for x in range(1, 10):
         msg_bytes = sanitize_msg_param(0xff, x) # generate bytes w/ length of x
@@ -283,8 +309,68 @@ def test_j1939message_parsing_invalid_length():
         assert msg.timestamp == int.from_bytes(msg_bytes_ext[:4], 'big')
         assert msg.timestamp_bytes() == msg_bytes_ext[:4]
 
-def test_j1939message_generation():
-    """
-    Runs a parametrized sequence of tests on J1939Message class when instantiated from the output of
-    RP1210_ReadMessage.
-    """
+@pytest.mark.parametrize("pgn, da", argvalues=[
+    (0x000000, 0x00), (0x03FFFF, 0xFF), (0x0000FF, 0x00), (0x000000, 0xFF), (0x030000, 0x00),
+    (0x030000, 0xFF), (0x00FF00, 0xAA), (0x00FFFF, 0xAA), (0x00F004, 0x1A), (0x00F004, None),
+    (0x00FDA1, None), (0x00B100, 0x4A), (0x00B100, None), (0x01EB00, None), (0x01EBFF, None),
+    (b'\x00\x00\x00', b'\x00'), (b'\xff\xff\x03', 0xFF), (b'\xFF\x00\x00', 0x00)
+])
+def test_J1939Message_init_from_pgn_da(pgn, da):
+    """Test J1939Message when initialized from PGN and DA."""
+    msg = J1939.J1939Message(pgn=pgn, da=da)
+    if pgn is None:
+        pgn = msg.pgn
+    elif isinstance(pgn, bytes):
+        pgn = int.from_bytes(pgn, 'little')
+    if da is None:
+        da = msg.da
+    elif isinstance(da, bytes):
+        da = int.from_bytes(da, 'big')
+    assert msg.pf() == (pgn & 0x00FF00) >> 8
+    if pgn & 0x00FF00 < 0x00F000:
+        assert msg.da == da
+        assert msg.ps() == da
+        assert msg.pgn & 0xFF == da
+        assert msg.pdu() == 1
+    else:
+        assert msg.da == 0xFF
+        assert msg.ps() == pgn & 0xFF == msg.pgn & 0xFF
+        assert msg.pgn == pgn
+        assert msg.pdu() == 2
+    assert msg.dp == (pgn >> 16) & 0b1
+    assert msg.res == (pgn >> 17) & 0b1
+
+def test_J1939Message_pgn_da_res_dp():
+    """Test pgn, da, res, and dp properties."""
+    def run_check(msg : J1939.J1939Message, pgn_expected, da_expected, res_expected, dp_expected):
+        assert hex(msg.pgn) == hex(pgn_expected)
+        assert hex(msg.da) == hex(da_expected)
+        assert msg.res == res_expected
+        assert msg.dp == dp_expected
+        if msg.pdu() == 1:
+            assert msg.ps() == msg.da
+    msg = J1939.J1939Message()
+    msg.pgn = 0x00FF00
+    run_check(msg, 0x00FF00, 0xFF, 0, 0)
+    msg.pgn = b'\x00\xFF\x00'
+    run_check(msg, 0x00FF00, 0xFF, 0, 0)
+
+    msg.da = 0x2A
+    run_check(msg, 0x00FF00, 0xFF, 0, 0) # PDU2, so DA change doesn't take effect
+    msg.da = b'\x2A'
+    run_check(msg, 0x00FF00, 0xFF, 0, 0) # PDU2, so DA change doesn't take effect
+    
+    msg.pgn = 0xEE00
+    run_check(msg, 0xEE00, 0x00, 0, 0) # set to PDU1
+    msg.da = 0x2A
+    run_check(msg, 0xEE2A, 0x2A, 0, 0) # PDU1, so DA change should take effect
+    msg.da = b'\x2A'
+    run_check(msg, 0xEE2A, 0x2A, 0, 0) # PDU1, so DA change should take effect
+
+    msg.res = 1
+    run_check(msg, 0x2EE2A, 0x2A, 1, 0) # changed res
+    msg.dp = 1
+    run_check(msg, 0x3EE2A, 0x2A, 1, 1) # changed dp
+
+    msg.msg = msg.msg
+    run_check(msg, 0x3EE2A, 0x2A, 1, 1) # nothing should have changed

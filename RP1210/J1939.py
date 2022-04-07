@@ -275,39 +275,24 @@ class J1939Message():
     """
     def __init__(self, RP1210_ReadMessage_bytes : bytes = None,
                     pgn : int = None, da : int = None, sa : int = None, data : bytes = None,
-                    pri : int = 6, size : int = 8, how = 0, echo = False) -> None:
+                    pri : int = 6, size : int = 0, how = 0, echo = False) -> None:
         # init everything
         self._msg = b''
         self._pgn = pgn
         self._da = da
-        if sa is None:
-            self._sa = 0xFF # sa defaults to 0xFF if it is never set from anywhere else
-        else:
-            self._sa = sa
+        self._sa = sa
         self._pri = pri
-        if data: # if data is provided, process it
-            self._data = sanitize_msg_param(data)
-            if len(self._data) < size:
-                self._data += b'\xFF' * (size - len(self._data)) # fill with 0xFF based on size
-        else: # covers when data is not set and/or when RP1210_ReadMessage_bytes doesn't set it
-            self._data = b'\xFF' * size # fill with 0xFF based on size
+        self._data = data
         self._res = 0 # reserved bit
         self._dp = 0 # data page bit
         self.timestamp = 0 # will only be overwritten if RP1210_ReadMessage_bytes is provided
         self._isecho = False
         self._how = how
         # process bytes from RP1210_ReadMessage
-        if RP1210_ReadMessage_bytes:
+        if RP1210_ReadMessage_bytes is not None:
             self._assign_from_rp1210_readmessage(RP1210_ReadMessage_bytes, int(echo))
         else: # assign message from pgn, da, sa, pri, size, etc
-            if pgn is None:
-                self._pgn = 0x00FFFF
-            if self._sa is None:
-                self._sa = 0xFF
-            self._assign_from_pgn(assign_da=da is None) # only assign to DA if DA is none
-            self._assign_to_pgn()
-            self._assign_to_msg()
-        # this is a bit messy
+            self._assign_from_params(size)
 
     #####################
     # PROTECTED METHODS #
@@ -324,6 +309,29 @@ class J1939Message():
         if echo and RP1210_ReadMessage_bytes[4] == 0x01:
             self._isecho = True
         self._assign_from_msg()
+
+    def _assign_from_params(self, size):
+        # sanitize input
+        if self._sa is None:
+            self._sa = 0xFF # sa defaults to 0xFF if it is never set from anywhere else
+        elif not isinstance(self._sa, int):
+            self._sa = int.from_bytes(sanitize_msg_param(self._sa), 'big')
+        if self._da is not None and not isinstance(self._da, int):
+            self._da = int.from_bytes(sanitize_msg_param(self._da), 'big')
+        if self._pgn is None:
+            self._pgn = 0x000000
+        elif not isinstance(self._pgn, int): # we want it to work with e.g. msg.pgn = msg_bytes[4:7]
+            self._pgn = int.from_bytes(sanitize_msg_param(self._pgn, 3), 'little')
+        if self._data is not None: # if data is provided, process it
+            self._data = sanitize_msg_param(self._data)
+            if len(self._data) < size:
+                self._data += b'\xFF' * (size - len(self._data)) # fill with 0xFF based on size
+        else: # covers when data is not set and/or when RP1210_ReadMessage_bytes doesn't set it
+            self._data = b'' + b'\xFF' * size # fill with 0xFF based on size
+        # distribute properties
+        self._assign_from_pgn(assign_da=self._da is None) # only assign to DA if DA is none
+        self._assign_to_pgn()
+        self._assign_to_msg()
         
     def _assign_from_msg(self):
         """
@@ -394,7 +402,7 @@ class J1939Message():
 
         Setting this property may affect properties `da`, `dp`, and `res`.
 
-        Invalid values for `pgn` may result in garbage.
+        Invalid values for `pgn` may result in wackiness.
         """
         return self._pgn
 
@@ -410,13 +418,18 @@ class J1939Message():
     def da(self) -> int:
         """
         Destination Address. Setting this may or may not update PGN.
+
+        `da` will always equal 0xFF for PDU2 messages.
         
-        Invalid values for `da` may result in garbage.
+        Invalid values for `da` may result in wackiness.
         """
         return self._da
 
     @da.setter
     def da(self, val : int):
+        if self.pdu() != 1: # only change DA if message is destination specific
+            self._da = 0xFF
+            return
         if not isinstance(val, int):
             val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
         self._da = val & 0xFF
@@ -428,7 +441,7 @@ class J1939Message():
         """
         Source Address.
 
-        Invalid values for `sa` may result in garbage.
+        Invalid values for `sa` may result in wackiness.
         """
         return self._sa
 
