@@ -755,10 +755,10 @@ class RP1210Config(ConfigParser):
     def getPath(self) -> str:
         """Returns absolute path to API config file."""
        
-        if(self._configDir != None):
-            if(os.path.abspath(self._configDir)):
+        if self._configDir is not None:
+            if os.path.abspath(self._configDir):
 
-                if(os.path.isfile(self._configDir)):
+                if os.path.isfile(self._configDir):
                     # [provided absolute path]
                     return self._configDir
                 else:
@@ -766,7 +766,7 @@ class RP1210Config(ConfigParser):
                     return os.path.join(self._configDir, self._api_name + ".ini")
 
             else:
-                if(os.path.isfile(os.path.join(os.curdir, self._configDir))):
+                if os.path.isfile(os.path.join(os.curdir, self._configDir)):
                     # [current directory] + [provided relative path]
                     return os.path.join(os.curdir, self._configDir)
                 else:
@@ -812,18 +812,18 @@ class RP1210API:
         load DLL corresponding to self._api_name from that directory. If a working directory is not provided at
         initialization of RP1210API(), will assume relative to launch path.
         """
-        if(self._libDir != None):
+        if self._libDir is not None:
             path = ""
-            if(not os.path.isabs(self._libDir)):
+            if not os.path.isabs(self._libDir):
                 # If path given is relative, get the working directory
-                if(self._libDir != None):
+                if self._libDir is not None:
                     path += self._libDir
                 else:
                     path += os.path.abspath(os.curdir)
 
             path += self._libDir
                 
-            if(not os.path.isfile(path)):
+            if not os.path.isfile(path):
                 # Append API name to complete path
                 path += self._api_name + ".dll"
             try:
@@ -838,7 +838,7 @@ class RP1210API:
                 try:
                     path = self._api_name + ".dll"
                     dll = cdll.LoadLibrary(path)
-                except WindowsError:
+                except OSError:
                     # Try "DLL installed in wrong directory" band-aid
                     path = self.__get_dll_path_aux()
                     dll = cdll.LoadLibrary(path)
