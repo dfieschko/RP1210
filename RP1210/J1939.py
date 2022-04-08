@@ -208,6 +208,14 @@ class DTC():
         ret_val = (ret_val << 8) + ((spn >> 11 & 0b11100000) | (fmi & 0b00011111))
         ret_val = (ret_val << 8) + (oc & 0b01111111)
         return ret_val
+
+    ##################
+    # PUBLIC METHODS #
+    ##################
+
+    def cm(self) -> int:
+        return self.get_cm(self.data)
+
     #endregion
 
 class J1939Message():

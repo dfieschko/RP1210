@@ -85,22 +85,26 @@ def test_dtc_properties():
         assert dtc.spn == spn
         assert dtc.fmi == fmi
         assert dtc.oc == oc
+        assert dtc.cm() == 0
         # change properties, check that it changes data
         dtc.spn = 0
         assert dtc.data == toDTC(0, fmi, oc)
         assert dtc.spn == 0
         assert dtc.fmi == fmi
         assert dtc.oc == oc
+        assert dtc.cm() == 0
         dtc.fmi = 0
         assert dtc.data == toDTC(0, 0, oc)
         assert dtc.spn == 0
         assert dtc.fmi == 0
         assert dtc.oc == oc
+        assert dtc.cm() == 0
         dtc.oc = 0
         assert dtc.data == toDTC(0, 0, 0)
         assert dtc.spn == 0
         assert dtc.fmi == 0
         assert dtc.oc == 0
+        assert dtc.cm() == 0
         # data should be 0 now
         assert dtc.data == b'\x00\x00\x00\x00'
         # change data, check that it changes properties
