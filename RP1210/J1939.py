@@ -68,6 +68,21 @@ class DTC():
 
     Properties `data`, `spn`, `fmi`, and `oc` are all intelligently handled with setters. This means you
     can e.g. set `dtc.spn = 321`, and `dtc.data` will be updated accordingly.
+    ---
+    Params:
+    - `dtc` : 4-byte code representing DTC data (bytes)
+    - `spn` : Suspect Parameter Number (int)
+    - `fmi` : Failure Mode Identifier (int)
+    - `oc` : Occurrence Count (int)
+    ---
+    Accessible Properties:
+    - `data` : 4-byte code representing DTC data (bytes)
+    - `spn` : Suspect Parameter Number (int)
+    - `fmi` : Failure Mode Identifier (int)
+    - `oc` : Occurrence Count (int)
+    ---
+    Functions:
+    - `cm()` : returns Conversion Method bit from DTC bytes (int)
     """
 
     def __init__(self, dtc : bytes = None, spn = 0, fmi = 0, oc = 0) -> None:
