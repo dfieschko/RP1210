@@ -135,6 +135,16 @@ def test_dtc_dunder(spn, fmi):
     assert dtc
     assert not DTC(None, 0, 0, 0)
     assert int(dtc) == int.from_bytes(bytes(dtc), byteorder='big')
+    dtc[0] = b'\x11'
+    dtc[1] = 0xFF
+    assert dtc[0] == 0x11
+    assert dtc.data[0] == 0x11
+    assert dtc[1] == 0xFF
+    assert dtc.data[1] == 0xFF
+    assert dtc.data[0] == 0x11
+    old_data = dtc.data
+    dtc[20] = "dingus"
+    assert dtc.data == old_data # setting byte 20 shouldn't change the DTC
 
 def test_dm_init():
     timestamp = b'\x12\x34\x56\x78'

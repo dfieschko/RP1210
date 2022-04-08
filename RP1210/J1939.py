@@ -133,6 +133,19 @@ class DTC():
     ##################
     #region dundermethods
 
+    def __getitem__(self, index : int):
+        return self.data[index]
+
+    def __setitem__(self, index : int, val):
+        new_data = b''
+        for x in range(len(self.data)):
+            if index == x:
+                new_data += sanitize_msg_param(val, 1)
+            else:
+                new_data += sanitize_msg_param(self.data[x], 1)
+        self.data = new_data
+            
+
     def __iadd__(self, val : int):
         """Overload += so OC can be incremented directly."""
         oc = min(self.oc + val, 126) # limit to 126
