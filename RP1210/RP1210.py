@@ -659,8 +659,8 @@ class RP1210Config(ConfigParser):
         try:
             deviceList = [] #type: list[RP1210Device]
             deviceIDs = self.getDeviceIDs()
-            for id in deviceIDs:
-                section = self["DeviceInformation" + str(id)]
+            for device_num in deviceIDs:
+                section = self["DeviceInformation" + str(device_num)]
                 deviceList.append(RP1210Device(section))
             return deviceList
         except Exception:
@@ -720,12 +720,12 @@ class RP1210Config(ConfigParser):
         Returns [] if no protocols are found.
         """
         try:
-            ids = self.getProtocolIDs()
-            if not ids:
+            protocol_ids = self.getProtocolIDs()
+            if not protocol_ids:
                 return []
             strings = []
-            for id in ids:
-                strings.append(self.getProtocol(id).getString())
+            for protocol_num in protocol_ids:
+                strings.append(self.getProtocol(protocol_num).getString())
             return strings
         except Exception:
             return []
@@ -1695,4 +1695,3 @@ class RP1210Client(RP1210VendorList):
         cmd_data = Commands.setCANBaud(baud_code, wait_for_msg)
         cmd_size = 2
         return self.command(cmd_num, cmd_data, cmd_size) & 0xFFFF
-
