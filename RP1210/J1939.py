@@ -138,11 +138,13 @@ class DTC():
 
     def __setitem__(self, index : int, val):
         new_data = b''
-        for x in range(len(self.data)):
+        for x in range(4):
             if index == x:
                 new_data += sanitize_msg_param(val, 1)
-            else:
+            elif len(self.data) > x:
                 new_data += sanitize_msg_param(self.data[x], 1)
+            else:
+                new_data += b'\x00'
         self.data = new_data
             
 

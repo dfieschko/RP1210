@@ -145,6 +145,9 @@ def test_dtc_dunder(spn, fmi):
     old_data = dtc.data
     dtc[20] = "dingus"
     assert dtc.data == old_data # setting byte 20 shouldn't change the DTC
+    dtc.data = b'\x11\x22'
+    dtc[3] = 0x44
+    assert dtc.data == b'\x11\x22\x00\x44'
 
 def test_dm_init():
     timestamp = b'\x12\x34\x56\x78'
