@@ -840,7 +840,7 @@ class RP1210API:
                     dll = cdll.LoadLibrary(path)
                 except OSError:
                     # Try "DLL installed in wrong directory" band-aid
-                    path = self.__get_dll_path_aux()
+                    path = self._get_dll_path_aux()
                     dll = cdll.LoadLibrary(path)
                 self.setDLL(dll)
                 return dll
@@ -876,7 +876,7 @@ class RP1210API:
         try:
             self.dll = dll
             if self.dll: # check it's not None
-                self.__init_functions()
+                self._init_functions()
                 self._api_valid = True
             else:
                 self._api_valid = False
@@ -900,7 +900,7 @@ class RP1210API:
         """
         clientID = self.getDLL().RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
                                                 RcvBufferSize, isAppPacketizingincomingMsgs)
-        return self.__driver_clientid_fix(clientID)
+        return self._driver_clientid_fix(clientID)
     
     def ClientDisconnect(self, ClientID : int) -> int:
         """
@@ -1102,7 +1102,7 @@ class RP1210API:
             MessageSize = len(ClientCommand)
         return self.getDLL().RP1210_SendCommand(CommandNumber, ClientID, ClientCommand, MessageSize) & 0xFFFF
 
-    def __init_functions(self):
+    def _init_functions(self):
         """Give Python type hints for interfacing with the DLL."""
         self.dll.RP1210_ClientConnect.argtypes = [c_long, c_short, c_char_p, c_long, c_long, c_short]
         self.dll.RP1210_ClientDisconnect.argtypes = [c_short]
@@ -1120,14 +1120,14 @@ class RP1210API:
         except Exception: # RP1210C functions not supported
             self._conforms_to_rp1210c = False
 
-    def __get_dll_path_aux(self) -> str:
+    def _get_dll_path_aux(self) -> str:
         """
         Some adapter vendors (looking at you, Actia) install their drivers in the wrong directory.
         This function returns the dll path in that directory.
         """
         return os.path.join(os.environ["WINDIR"], self._api_name + ".dll")
 
-    def __driver_clientid_fix(self, clientID) -> int:
+    def _driver_clientid_fix(self, clientID) -> int:
         """
         Noregon DLA2 adapters have an issue where they return a bunch of garbage along with the
         ClientID when calling ClientConnect. This is the fix for that.
@@ -1138,7 +1138,7 @@ class RP1210API:
         if clientID < 0: # some functions return negative value for error code
             clientID *= -1
         clientID &= 0xFFFF # Noregon can add garbage to leading bytes
-        if clientID > 0x8000:
+        if clientID > 0x8000: # catches 2's complement unsigned ints
             clientID = 0xFFFF - clientID
         if self._api_name == "PEAKRP32" and clientID > 64:
             # PCAN drivers give invalid ClientID if it equals 114 (but cover wider range for safety) 
