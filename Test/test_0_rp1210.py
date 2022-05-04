@@ -225,3 +225,34 @@ def test_rp1210client_populate_logic():
         print(err)
         vendors = []
     assert vendors != []
+
+@pytest.mark.parametrize("input,expected",[
+    (0, 0), (1, 1), (2, 2), (-1, 1), (-2, 2), (128, 128), (-128, 128), (0x10FA3, 0x0FA3),
+    (-0x10FA3, 0x0FA3), (0xFFFF, 0), (0xFFFE, 1), (0xFFFD, 2), (-0xFFFD, 2), (-0xFFFFD, 2)
+])
+def test_driver_clientid_fix(input, expected):
+    """Tests _driver_clientid_fix function in RP1210API."""
+    class TestAPI(RP1210.RP1210API): # gotta make _driver_clientid_fix public
+        def __init__(self, api_name: str, WorkingAPIDirectory: str = None) -> None:
+            super().__init__(api_name, WorkingAPIDirectory)
+    
+        def fix(self, val : int):
+            return self._driver_clientid_fix(val)
+
+    api = TestAPI("test")
+    assert api.fix(input) == expected
+
+@pytest.mark.parametrize("input,expected",[
+    (114, 129), (0,0), (-0xFFFF, 0), (-0xFFFE, 1)
+])
+def test_driver_clientid_fix_PEAKRP32(input, expected):
+    """Tests _driver_clientid_fix function in RP1210API when using PEAKRP32 API."""
+    class TestAPI(RP1210.RP1210API):
+        def __init__(self, api_name: str, WorkingAPIDirectory: str = None) -> None:
+            super().__init__(api_name, WorkingAPIDirectory)
+    
+        def fix(self, val : int):
+            return self._driver_clientid_fix(val)
+
+    api = TestAPI("PEAKRP32")
+    assert api.fix(input) == expected
