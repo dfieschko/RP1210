@@ -243,7 +243,7 @@ def test_driver_clientid_fix(input, expected):
     assert api.fix(input) == expected
 
 @pytest.mark.parametrize("input,expected",[
-    (114, 129), (0,0)
+    (114, 129), (0,0), (-0xFFFF, 0), (-0xFFFE, 1)
 ])
 def test_driver_clientid_fix_PEAKRP32(input, expected):
     """Tests _driver_clientid_fix function in RP1210API when using PEAKRP32 API."""

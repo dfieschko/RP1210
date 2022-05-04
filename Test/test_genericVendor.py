@@ -141,16 +141,21 @@ def test_Devices(api_name : str):
         with pytest.raises(TypeError):
             assert device != "dingus"
 
-@pytest.mark.parametrize("api_name", argvalues=API_NAMES +INVALID_API_NAMES)
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES + INVALID_API_NAMES)
 def test_Protocols(api_name : str):
     config = configparser.ConfigParser()
     utility = RP1210ConfigTestUtility(config)
     rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     protocolIDs = rp1210.getProtocolIDs()
+    assert rp1210.getProtocol("test protocol name") is None
+    if not api_name in INVALID_API_NAMES:
+        assert protocolIDs
     for id in protocolIDs:
         protocol = rp1210.getProtocol(id)
         name = protocol.getString()
+        protocolFromString = rp1210.getProtocol(name)
+        assert protocolFromString.getString() == name
         assert name in rp1210.getProtocolNames()
         assert rp1210.getProtocol(name).getString() == name
         utility.verifyprotocoldata(protocol.getDescription, id, "ProtocolDescription")
