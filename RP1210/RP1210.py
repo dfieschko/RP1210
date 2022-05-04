@@ -1135,18 +1135,15 @@ class RP1210API:
         PCAN adapters also have an issue when trying to connect to adapters that aren't plugged in,
         so they get to join the hall of shame.
         """
-        if not self.__is_valid_clientid(clientID):
-            # cid = int(hex(clientID)[5:], 16) # snip off first 5 hex characters, translate back to int
-            cid = clientID & 0xFFFF
-            if self.__is_valid_clientid(cid):
-                clientID = cid
+        if clientID < 0: # some functions return negative value for error code
+            clientID *= -1
+        clientID &= 0xFFFF # Noregon can add garbage to leading bytes
+        if clientID > 0x8000:
+            clientID = 0xFFFF - clientID
         if self._api_name == "PEAKRP32" and clientID > 64:
             # PCAN drivers give invalid ClientID if it equals 114 (but cover wider range for safety) 
             clientID = 129  # ERR_INVALID_CLIENT_ID
         return clientID
-    
-    def __is_valid_clientid(self, clientID) -> bool:
-        return clientID in RP1210_ERRORS or (0 <= clientID < 128)
 
 class RP1210VendorList:
     """
