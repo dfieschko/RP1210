@@ -5,28 +5,44 @@ class RP1210ConfigTestUtility():
     def __init__(self, config : configparser.ConfigParser):
         self._config = config
 
-    def verifydata(self, func, section : str, field : str):
+    def verifydata(self, func, section : str, field : str, fallback=None):
         """
         Used to assist in testing by testing standard config information
         Usage:
             assert TestUtility.verifydata([function to test], [section], "[field]")
         """
-        if not self._config.has_option(section, field):
-            assert func() in ("", None, [], False, 0, 1, -1, 1024, "(Vendor Name Missing)")
-            return
+        # if not self._config.has_option(section, field):
+        #     assert func() in ("", None, [], False, 0, 1, -1, 1024, "(Vendor Name Missing)")
+        #     return
+        func_return = func()
     
         retType = func.__annotations__["return"]
         if retType is str:
-            assert func() == self._config.get(section, field)
+            if fallback is None:
+                fallback = ""
+            val = self._config.get(section, field, fallback=fallback)
+            assert func_return == val
         
         elif retType is bool:
-            assert func() == self._config.getboolean(section, field)
+            try:
+                val = self._config.getboolean(section, field)
+            except:
+                val = fallback
+            assert func_return == val
 
         elif retType is int:
-            assert func() == self._config.getint(section, field)
+            try:
+                val = self._config.getint(section, field)
+            except: # not RP1210 package's fault if ConfigParser failed to retrieve value
+                val = fallback
+            assert func_return == val
 
         elif retType is float:
-            assert func() == self._config.getfloat(section, field)
+            try:
+                val = self._config.getfloat(section, field)
+            except: # not RP1210 package's fault if ConfigParser failed to retrieve value
+                val = fallback
+            assert func_return == val
             
         elif retType is list[int]:
             list_vals = self._config.get(section, field).split(',')
@@ -34,7 +50,7 @@ class RP1210ConfigTestUtility():
                 list_vals = list(map(int, list_vals))
             else:
                 list_vals = []
-            assert func() == list_vals
+            assert func_return == list_vals
 
         elif retType is list[str]:
             list_vals = self._config.get(section, field).split(',')
@@ -42,12 +58,12 @@ class RP1210ConfigTestUtility():
                 list_vals = list(map(str, list_vals))
             else:
                 list_vals = []
-            assert func() == list_vals
+            assert func_return == list_vals
 
-    def verifydevicedata(self, func, device_id, field):
+    def verifydevicedata(self, func, device_id, field, fallback=None):
         section = "DeviceInformation" + str(device_id)
-        return self.verifydata(func, section, field)
+        return self.verifydata(func, section, field, fallback)
 
-    def verifyprotocoldata(self, func, protocol_id, field):
+    def verifyprotocoldata(self, func, protocol_id, field, fallback=None):
         section = "ProtocolInformation" + str(protocol_id)
-        return self.verifydata(func, section, field)
+        return self.verifydata(func, section, field, fallback)

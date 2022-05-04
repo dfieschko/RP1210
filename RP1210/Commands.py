@@ -131,10 +131,6 @@ Dict for different broadcast functions.
 - LIST_LENGTH : 5
 """
 
-BAUD_RATES = {
-
-}
-
 def resetDevice():
     """
     Reset Device (0) (0 bytes)
@@ -255,9 +251,6 @@ def protectJ1939Address(address_to_claim, network_mgt_name, blocking = True) -> 
         - See J1939 network management standard!
         - Lowest name takes priority if two devices try to claim the same address
     - blocking (bool) - True will block until done, False will return before completion
-
-    This function automatically sanitizes str, int, and bytes inputs. str are parsed as 10-bit
-    decimals! Use byte strings (b"message") if you want to pass utf-8 characters.
     """
     addr = sanitize_msg_param(address_to_claim, 1)
     name = sanitize_msg_param(network_mgt_name, 8)
@@ -389,33 +382,6 @@ def setJ1939Baud(baud_code : int, wait_for_msg = True):
         wait_msg = b'\x00'
     # return value
     return wait_msg + sanitize_msg_param(baud_code, 1)
-
-def baudCodeToHumanReadable(baud) -> int:
-    try:
-        hexbaud = int((str) (baud), 16) # Hacky way to determine if input given was hex
-        if hexbaud == 0x04:
-            return 125000
-        elif hexbaud == 0x05:
-            return 250000
-        elif hexbaud == 0x06:
-            return 500000
-        elif hexbaud ==0x07:
-            return 1000000
-    except:
-        return baud # Return given value if parsing unsuccesful
-
-def baudHumanReadableToCode(baud):
-        if baud in [125000, 125, '125', '125k', '125000']:
-            return 0x04
-        elif baud in [250000, 250, '250', '250k', '250000']:
-            return 0x05
-        elif baud in [500000, 500, '500', '500k', '500000']:
-            return 0x06
-        elif baud in [1000000, 1000, '1000', '1000000', '1000k']:
-            return 0x07
-        else:
-            return baud # Return original value if parsing unsucessful
-
 
 def setBlockingTimeout(block1 : int, block2 : int):
     """

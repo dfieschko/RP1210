@@ -63,6 +63,7 @@ def test_clientid_translation():
     assert RP1210.translateErrorCode(-128) == "ERR_DLL_NOT_INITIALIZED"
     assert RP1210.translateErrorCode(0x48FFFFF) == "NO_ERRORS"
     assert RP1210.translateErrorCode(0x48FFF7F) == "ERR_DLL_NOT_INITIALIZED"
+    assert RP1210.translateErrorCode("chungus") == "chungus"
 
 def test_RP1210Interface_InvalidAPIName():
     """
@@ -87,13 +88,13 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getVersion() == ""
     assert rp1210.autoDetectCapable() == False
     assert rp1210.getCANAutoBaud() == False
-    assert rp1210.getTimeStampWeight() == None
+    assert rp1210.getTimeStampWeight() == 1.0
     assert rp1210.getMessageString() == ""
     assert rp1210.getErrorString() == ""
     assert rp1210.getRP1210Version() == ""
     assert rp1210.getDebugLevel() == -1
     assert rp1210.getDebugFile() == ""
-    assert rp1210.getDebugMode() == None
+    assert rp1210.getDebugMode() == -1
     assert rp1210.getDebugFileSize() == 1024
     assert rp1210.getNumberOfSessions() == 1
     assert rp1210.getCANFormatsSupported() == []
@@ -102,6 +103,7 @@ def test_RP1210Interface_InvalidAPIName():
     assert rp1210.getProtocolNames() == []
     assert rp1210.getProtocolIDs() == []
     assert rp1210.isValid() == False
+    assert rp1210.getName() == rp1210.getDescription()
 
 def test_InvalidAPIName_Devices_Protocols():
     api_name = "CHUNGLEBUNGUS"
@@ -157,6 +159,11 @@ def test_sanitize_msg_param_bytes():
     assert sanitize_msg_param(b'\x43\x64\xFE\x4A') == b'\x43\x64\xFE\x4A'
     assert sanitize_msg_param(b'\x43\x64\xFE\x4A', 3) == b'\x43\x64\xFE'
     assert sanitize_msg_param(b'\x43\x64\xFE\x4A', 3, 'little') == b'\x4A\xFE\x64'
+    assert sanitize_msg_param(b'\x00\x00\x00') == b'\x00\x00\x00'
+    assert sanitize_msg_param(b'\xFF\xFF\xFF') == b'\xFF\xFF\xFF'
+    assert sanitize_msg_param(b'\xFF\xFF\xFF', 1) == b'\xFF'
+    assert sanitize_msg_param(b'\x01\x02\x03', 1) == b'\x01'
+    assert sanitize_msg_param(b'\x01\x02\x03', 1, 'little') == b'\x03'
     
 def test_sanitize_msg_param_str():
      assert sanitize_msg_param("0") == b'0'

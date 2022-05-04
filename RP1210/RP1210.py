@@ -168,38 +168,6 @@ def getAPINames(rp121032_path : str = None) -> list[str]:
     except Exception:
         return []
 
-def detectMangledConfig(parser : configparser) -> bool:
-    # TODO: Test this, specifically the emptyset
-    '''
-    Detects if the config file is mangled.
-    Checks for empty items, as well as typos in the field
-    '''
-    if(parser.has_option("RP1210Support", "APIImplementations")):
-        items = parser.get("RP1210Support", "APIImplementations").split(",")
-        emptyset = list(filter(lambda x: x == '' or x == ' ', items)) # Filters out empty and blank api names
-        return emptyset == True
-    else:
-        return False
-        
-
-def repairConfig(parser : configparser):
-    # TODO: Test the passes
-    if(not parser.has_option("RP1210Support", "APIImplementations")):
-        search = dict(parser.items('RP1210Support'))
-        for field in search:
-            parser["RP1210Support"]["APIImplementations"] = parser["RP1210Support"][field] # Move API names into proper field
-    parser["RP1210Support"]["APIImplementations_OLD"] = parser["RP1210Support"]["APIImplementations"] # Backs up old section in case we break something and want to roll back
-    items = parser.get("RP1210Support", "APIImplementations").split(",")
-    firstpass = list(filter(lambda x: x != '' or x != ' ', items)) # Filters out empty and blank api names
-
-    secondpass = [] # Remove duplicates
-    for i in firstpass:
-        if i not in secondpass:
-            secondpass.append(i)
-
-    parser["RP1210Support"]["APIImplementations"] = secondpass
-
-
 class RP1210Protocol:
     """
     Stores information for an RP1210 protocol, e.g. info stored in ProtocolInformationXXX sections.
@@ -229,11 +197,7 @@ class RP1210Protocol:
     def getSpeed(self) -> list[str]:
         """Returns ProtocolSpeed parameters as a list of strings."""
         try:
-            speeds = []
-            section_list = str(self.section["ProtocolSpeed"]).split(',')
-            for speed in section_list:
-                speeds.append(speed)
-            return speeds
+            return str(self.section["ProtocolSpeed"]).split(',')
         except Exception:
             return []
 
@@ -262,6 +226,11 @@ class RP1210Protocol:
         except Exception:
             return []
 
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RP1210Protocol):
+            raise TypeError("Tried to compare RP1210Protocol with innappropriate object type.")
+        return self.section == __o.section
+
 class RP1210Device:
     """
     Stores information for an RP1210 device, e.g. info stored in DeviceInformationXXX sections.
@@ -279,7 +248,11 @@ class RP1210Device:
         self.section = section
 
     def getID(self) -> int:
-        """Returns DeviceID parameter as int."""
+        """
+        Returns DeviceID parameter as int.
+        
+        Returns -1 if DeviceID is invalid.
+        """
         try:
             return int(self.section["DeviceID"])
         except Exception:
@@ -330,6 +303,11 @@ class RP1210Device:
         if self.getDescription() != "":
             ret_str += " - " + self.getDescription()
         return ret_str
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RP1210Device):
+            raise TypeError("Tried to compare RP1210Device with innappropriate object type.")
+        return self.section == __o.section
          
 class RP1210Config(ConfigParser):
     """
@@ -395,9 +373,7 @@ class RP1210Config(ConfigParser):
 
         Will return "(Vendor Name Missing)" if the 'Name' field isn't found.
         """
-        if not self.has_option("VendorInformation", "Name"):
-            return "(Vendor Name Missing)"
-        return self.get("VendorInformation", "Name")
+        return self.get("VendorInformation", "Name", fallback="(Vendor Name Missing)")
 
     def getDescription(self) -> str:
         """
@@ -416,9 +392,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Address1"):
-            return ""
-        return self.get("VendorInformation", "Address1")
+        return self.get("VendorInformation", "Address1", fallback="")
 
     def getAddress2(self) -> str:
         """
@@ -426,9 +400,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Address2"):
-            return ""
-        return self.get("VendorInformation", "Address2")
+        return self.get("VendorInformation", "Address2", fallback="")
 
     def getCity(self) -> str:
         """
@@ -436,9 +408,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "City"):
-            return ""
-        return self.get("VendorInformation", "City")
+        return self.get("VendorInformation", "City", fallback="")
 
     def getState(self) -> str:
         """
@@ -446,9 +416,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "State"):
-            return ""
-        return self.get("VendorInformation", "State")
+        return self.get("VendorInformation", "State", fallback="")
 
     def getCountry(self) -> str:
         """
@@ -456,9 +424,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Country"):
-            return ""
-        return self.get("VendorInformation", "Country")
+        return self.get("VendorInformation", "Country", fallback="")
 
     def getPostal(self) -> str:
         """
@@ -466,9 +432,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Postal"):
-            return ""
-        return self.get("VendorInformation", "Postal")
+        return self.get("VendorInformation", "Postal", fallback="")
 
     def getTelephone(self) -> str:
         """
@@ -476,9 +440,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Telephone"):
-            return ""
-        return self.get("VendorInformation", "Telephone")
+        return self.get("VendorInformation", "Telephone", fallback="")
 
     def getFax(self) -> str:
         """
@@ -486,9 +448,7 @@ class RP1210Config(ConfigParser):
 
         Returns an empty string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "Fax"):
-            return ""
-        return self.get("VendorInformation", "Fax")
+        return self.get("VendorInformation", "Fax", fallback="")
 
     def getVendorURL(self) -> str:
         """
@@ -496,9 +456,7 @@ class RP1210Config(ConfigParser):
         
         Returns empty string if VendorURL field isn't found.
         """
-        if not self.has_option("VendorInformation", "VendorURL"):
-            return ""
-        return self.get("VendorInformation", "VendorURL")
+        return self.get("VendorInformation", "VendorURL", fallback="")
 
     def getVersion(self) -> str:
         """
@@ -506,12 +464,7 @@ class RP1210Config(ConfigParser):
         
         Returns empty string if Version field isn't found.
         """
-        if not self.has_option("VendorInformation", "Version"):
-            return ""
-        try:
-            return self.get("VendorInformation", "Version")
-        except (ValueError, KeyError):
-            return ""
+        return self.get("VendorInformation", "Version", fallback="")
 
     def getAutoDetectCapable(self) -> bool:
         """
@@ -519,10 +472,8 @@ class RP1210Config(ConfigParser):
 
         Returns False if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "AutoDetectCapable"):
-            return False
         try:
-            return self.getboolean("VendorInformation", "AutoDetectCapable")
+            return self.getboolean("VendorInformation", "AutoDetectCapable", fallback=False)
         except (ValueError, KeyError):
             return False
 
@@ -540,14 +491,12 @@ class RP1210Config(ConfigParser):
         """
         Returns the 'TimeStampWeight' field in VendorInformation section.
 
-        Returns None if the field isn't found.
+        Returns 1.0 if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "TimeStampWeight"):
-            return None
         try:
-            return self.getfloat("VendorInformation", "TimeStampWeight")
+            return self.getfloat("VendorInformation", "TimeStampWeight", fallback=1.0)
         except (ValueError, KeyError):
-            return None
+            return 1.0
 
     def getMessageString(self) -> str:
         """
@@ -555,9 +504,7 @@ class RP1210Config(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "MessageString"):
-            return ""
-        return self.get("VendorInformation", "MessageString")
+        return self.get("VendorInformation", "MessageString", fallback="")
 
     def getErrorString(self) -> str:
         """
@@ -565,9 +512,7 @@ class RP1210Config(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "ErrorString"):
-            return ""
-        return self.get("VendorInformation", "ErrorString")
+        return self.get("VendorInformation", "ErrorString", fallback="")
 
     def getRP1210Version(self) -> str:
         """
@@ -575,9 +520,7 @@ class RP1210Config(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "RP1210"):
-            return ""
-        return self.get("VendorInformation", "RP1210")
+        return self.get("VendorInformation", "RP1210", fallback="")
 
     def getDebugLevel(self) -> int:
         """
@@ -591,10 +534,8 @@ class RP1210Config(ConfigParser):
 
         Returns -1 (debugging not supported) if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "DebugLevel"):
-            return -1
         try:
-            return self.getint("VendorInformation", "DebugLevel")
+            return self.getint("VendorInformation", "DebugLevel", fallback=-1)
         except (ValueError, KeyError):
             return -1
 
@@ -606,9 +547,7 @@ class RP1210Config(ConfigParser):
 
         Returns a blank string if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "DebugFile"):
-            return ""
-        return self.get("VendorInformation", "DebugFile")
+        return self.get("VendorInformation", "DebugFile", fallback="")
 
     def getDebugMode(self) -> int:
         """
@@ -616,14 +555,12 @@ class RP1210Config(ConfigParser):
         - 0 = Overwrite (completely destroying previous contents) 
         - 1 = Append (write to the end of the file, keeping any previous contents) 
 
-        Returns None if the field isn't found.
+        Returns -1 if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "DebugMode"):
-            return None
         try:
-            return self.getint("VendorInformation", "DebugMode")
+            return self.getint("VendorInformation", "DebugMode", fallback=-1)
         except (ValueError, KeyError):
-            return None
+            return -1
 
     def getDebugFileSize(self) -> int:
         """
@@ -635,10 +572,8 @@ class RP1210Config(ConfigParser):
         Returns 1024 (default size) if the field isn't found. Please note that if DebugLevel = -1,
         there will be no logging even if you receive a value of 1024 from this function.
         """
-        if not self.has_option("VendorInformation", "DebugFileSize"):
-            return 1024
         try:
-            return self.getint("VendorInformation", "DebugFileSize")
+            return self.getint("VendorInformation", "DebugFileSize", fallback=1024)
         except (ValueError, KeyError):
             return 1024
 
@@ -651,10 +586,8 @@ class RP1210Config(ConfigParser):
 
         Returns 1 (default value) if the field isn't found.
         """
-        if not self.has_option("VendorInformation", "NumberOfRTSCTSSessions"):
-            return 1
         try:
-            return self.getint("VendorInformation", "NumberOfRTSCTSSessions")
+            return self.getint("VendorInformation", "NumberOfRTSCTSSessions", fallback=1)
         except (ValueError, KeyError):
             return 1
 
@@ -670,10 +603,7 @@ class RP1210Config(ConfigParser):
         if not self.has_option("VendorInformation", "CANFormatsSupported"):
             return []
         try:
-            params = []
-            for param in self["VendorInformation"]["CANFormatsSupported"].split(","):
-                params.append(int(param))
-            return params
+            return [int(i) for i in self["VendorInformation"]["CANFormatsSupported"].split(",")]
         except Exception:
             return []
 
@@ -698,10 +628,8 @@ class RP1210Config(ConfigParser):
 
     def getCANAutoBaud(self) -> bool:
         """Returns the CANAutoBaud field in VendorInformation."""
-        if not self.has_option("VendorInformation", "CANAutoBaud"):
-            return False
         try:
-            return self.getboolean("VendorInformation", "CANAutoBaud")
+            return self.getboolean("VendorInformation", "CANAutoBaud", fallback=False)
         except (ValueError, KeyError):
             return False
 
@@ -720,8 +648,7 @@ class RP1210Config(ConfigParser):
         Returns None if the Device isn't found.
         """
         try:
-            section = self["DeviceInformation" + str(deviceID)]
-            return RP1210Device(section)
+            return RP1210Device(self["DeviceInformation" + str(deviceID)])
         except Exception:
             return None
 
@@ -732,8 +659,8 @@ class RP1210Config(ConfigParser):
         try:
             deviceList = [] #type: list[RP1210Device]
             deviceIDs = self.getDeviceIDs()
-            for id in deviceIDs:
-                section = self["DeviceInformation" + str(id)]
+            for device_num in deviceIDs:
+                section = self["DeviceInformation" + str(device_num)]
                 deviceList.append(RP1210Device(section))
             return deviceList
         except Exception:
@@ -793,12 +720,12 @@ class RP1210Config(ConfigParser):
         Returns [] if no protocols are found.
         """
         try:
-            ids = self.getProtocolIDs()
-            if not ids:
+            protocol_ids = self.getProtocolIDs()
+            if not protocol_ids:
                 return []
             strings = []
-            for id in ids:
-                strings.append(self.getProtocol(id).getString())
+            for protocol_num in protocol_ids:
+                strings.append(self.getProtocol(protocol_num).getString())
             return strings
         except Exception:
             return []
@@ -806,10 +733,9 @@ class RP1210Config(ConfigParser):
     def getProtocolIDs(self) -> list[int]:
         """Returns list of ProtocolIDs described in .ini file."""
         try:
-            protocols = []
-            for protocol in self["VendorInformation"]["Protocols"].split(","):
-                protocols.append(int(protocol))
-            return protocols
+            if not self.has_option("VendorInformation", "Protocols"):
+                return []
+            return [int(i) for i in self["VendorInformation"]["Protocols"].split(",")]
         except Exception:
             return []
 
@@ -829,10 +755,10 @@ class RP1210Config(ConfigParser):
     def getPath(self) -> str:
         """Returns absolute path to API config file."""
        
-        if(self._configDir != None):
-            if(os.path.abspath(self._configDir)):
+        if self._configDir is not None:
+            if os.path.abspath(self._configDir):
 
-                if(os.path.isfile(self._configDir)):
+                if os.path.isfile(self._configDir):
                     # [provided absolute path]
                     return self._configDir
                 else:
@@ -840,7 +766,7 @@ class RP1210Config(ConfigParser):
                     return os.path.join(self._configDir, self._api_name + ".ini")
 
             else:
-                if(os.path.isfile(os.path.join(os.curdir, self._configDir))):
+                if os.path.isfile(os.path.join(os.curdir, self._configDir)):
                     # [current directory] + [provided relative path]
                     return os.path.join(os.curdir, self._configDir)
                 else:
@@ -886,18 +812,18 @@ class RP1210API:
         load DLL corresponding to self._api_name from that directory. If a working directory is not provided at
         initialization of RP1210API(), will assume relative to launch path.
         """
-        if(self._libDir != None):
+        if self._libDir is not None:
             path = ""
-            if(not os.path.isabs(self._libDir)):
+            if not os.path.isabs(self._libDir):
                 # If path given is relative, get the working directory
-                if(self._libDir != None):
+                if self._libDir is not None:
                     path += self._libDir
                 else:
                     path += os.path.abspath(os.curdir)
 
             path += self._libDir
                 
-            if(not os.path.isfile(path)):
+            if not os.path.isfile(path):
                 # Append API name to complete path
                 path += self._api_name + ".dll"
             try:
@@ -912,7 +838,7 @@ class RP1210API:
                 try:
                     path = self._api_name + ".dll"
                     dll = cdll.LoadLibrary(path)
-                except WindowsError:
+                except OSError:
                     # Try "DLL installed in wrong directory" band-aid
                     path = self.__get_dll_path_aux()
                     dll = cdll.LoadLibrary(path)
@@ -1769,4 +1695,3 @@ class RP1210Client(RP1210VendorList):
         cmd_data = Commands.setCANBaud(baud_code, wait_for_msg)
         cmd_size = 2
         return self.command(cmd_num, cmd_data, cmd_size) & 0xFFFF
-
