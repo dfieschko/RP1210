@@ -958,7 +958,7 @@ class RP1210API:
             ret_val = (ret_val - 0x10000)
         return ret_val
 
-    def ReadDirect(self, ClientID : int, BufferSize = 256, BlockOnRead = 0):
+    def ReadDirect(self, ClientID : int, BufferSize = 256, BlockOnRead = 0) -> bytes:
         """
         Calls ReadMessage, but generates and returns its own RxBuffer as bytes.
         - ClientID = clientID you got from ClientConnect
@@ -1410,7 +1410,7 @@ class RP1210Client(RP1210VendorList):
         except Exception:
             return -1
 
-    def rx(self, buffer_size = 256, blocking = 0):
+    def rx(self, buffer_size = 256, blocking = 0) -> bytes:
         """
         Calls ReadMessage, but generates and returns its own RxBuffer value.
         - buffer_size = the size of the buffer in bytes. Defaults to 256.
@@ -1423,7 +1423,7 @@ class RP1210Client(RP1210VendorList):
         """
         return self.getAPI().ReadDirect(self.getClientID(), buffer_size, blocking)
 
-    def tx(self, message, msg_size = 0):
+    def tx(self, message, msg_size = 0) -> int:
         """
         Send a message to the databus your adapter is connected to.
         - message = message you want to send
