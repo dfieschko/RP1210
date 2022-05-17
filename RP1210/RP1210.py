@@ -925,10 +925,10 @@ class RP1210API:
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
         """
+        msg = sanitize_msg_param(ClientMessage)
         if MessageSize == 0:
-            MessageSize = len(ClientMessage)
-        ret_val = self.getDLL().RP1210_SendMessage(ClientID, sanitize_msg_param(ClientMessage),
-                                                    MessageSize, 0, 0) & 0xFFFF
+            MessageSize = len(msg)
+        ret_val = self.getDLL().RP1210_SendMessage(ClientID, msg, MessageSize, 0, 0) & 0xFFFF
         # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
         # to negative signed int.
         if ret_val >= 0x08000:
