@@ -887,24 +887,24 @@ class RP1210API:
                             RcvBufferSize = 8000, isAppPacketizingincomingMsgs = 0) -> int:
         """
         Attempts to connect to an RP1210 adapter.
-        - nDeviceID determines which adapter it tries to connect to.
+        - DeviceID determines which adapter it tries to connect to.
         - You can generate Protocol with a protocol format function, e.g. getJ1939ProtocolString(),
         or just do it yourself.
             - Protocol defaults to b"J1939:Baud=Auto"
         - Tx and Rcv buffer sizes default to 8K.
         - Don't mess with argument nisAppPacketizingincomingMsgs.
 
-        Returns clientID. 0 to 127 means connection was successful; >127 means it failed.
+        Returns ClientID. 0 to 127 means connection was successful; >127 means it failed.
 
-        Use function translateClientID() to translate nClientID to an error message.
+        Use function translateClientID() to translate ClientID into an error message.
         """
-        clientID = self.getDLL().RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
-                                                RcvBufferSize, isAppPacketizingincomingMsgs)
+        clientID = self.getDLL().RP1210_ClientConnect(0, DeviceID, sanitize_msg_param(Protocol),
+                                        TxBufferSize, RcvBufferSize, isAppPacketizingincomingMsgs)
         return self._driver_clientid_fix(clientID)
     
     def ClientDisconnect(self, ClientID : int) -> int:
         """
-        Disconnects client w/ specified clientID from adapter.
+        Disconnects client w/ specified ClientID from adapter.
         
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
@@ -927,7 +927,7 @@ class RP1210API:
         """
         if MessageSize == 0:
             MessageSize = len(ClientMessage)
-        ret_val = self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0) & 0xFFFF
+        ret_val = self.getDLL().RP1210_SendMessage(ClientID, sanitize_msg_param(ClientMessage), MessageSize, 0, 0) & 0xFFFF
         # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
         # to negative signed int.
         if ret_val >= 0x08000:
