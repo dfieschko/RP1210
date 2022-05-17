@@ -927,7 +927,8 @@ class RP1210API:
         """
         if MessageSize == 0:
             MessageSize = len(ClientMessage)
-        ret_val = self.getDLL().RP1210_SendMessage(ClientID, sanitize_msg_param(ClientMessage), MessageSize, 0, 0) & 0xFFFF
+        ret_val = self.getDLL().RP1210_SendMessage(ClientID, sanitize_msg_param(ClientMessage),
+                                                    MessageSize, 0, 0) & 0xFFFF
         # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
         # to negative signed int.
         if ret_val >= 0x08000:
