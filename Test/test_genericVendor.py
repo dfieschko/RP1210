@@ -233,8 +233,11 @@ def test_disconnected_ReadVersionDirect(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-    for ver in rp1210.api.ReadVersionDirect():
-        assert ver != ""
+    dll_ver, api_ver = rp1210.api.ReadVersionDirect()
+    assert dll_ver != ""
+    assert api_ver != ""
+    assert dll_ver == rp1210.api.ReadDLLVersion()
+    assert api_ver == rp1210.api.ReadAPIVersion()
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadDetailedVersion(api_name : str):
