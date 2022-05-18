@@ -1008,6 +1008,22 @@ class RP1210API:
         api_version = str(APIMajorVersion.value + b"." + APIMinorVersion.value, "utf-8")
         return (dll_version, api_version)
 
+    def ReadDLLVersion(self) -> str:
+        """
+        Reads DLL version from adapter drivers.
+
+        All this function does is call ReadVersionDirect() and return its first element.
+        """
+        return self.ReadVersionDirect()[0]
+
+    def ReadAPIVersion(self) -> str:
+        """
+        Reads API version from adapter drivers.
+
+        All this function does is call ReadVersionDirect() and return its second element.
+        """
+        return self.ReadVersionDirect()[1]
+
     def ReadDetailedVersion(self, ClientID : int, APIVersionBuffer : bytes, 
                             DLLVersionBuffer : bytes, FWVersionBuffer : bytes):
         """
