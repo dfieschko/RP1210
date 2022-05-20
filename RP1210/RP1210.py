@@ -1559,7 +1559,7 @@ class RP1210Client(RP1210VendorList):
         cmd_size = 1
         return self.command(cmd_num, cmd_data, cmd_size)
 
-    def protectJ1939Address(self, address_to_claim, network_mgt_name, blocking = True) -> bytes:
+    def protectJ1939Address(self, address_to_claim, network_mgt_name, blocking = True) -> int:
         """
         Protect J1939 Address (19) (10 bytes)
 
@@ -1569,9 +1569,6 @@ class RP1210Client(RP1210VendorList):
             - See J1939 network management standard!
             - Lowest name takes priority if two devices try to claim the same address
         - blocking (bool) - True will block until done, False will return before completion
-
-        This function automatically sanitizes str, int, and bytes inputs. str are parsed as 10-bit
-        decimals! Use byte strings (b"message") if you want to pass utf-8 characters.
         """
         cmd_num = 19
         cmd_data = Commands.protectJ1939Address(address_to_claim, network_mgt_name, blocking)
