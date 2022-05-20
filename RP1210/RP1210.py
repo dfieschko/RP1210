@@ -688,13 +688,15 @@ class RP1210Config(ConfigParser):
             if isinstance(protocol, int):
                 section = self["ProtocolInformation" + str(protocol)]
                 return RP1210Protocol(section)
-            if isinstance(protocol, str):
+            elif isinstance(protocol, str):
                 if not protocol in self.getProtocolNames():
                     return None
                 for pid in self.getProtocolIDs():
                     p = self.getProtocol(pid)
                     if p.getString() == protocol:
                         return p
+            else:
+                return self.getProtocol(str(protocol))
         except Exception:
             return None
     
@@ -1167,9 +1169,10 @@ class RP1210API:
 
 class RP1210VendorList:
     """
-    Loads and stores a list of all RP1210 adapter vendors specified in RP121032.ini.
+    Loads and stores a list of all RP1210 adapter vendors specified in RP121032.ini (each vendor
+    gets its own RP1210Config object).
     
-    Also points to a specific RP1210Config, and a device within that RP1210Config. This feature is
+    Also points to a specific RP1210Config object and a device within that RP1210Config. This feature is
     intended to be used with a couple of combo boxes that allow for the selection of RP1210 vendors
     and devices.
 
