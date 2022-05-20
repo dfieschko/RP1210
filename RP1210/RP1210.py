@@ -1089,7 +1089,7 @@ class RP1210API:
 
         Use create_str_buffer() to create the buffer.
 
-        ClientInfoBuffer size must be 16 <= BufferSize <= 64, and must be a multiple of 2.
+        ClientInfoBuffer size must range between 16 and 64, and must be a multiple of 2.
 
         You can also just use GetHardwareStatusDirect() and not worry about buffers.
         """
@@ -1102,8 +1102,7 @@ class RP1210API:
         """
         Calls GetHardwareStatus and returns the result directly.
 
-        BufferSize must be 16 <= BufferSize <= 64, and must be a multiple of 2. Leave InfoSize blank
-        to default to 64.
+        BufferSize must range between 16 and 64, and must be a multiple of 2 (defaults to 64).
         """
         ClientInfo = create_string_buffer(BufferSize)
         self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, BufferSize, 0)
