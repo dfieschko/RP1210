@@ -237,7 +237,7 @@ def test_driver_clientid_fix(input, expected):
             super().__init__(api_name, WorkingAPIDirectory)
     
         def fix(self, val : int):
-            return self._driver_clientid_fix(val)
+            return self._validate_and_fix_clientid(val)
 
     api = TestAPI("test")
     assert api.fix(input) == expected
@@ -252,7 +252,7 @@ def test_driver_clientid_fix_PEAKRP32(input, expected):
             super().__init__(api_name, WorkingAPIDirectory)
     
         def fix(self, val : int):
-            return self._driver_clientid_fix(val)
+            return self._validate_and_fix_clientid(val)
 
     api = TestAPI("PEAKRP32")
     assert api.fix(input) == expected

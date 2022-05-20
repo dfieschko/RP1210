@@ -840,7 +840,7 @@ class RP1210API:
                     dll = cdll.LoadLibrary(path)
                 except OSError:
                     # Try "DLL installed in wrong directory" band-aid
-                    path = self._get_dll_path_aux()
+                    path = self._get_alternate_dll_path()
                     dll = cdll.LoadLibrary(path)
                 self.setDLL(dll)
                 return dll
@@ -900,7 +900,7 @@ class RP1210API:
         """
         clientID = self.getDLL().RP1210_ClientConnect(0, DeviceID, sanitize_msg_param(Protocol),
                                         TxBufferSize, RcvBufferSize, isAppPacketizingincomingMsgs)
-        return self._driver_clientid_fix(clientID)
+        return self._validate_and_fix_clientid(clientID)
     
     def ClientDisconnect(self, ClientID : int) -> int:
         """
@@ -1083,7 +1083,7 @@ class RP1210API:
         else:
             return translateErrorCode(ret_code)
 
-    def GetHardwareStatus(self, ClientID : int, ClientInfoBuffer : bytes, BufferSize : int) -> int:
+    def GetHardwareStatus(self, ClientID : int, ClientInfoBuffer : bytes, BufferSize : int = 0) -> int:
         """
         Calls GetHardwareStatus and places the result in ClientInfoBuffer. Returns an error code.
 
@@ -1093,6 +1093,8 @@ class RP1210API:
 
         You can also just use GetHardwareStatusDirect() and not worry about buffers.
         """
+        if not BufferSize:
+            BufferSize = len(ClientInfoBuffer)
         return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0) & 0xFFFF
 
 
@@ -1137,14 +1139,14 @@ class RP1210API:
         except Exception: # RP1210C functions not supported
             self._conforms_to_rp1210c = False
 
-    def _get_dll_path_aux(self) -> str:
+    def _get_alternate_dll_path(self) -> str:
         """
         Some adapter vendors (looking at you, Actia) install their drivers in the wrong directory.
         This function returns the dll path in that directory.
         """
         return os.path.join(os.environ["WINDIR"], self._api_name + ".dll")
 
-    def _driver_clientid_fix(self, clientID) -> int:
+    def _validate_and_fix_clientid(self, clientID) -> int:
         """
         Noregon DLA2 adapters have an issue where they return a bunch of garbage along with the
         ClientID when calling ClientConnect. This is the fix for that.
