@@ -1097,7 +1097,6 @@ class RP1210API:
             BufferSize = len(ClientInfoBuffer)
         return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0) & 0xFFFF
 
-
     def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 64) -> bytes:
         """
         Calls GetHardwareStatus and returns the result directly.
@@ -1330,6 +1329,9 @@ class RP1210VendorList:
             return None
 
     def getVendorName(self) -> str:
+        """
+        Returns 'Name' field from currently selected vendor's VendorInformation.
+        """
         return self.getCurrentVendor().getName()
 
     def getCurrentDevice(self) -> RP1210Device:
