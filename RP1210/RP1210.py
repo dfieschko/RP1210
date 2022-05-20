@@ -1230,28 +1230,28 @@ class RP1210VendorList:
         except Exception:
             return None
 
-    def numVendors(self):
+    def numVendors(self) -> int:
         """Returns number of vendors stored in vendor list."""
         try:
             return len(self.vendors)
         except Exception:
             return 0
 
-    def numDevices(self):
+    def numDevices(self) -> int:
         """Returns number of devices supported by current vendor."""
         try:
             return len(self.getCurrentVendor().getDevices())
         except Exception:
             return 0
 
-    def setVendorIndex(self, index : int):
+    def setVendorIndex(self, index : int) -> None:
         """
         Set index of current vendor.
         """
         self.vendorIndex = index
         self.deviceIndex = 0
 
-    def setVendor(self, api_name : str):
+    def setVendor(self, api_name : str) -> None:
         """
         Sets current vendor by api_name (e.g. NULN2R32).
 
@@ -1260,13 +1260,13 @@ class RP1210VendorList:
         index = self.getVendorIndex(api_name)
         self.setVendorIndex(index)
 
-    def setDeviceIndex(self, index : int):
+    def setDeviceIndex(self, index : int) -> None:
         """
-        Set index of current device.
+        Sets index of current device.
         """
         self.deviceIndex = index
 
-    def setDevice(self, deviceID): 
+    def setDevice(self, deviceID) -> None: 
         """
         Sets current device to device matching deviceID.
         """
@@ -1304,7 +1304,7 @@ class RP1210VendorList:
 
     def getVendorIndex(self, api_name = "") -> int:
         """
-        Returns index of vendor in list, given vendor's api name.
+        Returns index of vendor in list that matches given vendor's api name.
 
         If API name is left blank, will return current vendor index instead.
 
