@@ -1089,7 +1089,7 @@ class RP1210API:
 
         Use create_str_buffer() to create the buffer.
 
-        ClientInfoBuffer size must be 16 <= InfoSize <= 64, and must be a multiple of 2.
+        ClientInfoBuffer size must be 16 <= BufferSize <= 64, and must be a multiple of 2.
 
         You can also just use GetHardwareStatusDirect() and not worry about buffers.
         """
@@ -1098,15 +1098,15 @@ class RP1210API:
         return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0) & 0xFFFF
 
 
-    def GetHardwareStatusDirect(self, ClientID : int, InfoSize = 64) -> bytes:
+    def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 64) -> bytes:
         """
         Calls GetHardwareStatus and returns the result directly.
 
-        InfoSize must be 16 <= InfoSize <= 64, and must be a multiple of 2. Leave InfoSize blank
+        BufferSize must be 16 <= BufferSize <= 64, and must be a multiple of 2. Leave InfoSize blank
         to default to 64.
         """
-        ClientInfo = create_string_buffer(InfoSize)
-        self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, InfoSize, 0)
+        ClientInfo = create_string_buffer(BufferSize)
+        self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, BufferSize, 0)
         return ClientInfo
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
