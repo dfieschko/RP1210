@@ -1196,7 +1196,7 @@ class RP1210VendorList:
         return len(self.vendors) != 0
 
     def __len__(self) -> int:
-        return len(self.vendors)
+        return self.numVendors()
 
     def populate(self) -> None:
         """
