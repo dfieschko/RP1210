@@ -4,6 +4,8 @@ from RP1210 import sanitize_msg_param
 import RP1210
 import pytest
 
+from Test.test_0_vendorlist import RP121032_PATH
+
 def delete_file(path : str):
     if os.path.exists(path):
         os.remove(path)
@@ -210,7 +212,7 @@ def test_rp1210client_populate_logic():
     """Tests whether RP1210Client recognizes relevant drivers when adapter is disconnected."""
     vendors = []
     vendors.clear()
-    api_list = RP1210.getAPINames()
+    api_list = RP1210.getAPINames(RP121032_PATH)
     if api_list == []:
         pytest.xfail("RP121032.ini not installed on system; calling XFAIL")
     try:

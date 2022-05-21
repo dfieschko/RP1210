@@ -81,12 +81,12 @@ def test_vendorlist_rp1210config_objects():
     Makes sure that all RP1210Config objects that are possible to read from
     RP121032.ini are present in RP1210VendorList.
     """
-    vendor_names = getAPINames()
+    vendor_names = getAPINames(RP121032_PATH)
     assert vendor_names
     vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors
     for vendor in vendors.getList():
-        assert vendor.getAPIName() in vendor_names
+        assert vendor.getAPIName() in vendor_names or vendor.getAPIName() in invalid_apis
 
 def test_vendorlist_index():
     """
