@@ -76,6 +76,26 @@ def test_vendorlist_init():
         if name not in invalid_apis:
             assert name in vendor_names
 
+def test_vendorlist_nonevendors():
+    """Force an error with vendor list and check numVendors()"""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    assert vendors
+    assert vendors.numVendors()
+    vendors.vendors = []
+    assert not vendors
+    assert not vendors.numVendors()
+    vendors.vendors = None
+    assert not vendors
+    assert vendors.numVendors() == 0
+    assert vendors.numDevices() == 0
+    assert vendors.getAPI() is None
+    assert vendors.getDeviceIndex(23) == 0
+    assert vendors.getVendor() is None
+    assert vendors.getVendorIndex("dinglebop") == 0
+    assert vendors.getCurrentVendor() is None
+    assert vendors.getVendorName() == ""
+    assert vendors.getCurrentDevice() is None
+    assert vendors.getDeviceID() == -1
 
 def test_vendorlist_rp1210config_objects():
     """

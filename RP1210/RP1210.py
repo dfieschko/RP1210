@@ -1350,7 +1350,10 @@ class RP1210VendorList:
         """
         Returns 'Name' field from currently selected vendor's VendorInformation.
         """
-        return self.getCurrentVendor().getName()
+        try:
+            return self.getCurrentVendor().getName()
+        except Exception:
+            return ""
 
     def getCurrentDevice(self) -> RP1210Device:
         """
