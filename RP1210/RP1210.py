@@ -1300,13 +1300,17 @@ class RP1210VendorList:
             return 0
         return 0
 
-    def getVendor(self, index : int) -> RP1210Config:
+    def getVendor(self, index : int = None) -> RP1210Config:
         """
         Returns RP1210Config object in vendor list at specified index.
+
+        Will return current vendor if no index is provided.
         
         Will return None on error.
         """
         try:
+            if index is None:
+                return self.getCurrentVendor()
             return self.vendors[index]
         except Exception:
             return None

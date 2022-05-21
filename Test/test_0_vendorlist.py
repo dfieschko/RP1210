@@ -1,6 +1,7 @@
 from configparser import ConfigParser
 import os
 import pytest
+from zmq import device
 from RP1210 import sanitize_msg_param
 import RP1210
 from ctypes import cdll, create_string_buffer
@@ -130,12 +131,14 @@ def test_vendors_and_devices():
     # check vendors
     for vendorIndex in range(vendors.numVendors()):
         vendors.setVendorIndex(vendorIndex)
+        assert vendors[vendorIndex] == vendors.getCurrentVendor() == vendors.getVendor()
         assert vendors.deviceIndex == 0 # setting vendor index should set device index to 0
         # check devices
         for deviceIndex in range(vendors.numDevices()):
             # check that setting by device name goes to correct index
             vendors.setDeviceIndex(deviceIndex)
             deviceID = vendors.getCurrentDevice().getID()
+            assert deviceID == vendors.getDeviceID()
             vendors.setDevice(deviceID)
             assert vendors.deviceIndex == deviceIndex
             assert vendors.getCurrentDevice().getID() == deviceID
