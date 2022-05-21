@@ -95,6 +95,8 @@ def test_vendorlist_index():
     doesn't cause a crash.
     """
     vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    assert vendors.getVendorIndex("dinglebop") == 0
+    assert vendors.getVendor("dinglebop") == vendors.getVendor(0)
     for x in range(-10, 50):
         vendors.setVendorIndex(x)
         vendors.getVendor(x)
@@ -103,6 +105,10 @@ def test_vendorlist_index():
             vendors.setDeviceIndex(y)
             vendors.getCurrentDevice()
         vendors.getAPI()
+    for x in range(vendors.numVendors()):
+        vendors.setVendorIndex(x)
+        assert vendors.getVendorIndex() == x
+        assert vendors.getVendor().getName() == vendors.getCurrentVendor().getName()
 
 def test_getlist():
     """

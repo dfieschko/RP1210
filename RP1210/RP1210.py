@@ -1219,10 +1219,7 @@ class RP1210VendorList:
         """
         Returns list of stored RP1210Config objects (e.g. list of vendors).
         """
-        try:
-            return self.vendors
-        except Exception:
-            return []
+        return self.vendors
 
     def getVendorList(self) -> list[RP1210Config]:
         """Same as getList()."""
@@ -1311,6 +1308,8 @@ class RP1210VendorList:
         try:
             if index is None:
                 return self.getCurrentVendor()
+            if isinstance(index, str):
+                return self.vendors[self.getVendorIndex(index)]
             return self.vendors[index]
         except Exception:
             return None
