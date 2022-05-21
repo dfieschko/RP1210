@@ -1,7 +1,6 @@
 from configparser import ConfigParser
 import os
 import pytest
-from zmq import device
 from RP1210 import sanitize_msg_param
 import RP1210
 from ctypes import cdll, create_string_buffer
