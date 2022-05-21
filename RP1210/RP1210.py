@@ -689,14 +689,11 @@ class RP1210Config(ConfigParser):
                 section = self["ProtocolInformation" + str(protocol)]
                 return RP1210Protocol(section)
             elif isinstance(protocol, str):
-                if not protocol in self.getProtocolNames():
-                    return None
                 for pid in self.getProtocolIDs():
                     p = self.getProtocol(pid)
                     if p.getString() == protocol:
                         return p
-            else:
-                return self.getProtocol(str(protocol))
+            return None
         except Exception:
             return None
     
@@ -1182,12 +1179,21 @@ class RP1210VendorList:
     - Set device index with `setDeviceIndex()`. This is NOT deviceID!
     - If you have a vendor name but not index, use `getVendorIndex(api_name)` to find the index.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, rp121032_path : str = None, api_dir : str = None, config_dir : str = None):
+        # super().__init__()
         self.vendors = [] #type: list[RP1210Config]
         self.vendorIndex = 0
         self.deviceIndex = 0
+        self._rp121032_path = rp121032_path
+        self._api_path = api_dir
+        self._config_path = config_dir
         self.populate()
+
+    def __getitem__(self, index : int):
+        return self.vendors[index]
+
+    def __bool__(self):
+        return len(self.vendors) != 0
 
     def populate(self) -> None:
         """
@@ -1195,11 +1201,11 @@ class RP1210VendorList:
         that is found.
         """
         self.vendors.clear()
-        api_list = getAPINames()
+        api_list = getAPINames(self._rp121032_path)
         try:
             for api_name in api_list:
                 try:
-                    self.vendors.append(RP1210Config(api_name))
+                    self.vendors.append(RP1210Config(api_name, self._api_path, self._config_path))
                 except Exception:
                     # skip this API if its .ini file can't be parsed
                     pass

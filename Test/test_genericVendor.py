@@ -149,8 +149,16 @@ def test_Protocols(api_name : str):
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     protocolIDs = rp1210.getProtocolIDs()
     assert rp1210.getProtocol("test protocol name") is None
+    for name in rp1210.getProtocolNames():
+        assert rp1210.getProtocol(name).getString() == name
+    assert not rp1210.getProtocol("dinglebop protocol")
+    assert not rp1210.getProtocol(b"this is bytes, not int or str")
+    if not api_name in invalid_apis:
+        assert rp1210.getProtocolNames()
     if not api_name in INVALID_API_NAMES:
         assert protocolIDs
+    if api_name in INVALID_API_NAMES and api_name != "invalid_pd_api":
+        assert rp1210.getProtocols() == []
     for id in protocolIDs:
         protocol = rp1210.getProtocol(id)
         name = protocol.getString()
@@ -303,6 +311,20 @@ def test_disconnected_GetHardwareStatusDirect(api_name : str):
     assert not rp1210.api.GetHardwareStatusDirect(0).value
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_SendMessage(api_name : str):
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping SendMessage test for {api_name} due to missing dependencies.")
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    for val in ["blargle", "", 0, 324234, b'blargle', b'']:
+        ret_val = rp1210.api.SendMessage(0, val) # set size automatically
+        assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
+        if not isinstance(val, int):
+            ret_val = rp1210.api.SendMessage(0, val, len(val)) # specify size
+            assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_RemainingFunctions(api_name : str):
     """Tests whether API functions follow expected behavior when disconnected from device."""
     if api_name in invalid_apis:
@@ -310,10 +332,6 @@ def test_disconnected_RemainingFunctions(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-    ret_val = rp1210.api.SendMessage(0, b"", 0)
-    assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
-    ret_val = rp1210.api.SendMessage(0, b"12345678", 8)
-    assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
     read_array_in = create_string_buffer(256)
     assert rp1210.api.ReadMessage(128, read_array_in, len(read_array_in)) <= 0
     assert not read_array_in.value
@@ -322,31 +340,3 @@ def test_disconnected_RemainingFunctions(api_name : str):
     assert not read_array_in.value
     assert not rp1210.api.ReadDirect(0)
     assert rp1210.api.ReadDetailedVersionDirect(0)
-
-@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
-def test_disconnected_rp1210client_commands(api_name):
-    """Tests RP1210Client command functions when adapter is disconnected."""
-    pytest.skip("Tests for RP1210Client are invalid until modular API loading is implemented.")
-    # TODO: this is copied from old tests & will need to be updated before use!
-    client = RP1210.RP1210Client()
-    client.setVendor(api_name)
-    assert client.getClientID() == 128
-    clientID = client.connect()
-    assert clientID in RP1210.RP1210_ERRORS.keys()
-    assert clientID == client.getClientID()
-    # sampling of simpler commands
-    assert client.resetDevice() in RP1210.RP1210_ERRORS.keys()
-    assert client.setAllFiltersToPass() in RP1210.RP1210_ERRORS.keys()
-    assert client.setAllFiltersToDiscard() in RP1210.RP1210_ERRORS.keys()
-    assert client.setEcho(True) in RP1210.RP1210_ERRORS.keys()
-    assert client.setMessageReceive(True) in RP1210.RP1210_ERRORS.keys()
-    assert client.releaseJ1939Address(0xEE) in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939FilterType(0) in RP1210.RP1210_ERRORS.keys()
-    assert client.setCANFilterType(0) in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939InterpacketTime(100) in RP1210.RP1210_ERRORS.keys()
-    assert client.setMaxErrorMsgSize(100) in RP1210.RP1210_ERRORS.keys()
-    assert client.disallowConnections() in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939Baud(5) in RP1210.RP1210_ERRORS.keys()
-    assert client.setBlockingTimeout(20, 30) in RP1210.RP1210_ERRORS.keys()
-    assert client.flushBuffers() in RP1210.RP1210_ERRORS.keys()
-    assert client.setCANBaud(5) in RP1210.RP1210_ERRORS.keys()

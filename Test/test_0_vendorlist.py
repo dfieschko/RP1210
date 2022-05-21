@@ -3,9 +3,62 @@ import os
 import pytest
 from RP1210 import sanitize_msg_param
 import RP1210
+from ctypes import cdll, create_string_buffer
 from RP1210.RP1210 import RP1210VendorList, getAPINames
 
-pytest.skip("Custom paths for VendorList haven't been implemented yet.", allow_module_level=True)
+API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "CIL7R32", "DrewLinQ", "DTKRP32"]
+INVALID_API_NAMES = ["empty_api", "invalid_api", "extra_empty_api", "invalid_pd_api"]
+
+# These tests are meant to be run with cwd @ repository's highest-level directory
+CWD = os.getcwd()
+TEST_FILES_DIRECTORY = CWD + ".\\Test\\test-files"
+INI_DIRECTORY = TEST_FILES_DIRECTORY + "\\ini-files"
+DLL_DIRECTORY = TEST_FILES_DIRECTORY + "\\dlls"
+RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
+
+# try to get Windows Server to load DLLs w/ GitHub Actions
+os.add_dll_directory(DLL_DIRECTORY)
+os.add_dll_directory(os.getcwd())
+os.environ['PATH'] += os.pathsep + DLL_DIRECTORY
+for d in os.environ['path'].split(';'): # overboard
+    if os.path.isdir(d):
+        os.add_dll_directory(d)
+
+invalid_apis = [] + INVALID_API_NAMES
+
+# Check which APIs are missing dependencies so they can be skipped
+for api_name in API_NAMES:
+    valid = True
+    try:
+        ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+        dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+        rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+        if api_name not in invalid_apis:
+            valid = rp1210.getAPI().isValid()
+    except Exception:
+        valid = False
+    if not valid:
+        invalid_apis.append(api_name)
+
+def test_cwd():
+    """Make sure cwd isn't in Test folder."""
+    cwd = os.getcwd()
+    assert "RP1210" in cwd
+    assert "Test" not in cwd
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_api_files_exist(api_name : str):
+    """Makes sure all the relevant API files are in test-files directory."""
+    assert os.path.exists(TEST_FILES_DIRECTORY)
+    assert os.path.exists(INI_DIRECTORY)
+    assert os.path.exists(DLL_DIRECTORY)
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    assert os.path.isfile(ini_path)
+    assert os.path.isfile(RP121032_PATH)
+    if not api_name in invalid_apis:
+        assert os.path.isfile(dll_path)
+        assert cdll.LoadLibrary(dll_path) != None
 
 def test_vendorlist_init():
     """
@@ -13,6 +66,15 @@ def test_vendorlist_init():
     Doesn't require any adapter software to be installed.
     """
     vendors = RP1210.RP1210VendorList()
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    assert vendors
+    vendor_names = []
+    for vendor in vendors:
+        vendor_names.append(vendor.getAPIName())
+    for name in API_NAMES:
+        if name not in invalid_apis:
+            assert name in vendor_names
+
 
 def test_vendorlist_rp1210config_objects():
     """
