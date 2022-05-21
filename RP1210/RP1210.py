@@ -1193,7 +1193,7 @@ class RP1210VendorList:
         return self.vendors[index]
 
     def __bool__(self) -> bool:
-        return len(self.vendors) != 0
+        return self.numVendors() != 0
 
     def __len__(self) -> int:
         return self.numVendors()
