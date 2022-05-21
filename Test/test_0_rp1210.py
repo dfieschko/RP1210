@@ -1,4 +1,5 @@
 from configparser import ConfigParser
+from ctypes import CDLL
 import os
 from RP1210 import sanitize_msg_param
 import RP1210
@@ -205,6 +206,7 @@ def test_sanitize_msg_param_bool():
 def test_sanitize_msg_param_typeerror():
     with pytest.raises(TypeError):
         sanitize_msg_param(RP1210.RP1210VendorList())
+        sanitize_msg_param(CDLL())
 
 def test_rp1210client_populate_logic():
     """Tests whether RP1210Client recognizes relevant drivers when adapter is disconnected."""

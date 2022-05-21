@@ -1384,9 +1384,9 @@ class RP1210Client(RP1210VendorList):
     handles connection with an adapter.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, rp121032_path : str = None, api_dir : str = None, config_dir : str = None) -> None:
         self.clientID = 128 # DLL_NOT_INITIALIZED
-        super().__init__()
+        super().__init__(rp121032_path, api_dir, config_dir)
 
     ###################
     # CLASS FUNCTIONS #
