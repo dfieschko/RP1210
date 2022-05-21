@@ -68,6 +68,7 @@ def test_vendorlist_init():
     vendors = RP1210.RP1210VendorList()
     vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors
+    assert len(vendors) == vendors.numVendors()
     vendor_names = []
     for vendor in vendors:
         vendor_names.append(vendor.getAPIName())

@@ -1189,11 +1189,14 @@ class RP1210VendorList:
         self._config_path = config_dir
         self.populate()
 
-    def __getitem__(self, index : int):
+    def __getitem__(self, index : int) -> RP1210Config:
         return self.vendors[index]
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return len(self.vendors) != 0
+
+    def __len__(self) -> int:
+        return len(self.vendors)
 
     def populate(self) -> None:
         """
