@@ -83,7 +83,7 @@ def test_vendorlist_rp1210config_objects():
     """
     vendor_names = getAPINames()
     assert vendor_names
-    vendors = RP1210.RP1210VendorList()
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors
     for vendor in vendors.getList():
         assert vendor.getAPIName() in vendor_names
@@ -93,7 +93,7 @@ def test_vendorlist_index():
     Iterates through a bunch of indices for vendors and devices to make sure an invalid index
     doesn't cause a crash.
     """
-    vendors = RP1210.RP1210VendorList()
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     for x in range(-10, 50):
         vendors.setVendorIndex(x)
         vendors.getVendor(x)
@@ -108,7 +108,7 @@ def test_getlist():
     Test getList() function. Must have at least one adapter driver installed to pass
     this test.
     """
-    vendors = RP1210VendorList()
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors.getList() != []
     assert vendors.getList() == vendors.getVendorList()
 
@@ -117,7 +117,7 @@ def test_numvendors():
     Test getList() function. Must have at least one adapter driver installed to pass
     this test.
     """
-    vendors = RP1210VendorList()
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors.numVendors() != 0
     assert vendors.numVendors() == len(vendors.getList())
 
@@ -125,7 +125,7 @@ def test_vendors_and_devices():
     """
     Run through each vendor and device and make sure everything matches.
     """
-    vendors = RP1210VendorList()
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     # check vendors
     for vendorIndex in range(vendors.numVendors()):
         vendors.setVendorIndex(vendorIndex)
