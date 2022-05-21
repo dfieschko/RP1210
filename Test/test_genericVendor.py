@@ -117,7 +117,21 @@ def test_RP1210Config(api_name : str):
     assert rp1210.getName() in str(rp1210)
     assert rp1210.getCANAutoBaud() == rp1210.autoBaudEnabled()
     assert rp1210.getProtocol() == rp1210.getProtocol("J1939")
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES + INVALID_API_NAMES)
+def test_RP1210Config_forceempty(api_name : str):
+    """
+    Test behavior after RP1210Config is forcibly cleared.
     
+    This is here to test for cases where RP1210Config is missing sections.
+    """
+    rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
+    rp1210.clear()
+    assert rp1210.getDevices() == []
+    assert rp1210.getProtocols() == []
+    assert rp1210.getProtocolNames() == []
+    assert rp1210.getProtocolIDs() == []
+
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES + INVALID_API_NAMES)
 def test_Devices(api_name : str):
     config = configparser.ConfigParser()
@@ -149,6 +163,7 @@ def test_Protocols(api_name : str):
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     protocolIDs = rp1210.getProtocolIDs()
     assert rp1210.getProtocol("test protocol name") is None
+    assert rp1210.getProtocol([]) is None
     for name in rp1210.getProtocolNames():
         assert rp1210.getProtocol(name).getString() == name
     assert not rp1210.getProtocol("dinglebop protocol")
