@@ -1,4 +1,4 @@
-from ctypes import cdll, create_string_buffer
+from ctypes import CDLL, cdll, create_string_buffer
 import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
@@ -85,7 +85,7 @@ def test_RP1210Config(api_name : str):
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
     assert rp1210.isValid() == True or api_name in INVALID_API_NAMES
-    assert rp1210.getAPIName() == api_name
+    assert rp1210.getAPIName() == api_name == rp1210.api.getAPIName()
     utility.verifydata(rp1210.getName, "VendorInformation", "Name", fallback="(Vendor Name Missing)")
     utility.verifydata(rp1210.getAddress1, "VendorInformation", "Address1")
     utility.verifydata(rp1210.getAddress2, "VendorInformation", "Address2")
@@ -124,6 +124,8 @@ def test_RP1210Config_forceempty(api_name : str):
     Test behavior after RP1210Config is forcibly cleared.
     
     This is here to test for cases where RP1210Config is missing sections.
+
+    I was hoping this would cover the exceptions in RP1210Config, but it doesn't :(
     """
     rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
     rp1210.clear()
@@ -204,6 +206,22 @@ def test_load_DLL(api_name : str):
     assert rp1210.api.getDLL() != None
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     assert rp1210.api.loadDLL() != None
+    # make sure that RP1210API is invalid if DLL is set to None
+    rp1210.api.setDLL(None)
+    assert not rp1210.api._api_valid
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_conformsToRP1210C(api_name : str):
+    """Tests conformsToRP1210C function."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    if not rp1210.api.isValid():
+        assert not rp1210.api.conformsToRP1210C()
+    if rp1210.api.isValid():
+        assert rp1210.api.conformsToRP1210C() == rp1210.api._conforms_to_rp1210c
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ClientConnect(api_name : str):
