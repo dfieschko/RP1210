@@ -1281,7 +1281,7 @@ class RP1210VendorList:
 
     def getDeviceIndex(self, deviceID = -1) -> int:
         """
-        Returns index of device matching deviceID. Returns 0 if no match is found.
+        Returns index of device matching deviceID for current vendor. Returns 0 if no match is found.
 
         Returns current device index if no deviceID is provided.
         """

@@ -117,6 +117,7 @@ def test_vendorlist_index():
     vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors.getVendorIndex("dinglebop") == 0
     assert vendors.getVendor("dinglebop") == vendors.getVendor(0)
+    assert vendors.getDeviceIndex(23) == 0
     for x in range(-10, 50):
         vendors.setVendorIndex(x)
         vendors.getVendor(x)
@@ -124,6 +125,7 @@ def test_vendorlist_index():
         for y in range(-10, 1000):
             vendors.setDeviceIndex(y)
             vendors.getCurrentDevice()
+            assert vendors.getDeviceIndex() == vendors.deviceIndex
         vendors.getAPI()
     for x in range(vendors.numVendors()):
         vendors.setVendorIndex(x)
