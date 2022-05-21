@@ -293,6 +293,7 @@ def test_disconnected_ReadDetailedVersion(api_name : str):
     buff3 = create_string_buffer(17)
     ret_val = rp1210.api.ReadDetailedVersion(0, buff1, buff2, buff3)
     assert RP1210.translateErrorCode(ret_val) in ["ERR_DLL_NOT_INITIALIZED", "ERR_HARDWARE_NOT_RESPONDING", "ERR_INVALID_CLIENT_ID"]
+    assert rp1210.api.ReadDetailedVersionDirect(0)
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_GetErrorMsg(api_name : str):
@@ -358,8 +359,8 @@ def test_disconnected_SendMessage(api_name : str):
             assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
-def test_disconnected_RemainingFunctions(api_name : str):
-    """Tests whether API functions follow expected behavior when disconnected from device."""
+def test_disconnected_Read(api_name : str):
+    """Test ReadMessage and ReadDirect."""
     if api_name in invalid_apis:
         pytest.skip(f"Skipping 'Remaining Functions' test for {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
@@ -372,4 +373,3 @@ def test_disconnected_RemainingFunctions(api_name : str):
     assert rp1210.api.ReadMessage(0, read_array_in) <= 0
     assert not read_array_in.value
     assert not rp1210.api.ReadDirect(0)
-    assert rp1210.api.ReadDetailedVersionDirect(0)
