@@ -1083,7 +1083,7 @@ class RP1210API:
         if ret_code == 0:
             return str(ErrorMsg.value, "utf-8")
         else:
-            return translateErrorCode(ret_code)
+            return translateErrorCode(ErrorCode)
 
     def GetHardwareStatus(self, ClientID : int, ClientInfoBuffer : bytes, BufferSize : int = 0) -> int:
         """
@@ -1107,7 +1107,7 @@ class RP1210API:
         """
         ClientInfo = create_string_buffer(BufferSize)
         self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, BufferSize, 0)
-        return ClientInfo
+        return str(ClientInfo.value, "utf-8")
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
         """
