@@ -1099,7 +1099,7 @@ class RP1210API:
             BufferSize = len(ClientInfoBuffer)
         return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0) & 0xFFFF
 
-    def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 64) -> str:
+    def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 64) -> bytes:
         """
         Calls GetHardwareStatus and returns the result directly.
 
@@ -1107,7 +1107,7 @@ class RP1210API:
         """
         ClientInfo = create_string_buffer(BufferSize)
         self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, BufferSize, 0)
-        return str(ClientInfo.value, "utf-8")
+        return ClientInfo.value
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
         """
