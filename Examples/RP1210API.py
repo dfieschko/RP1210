@@ -41,7 +41,7 @@ if clientID in range(0, 128): # if connection succeeded
 
     # call GetHardwareStatusDirect and print
     hardwareStatus = api.GetHardwareStatusDirect(clientID)
-    print("Hardware status is: ", hardwareStatus)
+    print("Hardware status bytes translate to: ", hardwareStatus)
 
     print('-------------- Reading message start ----------------')
 
@@ -52,7 +52,7 @@ if clientID in range(0, 128): # if connection succeeded
     for code in cmd_code_arr:
         # We call SendCommand to send a command to the adapter
         cmdCode = api.SendCommand(code, clientID)
-        print(f"Command sent. Return code: {cmdCode}")
+        print(f"Command sent. Return code: {cmdCode} ({RP1210.translateErrorCode(cmdCode)})")
         for _ in range(1, 10000):
             # We call ReadDirect, which sets up and calls RP1210_ReadMessage for us.
             msg = api.ReadDirect(clientID)
@@ -81,10 +81,14 @@ if clientID in range(0, 128): # if connection succeeded
             print("Failure. Message: ", sendmsg, ", Message sending status: ",
                   sendmsg_code, ", Error message: ", RP1210.translateErrorCode(sendmsg_code))
     print('-------------- Sending message end ----------------')
+
+    # disconnect the adapter by calling RP1210_ClientDisconnect
+    disconnectCode = api.ClientDisconnect(clientID)
+    if disconnectCode == 0:
+        print("Adapters disconnected successfully.")
+    else:
+        print("Adapter failed to disconnect:", RP1210.translateErrorCode(disconnectCode))
 else:
     # Connection failed. Call RP1210_GetErrorMsg to print the error message.
     print(f"Failed to connect. Error code: {clientID}, error message: {api.GetErrorMsg(clientID)}")
 
-# disconnect the adapter by calling RP1210_ClientDisconnect
-api.ClientDisconnect(DEVICE_ID)
-print("Adapters disconnected.")
