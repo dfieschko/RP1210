@@ -1,8 +1,11 @@
 from configparser import ConfigParser
+from ctypes import CDLL
 import os
 from RP1210 import sanitize_msg_param
 import RP1210
 import pytest
+
+from Test.test_0_vendorlist import RP121032_PATH
 
 def delete_file(path : str):
     if os.path.exists(path):
@@ -201,16 +204,15 @@ def test_sanitize_msg_param_bool():
     assert sanitize_msg_param(False) == b'\x00'
 
 def test_sanitize_msg_param_typeerror():
-    try:
+    with pytest.raises(TypeError):
         sanitize_msg_param(RP1210.RP1210VendorList())
-    except TypeError:
-        pass
+        sanitize_msg_param(CDLL())
 
 def test_rp1210client_populate_logic():
     """Tests whether RP1210Client recognizes relevant drivers when adapter is disconnected."""
     vendors = []
     vendors.clear()
-    api_list = RP1210.getAPINames()
+    api_list = RP1210.getAPINames(RP121032_PATH)
     if api_list == []:
         pytest.xfail("RP121032.ini not installed on system; calling XFAIL")
     try:
@@ -237,7 +239,7 @@ def test_driver_clientid_fix(input, expected):
             super().__init__(api_name, WorkingAPIDirectory)
     
         def fix(self, val : int):
-            return self._driver_clientid_fix(val)
+            return self._validate_and_fix_clientid(val)
 
     api = TestAPI("test")
     assert api.fix(input) == expected
@@ -252,7 +254,7 @@ def test_driver_clientid_fix_PEAKRP32(input, expected):
             super().__init__(api_name, WorkingAPIDirectory)
     
         def fix(self, val : int):
-            return self._driver_clientid_fix(val)
+            return self._validate_and_fix_clientid(val)
 
     api = TestAPI("PEAKRP32")
     assert api.fix(input) == expected

@@ -688,13 +688,12 @@ class RP1210Config(ConfigParser):
             if isinstance(protocol, int):
                 section = self["ProtocolInformation" + str(protocol)]
                 return RP1210Protocol(section)
-            if isinstance(protocol, str):
-                if not protocol in self.getProtocolNames():
-                    return None
+            elif isinstance(protocol, str):
                 for pid in self.getProtocolIDs():
                     p = self.getProtocol(pid)
                     if p.getString() == protocol:
                         return p
+            return None
         except Exception:
             return None
     
@@ -807,10 +806,13 @@ class RP1210API:
         """
         Loads and returns CDLL for this API.
         
-        If you already called loadDLL(), you can call getDLL() to get the DLL you loaded previously.
-        Can take in a relative and absolute paths files and directories. If given a directory, will attempt to
-        load DLL corresponding to self._api_name from that directory. If a working directory is not provided at
-        initialization of RP1210API(), will assume relative to launch path.
+        If you already called `loadDLL()`, you can call `getDLL()` to get the DLL you loaded previously.
+
+        Can take in a relative and absolute paths files and directories.
+        
+        If given a directory (by setting `WorkingAPIDirectory` param in `__init__()`), will attempt to
+        load DLL corresponding to `self._api_name` from that directory. If a working directory is not provided at
+        initialization of `RP1210API()`, will assume relative to launch path.
         """
         if self._libDir is not None:
             path = ""
@@ -840,7 +842,7 @@ class RP1210API:
                     dll = cdll.LoadLibrary(path)
                 except OSError:
                     # Try "DLL installed in wrong directory" band-aid
-                    path = self._get_dll_path_aux()
+                    path = self._get_alternate_dll_path()
                     dll = cdll.LoadLibrary(path)
                 self.setDLL(dll)
                 return dll
@@ -887,24 +889,24 @@ class RP1210API:
                             RcvBufferSize = 8000, isAppPacketizingincomingMsgs = 0) -> int:
         """
         Attempts to connect to an RP1210 adapter.
-        - nDeviceID determines which adapter it tries to connect to.
+        - DeviceID determines which adapter it tries to connect to.
         - You can generate Protocol with a protocol format function, e.g. getJ1939ProtocolString(),
         or just do it yourself.
             - Protocol defaults to b"J1939:Baud=Auto"
         - Tx and Rcv buffer sizes default to 8K.
         - Don't mess with argument nisAppPacketizingincomingMsgs.
 
-        Returns clientID. 0 to 127 means connection was successful; >127 means it failed.
+        Returns ClientID. 0 to 127 means connection was successful; >127 means it failed.
 
-        Use function translateClientID() to translate nClientID to an error message.
+        Use function translateClientID() to translate ClientID into an error message.
         """
-        clientID = self.getDLL().RP1210_ClientConnect(0, DeviceID, Protocol, TxBufferSize, 
-                                                RcvBufferSize, isAppPacketizingincomingMsgs)
-        return self._driver_clientid_fix(clientID)
+        clientID = self.getDLL().RP1210_ClientConnect(0, DeviceID, sanitize_msg_param(Protocol),
+                                        TxBufferSize, RcvBufferSize, isAppPacketizingincomingMsgs)
+        return self._validate_and_fix_clientid(clientID)
     
     def ClientDisconnect(self, ClientID : int) -> int:
         """
-        Disconnects client w/ specified clientID from adapter.
+        Disconnects client w/ specified ClientID from adapter.
         
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
@@ -925,9 +927,10 @@ class RP1210API:
         Returns 0 if successful, or >127 if it failed.
             You can use translateClientID() to translate the failure code.
         """
+        msg = sanitize_msg_param(ClientMessage)
         if MessageSize == 0:
-            MessageSize = len(ClientMessage)
-        ret_val = self.getDLL().RP1210_SendMessage(ClientID, ClientMessage, MessageSize, 0, 0) & 0xFFFF
+            MessageSize = len(msg)
+        ret_val = self.getDLL().RP1210_SendMessage(ClientID, msg, MessageSize, 0, 0) & 0xFFFF
         # check for error codes. ret_val is a 16-bit unsigned int, so must be converted
         # to negative signed int.
         if ret_val >= 0x08000:
@@ -958,7 +961,7 @@ class RP1210API:
             ret_val = (ret_val - 0x10000)
         return ret_val
 
-    def ReadDirect(self, ClientID : int, BufferSize = 256, BlockOnRead = 0):
+    def ReadDirect(self, ClientID : int, BufferSize = 256, BlockOnRead = 0) -> bytes:
         """
         Calls ReadMessage, but generates and returns its own RxBuffer as bytes.
         - ClientID = clientID you got from ClientConnect
@@ -1006,6 +1009,22 @@ class RP1210API:
         dll_version = str(DLLMajorVersion.value + b"." + DLLMinorVersion.value, "utf-8")
         api_version = str(APIMajorVersion.value + b"." + APIMinorVersion.value, "utf-8")
         return (dll_version, api_version)
+
+    def ReadDLLVersion(self) -> str:
+        """
+        Reads DLL version from adapter drivers.
+
+        All this function does is call ReadVersionDirect() and return its first element.
+        """
+        return self.ReadVersionDirect()[0]
+
+    def ReadAPIVersion(self) -> str:
+        """
+        Reads API version from adapter drivers.
+
+        All this function does is call ReadVersionDirect() and return its second element.
+        """
+        return self.ReadVersionDirect()[1]
 
     def ReadDetailedVersion(self, ClientID : int, APIVersionBuffer : bytes, 
                             DLLVersionBuffer : bytes, FWVersionBuffer : bytes):
@@ -1064,31 +1083,31 @@ class RP1210API:
         if ret_code == 0:
             return str(ErrorMsg.value, "utf-8")
         else:
-            return translateErrorCode(ret_code)
+            return translateErrorCode(ErrorCode)
 
-    def GetHardwareStatus(self, ClientID : int, ClientInfoBuffer : bytes, BufferSize : int) -> int:
+    def GetHardwareStatus(self, ClientID : int, ClientInfoBuffer : bytes, BufferSize : int = 0) -> int:
         """
         Calls GetHardwareStatus and places the result in ClientInfoBuffer. Returns an error code.
 
         Use create_str_buffer() to create the buffer.
 
-        ClientInfoBuffer size must be 16 <= InfoSize <= 64, and must be a multiple of 2.
+        ClientInfoBuffer size must range between 16 and 64, and must be a multiple of 2.
 
         You can also just use GetHardwareStatusDirect() and not worry about buffers.
         """
+        if not BufferSize:
+            BufferSize = len(ClientInfoBuffer)
         return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0) & 0xFFFF
 
-
-    def GetHardwareStatusDirect(self, ClientID : int, InfoSize = 64) -> bytes:
+    def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 64) -> str:
         """
         Calls GetHardwareStatus and returns the result directly.
 
-        InfoSize must be 16 <= InfoSize <= 64, and must be a multiple of 2. Leave InfoSize blank
-        to default to 64.
+        BufferSize must range between 16 and 64, and must be a multiple of 2 (defaults to 64).
         """
-        ClientInfo = create_string_buffer(InfoSize)
-        self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, InfoSize, 0)
-        return ClientInfo
+        ClientInfo = create_string_buffer(BufferSize)
+        self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, BufferSize, 0)
+        return str(ClientInfo.value, "utf-8")
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
         """
@@ -1120,14 +1139,14 @@ class RP1210API:
         except Exception: # RP1210C functions not supported
             self._conforms_to_rp1210c = False
 
-    def _get_dll_path_aux(self) -> str:
+    def _get_alternate_dll_path(self) -> str:
         """
         Some adapter vendors (looking at you, Actia) install their drivers in the wrong directory.
         This function returns the dll path in that directory.
         """
         return os.path.join(os.environ["WINDIR"], self._api_name + ".dll")
 
-    def _driver_clientid_fix(self, clientID) -> int:
+    def _validate_and_fix_clientid(self, clientID) -> int:
         """
         Noregon DLA2 adapters have an issue where they return a bunch of garbage along with the
         ClientID when calling ClientConnect. This is the fix for that.
@@ -1147,9 +1166,10 @@ class RP1210API:
 
 class RP1210VendorList:
     """
-    Loads and stores a list of all RP1210 adapter vendors specified in RP121032.ini.
+    Loads and stores a list of all RP1210 adapter vendors specified in RP121032.ini (each vendor
+    gets its own RP1210Config object).
     
-    Also points to a specific RP1210Config, and a device within that RP1210Config. This feature is
+    Also points to a specific RP1210Config object and a device within that RP1210Config. This feature is
     intended to be used with a couple of combo boxes that allow for the selection of RP1210 vendors
     and devices.
 
@@ -1159,12 +1179,24 @@ class RP1210VendorList:
     - Set device index with `setDeviceIndex()`. This is NOT deviceID!
     - If you have a vendor name but not index, use `getVendorIndex(api_name)` to find the index.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, rp121032_path : str = None, api_dir : str = None, config_dir : str = None):
+        # super().__init__()
         self.vendors = [] #type: list[RP1210Config]
         self.vendorIndex = 0
         self.deviceIndex = 0
+        self._rp121032_path = rp121032_path
+        self._api_path = api_dir
+        self._config_path = config_dir
         self.populate()
+
+    def __getitem__(self, index : int) -> RP1210Config:
+        return self.vendors[index]
+
+    def __bool__(self) -> bool:
+        return self.numVendors() != 0
+
+    def __len__(self) -> int:
+        return self.numVendors()
 
     def populate(self) -> None:
         """
@@ -1172,11 +1204,11 @@ class RP1210VendorList:
         that is found.
         """
         self.vendors.clear()
-        api_list = getAPINames()
+        api_list = getAPINames(self._rp121032_path)
         try:
             for api_name in api_list:
                 try:
-                    self.vendors.append(RP1210Config(api_name))
+                    self.vendors.append(RP1210Config(api_name, self._api_path, self._config_path))
                 except Exception:
                     # skip this API if its .ini file can't be parsed
                     pass
@@ -1187,10 +1219,7 @@ class RP1210VendorList:
         """
         Returns list of stored RP1210Config objects (e.g. list of vendors).
         """
-        try:
-            return self.vendors
-        except Exception:
-            return []
+        return self.vendors
 
     def getVendorList(self) -> list[RP1210Config]:
         """Same as getList()."""
@@ -1207,28 +1236,28 @@ class RP1210VendorList:
         except Exception:
             return None
 
-    def numVendors(self):
+    def numVendors(self) -> int:
         """Returns number of vendors stored in vendor list."""
         try:
             return len(self.vendors)
         except Exception:
             return 0
 
-    def numDevices(self):
+    def numDevices(self) -> int:
         """Returns number of devices supported by current vendor."""
         try:
             return len(self.getCurrentVendor().getDevices())
         except Exception:
             return 0
 
-    def setVendorIndex(self, index : int):
+    def setVendorIndex(self, index : int) -> None:
         """
         Set index of current vendor.
         """
         self.vendorIndex = index
         self.deviceIndex = 0
 
-    def setVendor(self, api_name : str):
+    def setVendor(self, api_name : str) -> None:
         """
         Sets current vendor by api_name (e.g. NULN2R32).
 
@@ -1237,13 +1266,13 @@ class RP1210VendorList:
         index = self.getVendorIndex(api_name)
         self.setVendorIndex(index)
 
-    def setDeviceIndex(self, index : int):
+    def setDeviceIndex(self, index : int) -> None:
         """
-        Set index of current device.
+        Sets index of current device.
         """
         self.deviceIndex = index
 
-    def setDevice(self, deviceID): 
+    def setDevice(self, deviceID) -> None: 
         """
         Sets current device to device matching deviceID.
         """
@@ -1252,7 +1281,7 @@ class RP1210VendorList:
 
     def getDeviceIndex(self, deviceID = -1) -> int:
         """
-        Returns index of device matching deviceID. Returns 0 if no match is found.
+        Returns index of device matching deviceID for current vendor. Returns 0 if no match is found.
 
         Returns current device index if no deviceID is provided.
         """
@@ -1268,20 +1297,26 @@ class RP1210VendorList:
             return 0
         return 0
 
-    def getVendor(self, index : int) -> RP1210Config:
+    def getVendor(self, index : int = None) -> RP1210Config:
         """
         Returns RP1210Config object in vendor list at specified index.
+
+        Will return current vendor if no index is provided.
         
         Will return None on error.
         """
         try:
+            if index is None:
+                return self.getCurrentVendor()
+            if isinstance(index, str):
+                return self.vendors[self.getVendorIndex(index)]
             return self.vendors[index]
         except Exception:
             return None
 
     def getVendorIndex(self, api_name = "") -> int:
         """
-        Returns index of vendor in list, given vendor's api name.
+        Returns index of vendor in list that matches given vendor's api name.
 
         If API name is left blank, will return current vendor index instead.
 
@@ -1312,7 +1347,13 @@ class RP1210VendorList:
             return None
 
     def getVendorName(self) -> str:
-        return self.getCurrentVendor().getName()
+        """
+        Returns 'Name' field from currently selected vendor's VendorInformation.
+        """
+        try:
+            return self.getCurrentVendor().getName()
+        except Exception:
+            return ""
 
     def getCurrentDevice(self) -> RP1210Device:
         """
@@ -1349,9 +1390,9 @@ class RP1210Client(RP1210VendorList):
     handles connection with an adapter.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, rp121032_path : str = None, api_dir : str = None, config_dir : str = None) -> None:
         self.clientID = 128 # DLL_NOT_INITIALIZED
-        super().__init__()
+        super().__init__(rp121032_path, api_dir, config_dir)
 
     ###################
     # CLASS FUNCTIONS #
@@ -1410,7 +1451,7 @@ class RP1210Client(RP1210VendorList):
         except Exception:
             return -1
 
-    def rx(self, buffer_size = 256, blocking = 0):
+    def rx(self, buffer_size = 256, blocking = 0) -> bytes:
         """
         Calls ReadMessage, but generates and returns its own RxBuffer value.
         - buffer_size = the size of the buffer in bytes. Defaults to 256.
@@ -1423,7 +1464,7 @@ class RP1210Client(RP1210VendorList):
         """
         return self.getAPI().ReadDirect(self.getClientID(), buffer_size, blocking)
 
-    def tx(self, message, msg_size = 0):
+    def tx(self, message, msg_size = 0) -> int:
         """
         Send a message to the databus your adapter is connected to.
         - message = message you want to send
@@ -1533,7 +1574,7 @@ class RP1210Client(RP1210VendorList):
         cmd_size = 1
         return self.command(cmd_num, cmd_data, cmd_size)
 
-    def protectJ1939Address(self, address_to_claim, network_mgt_name, blocking = True) -> bytes:
+    def protectJ1939Address(self, address_to_claim, network_mgt_name, blocking = True) -> int:
         """
         Protect J1939 Address (19) (10 bytes)
 
@@ -1543,9 +1584,6 @@ class RP1210Client(RP1210VendorList):
             - See J1939 network management standard!
             - Lowest name takes priority if two devices try to claim the same address
         - blocking (bool) - True will block until done, False will return before completion
-
-        This function automatically sanitizes str, int, and bytes inputs. str are parsed as 10-bit
-        decimals! Use byte strings (b"message") if you want to pass utf-8 characters.
         """
         cmd_num = 19
         cmd_data = Commands.protectJ1939Address(address_to_claim, network_mgt_name, blocking)

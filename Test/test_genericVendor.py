@@ -1,9 +1,9 @@
-from ctypes import cdll, create_string_buffer
+from ctypes import CDLL, cdll, create_string_buffer
 import pytest
 import RP1210, os, configparser
 from utilities import RP1210ConfigTestUtility
 
-API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "CIL7R32"]
+API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32", "CMNSI632", "CIL7R32", "DrewLinQ", "DTKRP32"]
 INVALID_API_NAMES = ["empty_api", "invalid_api", "extra_empty_api", "invalid_pd_api"]
 
 # These tests are meant to be run with cwd @ repository's highest-level directory
@@ -85,7 +85,7 @@ def test_RP1210Config(api_name : str):
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
     assert rp1210.isValid() == True or api_name in INVALID_API_NAMES
-    assert rp1210.getAPIName() == api_name
+    assert rp1210.getAPIName() == api_name == rp1210.api.getAPIName()
     utility.verifydata(rp1210.getName, "VendorInformation", "Name", fallback="(Vendor Name Missing)")
     utility.verifydata(rp1210.getAddress1, "VendorInformation", "Address1")
     utility.verifydata(rp1210.getAddress2, "VendorInformation", "Address2")
@@ -117,7 +117,23 @@ def test_RP1210Config(api_name : str):
     assert rp1210.getName() in str(rp1210)
     assert rp1210.getCANAutoBaud() == rp1210.autoBaudEnabled()
     assert rp1210.getProtocol() == rp1210.getProtocol("J1939")
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES + INVALID_API_NAMES)
+def test_RP1210Config_forceempty(api_name : str):
+    """
+    Test behavior after RP1210Config is forcibly cleared.
     
+    This is here to test for cases where RP1210Config is missing sections.
+
+    I was hoping this would cover the exceptions in RP1210Config, but it doesn't :(
+    """
+    rp1210 = RP1210.RP1210Config(api_name, DLL_DIRECTORY, INI_DIRECTORY)
+    rp1210.clear()
+    assert rp1210.getDevices() == []
+    assert rp1210.getProtocols() == []
+    assert rp1210.getProtocolNames() == []
+    assert rp1210.getProtocolIDs() == []
+
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES + INVALID_API_NAMES)
 def test_Devices(api_name : str):
     config = configparser.ConfigParser()
@@ -149,8 +165,17 @@ def test_Protocols(api_name : str):
     config.read(INI_DIRECTORY + "\\" + api_name + ".ini")
     protocolIDs = rp1210.getProtocolIDs()
     assert rp1210.getProtocol("test protocol name") is None
+    assert rp1210.getProtocol([]) is None
+    for name in rp1210.getProtocolNames():
+        assert rp1210.getProtocol(name).getString() == name
+    assert not rp1210.getProtocol("dinglebop protocol")
+    assert not rp1210.getProtocol(b"this is bytes, not int or str")
+    if not api_name in invalid_apis:
+        assert rp1210.getProtocolNames()
     if not api_name in INVALID_API_NAMES:
         assert protocolIDs
+    if api_name in INVALID_API_NAMES and api_name != "invalid_pd_api":
+        assert rp1210.getProtocols() == []
     for id in protocolIDs:
         protocol = rp1210.getProtocol(id)
         name = protocol.getString()
@@ -181,6 +206,22 @@ def test_load_DLL(api_name : str):
     assert rp1210.api.getDLL() != None
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     assert rp1210.api.loadDLL() != None
+    # make sure that RP1210API is invalid if DLL is set to None
+    rp1210.api.setDLL(None)
+    assert not rp1210.api._api_valid
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_conformsToRP1210C(api_name : str):
+    """Tests conformsToRP1210C function."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping {api_name} due to missing dependencies.")
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    if not rp1210.api.isValid():
+        assert not rp1210.api.conformsToRP1210C()
+    if rp1210.api.isValid():
+        assert rp1210.api.conformsToRP1210C() == rp1210.api._conforms_to_rp1210c
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ClientConnect(api_name : str):
@@ -233,8 +274,11 @@ def test_disconnected_ReadVersionDirect(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-    for ver in rp1210.api.ReadVersionDirect():
-        assert ver != ""
+    dll_ver, api_ver = rp1210.api.ReadVersionDirect()
+    assert dll_ver != ""
+    assert api_ver != ""
+    assert dll_ver == rp1210.api.ReadDLLVersion()
+    assert api_ver == rp1210.api.ReadAPIVersion()
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_ReadDetailedVersion(api_name : str):
@@ -249,6 +293,7 @@ def test_disconnected_ReadDetailedVersion(api_name : str):
     buff3 = create_string_buffer(17)
     ret_val = rp1210.api.ReadDetailedVersion(0, buff1, buff2, buff3)
     assert RP1210.translateErrorCode(ret_val) in ["ERR_DLL_NOT_INITIALIZED", "ERR_HARDWARE_NOT_RESPONDING", "ERR_INVALID_CLIENT_ID"]
+    assert rp1210.api.ReadDetailedVersionDirect(0)
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_GetErrorMsg(api_name : str):
@@ -260,7 +305,8 @@ def test_disconnected_GetErrorMsg(api_name : str):
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
     for code in RP1210.RP1210_ERRORS.keys():
         msg = rp1210.api.GetErrorMsg(code)
-        assert msg != ""
+        if not api_name == "DrewLinQ": # DrewLinQ fails this, but that's their problem
+            assert msg != ""
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_SendCommand(api_name : str):
@@ -296,20 +342,30 @@ def test_disconnected_GetHardwareStatusDirect(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-    assert not rp1210.api.GetHardwareStatusDirect(0).value
+    assert not rp1210.api.GetHardwareStatusDirect(0)
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
-def test_disconnected_RemainingFunctions(api_name : str):
-    """Tests whether API functions follow expected behavior when disconnected from device."""
+def test_disconnected_SendMessage(api_name : str):
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping SendMessage test for {api_name} due to missing dependencies.")
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    for val in ["blargle", "", 0, 324234, b'blargle', b'']:
+        ret_val = rp1210.api.SendMessage(0, val) # set size automatically
+        assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
+        if not isinstance(val, int):
+            ret_val = rp1210.api.SendMessage(0, val, len(val)) # specify size
+            assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_disconnected_Read(api_name : str):
+    """Test ReadMessage and ReadDirect."""
     if api_name in invalid_apis:
         pytest.skip(f"Skipping 'Remaining Functions' test for {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-    ret_val = rp1210.api.SendMessage(0, b"", 0)
-    assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
-    ret_val = rp1210.api.SendMessage(0, b"12345678", 8)
-    assert RP1210.translateErrorCode(ret_val) in RP1210.RP1210_ERRORS.values()
     read_array_in = create_string_buffer(256)
     assert rp1210.api.ReadMessage(128, read_array_in, len(read_array_in)) <= 0
     assert not read_array_in.value
@@ -317,32 +373,3 @@ def test_disconnected_RemainingFunctions(api_name : str):
     assert rp1210.api.ReadMessage(0, read_array_in) <= 0
     assert not read_array_in.value
     assert not rp1210.api.ReadDirect(0)
-    assert rp1210.api.ReadDetailedVersionDirect(0)
-
-@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
-def test_disconnected_rp1210client_commands(api_name):
-    """Tests RP1210Client command functions when adapter is disconnected."""
-    pytest.skip("Tests for RP1210Client are invalid until modular API loading is implemented.")
-    # TODO: this is copied from old tests & will need to be updated before use!
-    client = RP1210.RP1210Client()
-    client.setVendor(api_name)
-    assert client.getClientID() == 128
-    clientID = client.connect()
-    assert clientID in RP1210.RP1210_ERRORS.keys()
-    assert clientID == client.getClientID()
-    # sampling of simpler commands
-    assert client.resetDevice() in RP1210.RP1210_ERRORS.keys()
-    assert client.setAllFiltersToPass() in RP1210.RP1210_ERRORS.keys()
-    assert client.setAllFiltersToDiscard() in RP1210.RP1210_ERRORS.keys()
-    assert client.setEcho(True) in RP1210.RP1210_ERRORS.keys()
-    assert client.setMessageReceive(True) in RP1210.RP1210_ERRORS.keys()
-    assert client.releaseJ1939Address(0xEE) in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939FilterType(0) in RP1210.RP1210_ERRORS.keys()
-    assert client.setCANFilterType(0) in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939InterpacketTime(100) in RP1210.RP1210_ERRORS.keys()
-    assert client.setMaxErrorMsgSize(100) in RP1210.RP1210_ERRORS.keys()
-    assert client.disallowConnections() in RP1210.RP1210_ERRORS.keys()
-    assert client.setJ1939Baud(5) in RP1210.RP1210_ERRORS.keys()
-    assert client.setBlockingTimeout(20, 30) in RP1210.RP1210_ERRORS.keys()
-    assert client.flushBuffers() in RP1210.RP1210_ERRORS.keys()
-    assert client.setCANBaud(5) in RP1210.RP1210_ERRORS.keys()
