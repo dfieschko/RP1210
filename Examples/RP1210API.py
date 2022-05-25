@@ -16,8 +16,8 @@ if API_NAME not in API_NAMES:
 # initialize the API
 api = RP1210.RP1210API(API_NAME)
 
-# check if the connected adapter confirms to the RP1210C standard
-print("The connected adapter confirms to the RP1210C standard: ",
+# check if the connected adapter conforms to the RP1210C standard
+print("The connected adapter conforms to the RP1210C standard: ",
       api.conformsToRP1210C())
 
 # attempt to connect to the adapter
@@ -53,7 +53,7 @@ if clientID in range(1, 128):
         for _ in range(1, 10000):
             msg = api.ReadDirect(clientID)
             if msg:
-                print("Received message:", api.ReadMessage(clientID, msg))
+                print("Received message:", msg)
             # else:
             #     print('No Message received')
     print('-------------- Reading message end ----------------')
