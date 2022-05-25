@@ -16,8 +16,8 @@ if API_NAME not in API_NAMES:
 # initialize the API
 api = RP1210.RP1210API(API_NAME)
 
-# check if the connected adapter conforms to the RP1210C standard
-print("The connected adapter conforms to the RP1210C standard: ",
+# check if the connected adapter confirms to the RP1210C standard
+print("The connected adapter confirms to the RP1210C standard: ",
       api.conformsToRP1210C())
 
 # attempt to connect to the adapter
@@ -46,25 +46,16 @@ if clientID in range(1, 128):
     # now we need to set the adapter's filters to allow messages through
     # SET_ALL_FILTERS_STATES_TO_PASS has command ID 3 (see Commands.py)
     print('-------------- Reading message start ----------------')
-    cmdCode = api.SendCommand(3, clientID)
-    print(f"Command received: {cmdCode} ----------")
-    for _ in range(1, 10000):
-        msg = api.ReadDirect(clientID)
-        if msg:
-            print("Received message:", api.ReadMessage(clientID, msg))
-        # else:
-        #     print('No Message received')
-
-    # send SET_MESSAGE_FILTERING_FOR_ISO15765 (ID: 9)
-    cmdCode9 = api.SendCommand(9, clientID)
-    print(f"Command received: {cmdCode9} ----------")
-
-    for _ in range(1, 10000):
-        msg = api.ReadDirect(clientID)
-        if msg:
-            print("Received message:", api.ReadMessage(clientID, msg))
-        # else:
-        #     print('No Message received')
+    cmd_code_arr = [3, 9, 305]
+    for code in cmd_code_arr:
+        cmdCode = api.SendCommand(code, clientID)
+        print(f"Command received: {cmdCode}")
+        for _ in range(1, 10000):
+            msg = api.ReadDirect(clientID)
+            if msg:
+                print("Received message:", api.ReadMessage(clientID, msg))
+            # else:
+            #     print('No Message received')
     print('-------------- Reading message end ----------------')
 
     print('-------------- Sending message start ----------------')
