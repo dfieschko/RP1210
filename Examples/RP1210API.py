@@ -18,6 +18,11 @@ api = RP1210.RP1210API(API_NAME)
 clientID = api.ClientConnect(DEVICE_ID) # Try to connect w/ default settings
 print(f"Attempted connection and received code: {clientID} ({RP1210.translateErrorCode(clientID)})")
 
+# call ReadVersionDirect and print DLL and API version
+versionInfo = api.ReadVersionDirect()
+print(f"DLL Version: {versionInfo[0]}")
+print(f"API Version: {versionInfo[1]}")
+
 # now we need to set the adapter's filters to allow messages through
 # SET_ALL_FILTERS_STATES_TO_PASS has command ID 3 (see Commands.py)
 cmdCode = api.SendCommand(3, clientID)
