@@ -10,6 +10,8 @@ API_NAME = "NULN2R32"
 
 DEVICE_ID = 1  # Get this from driver .ini file, e.g. C:\Windows\NULN2R32.ini
 
+# See example for RP1210Config for more info on how to select API name and Device ID.
+
 if API_NAME not in API_NAMES:
     print("You don't have the right drivers installed!")
 
@@ -23,10 +25,8 @@ print("The connected adapter confirms to the RP1210C standard: ",
 # attempt to connect to the adapter
 clientID = api.ClientConnect(DEVICE_ID)  # Try to connect w/ default settings
 
-# check if connection succeeded
-if clientID in range(1, 128):
-    print(
-        f"Successfully connected and received code: {clientID} ({RP1210.translateErrorCode(clientID)})\n")
+if clientID in range(0, 128): # if connection succeeded
+    print(f"Successfully connected and received code: {clientID} ({RP1210.translateErrorCode(clientID)})\n")
 
     # call ReadVersionDirect and print DLL and API version
     versionInfo = api.ReadVersionDirect()
@@ -43,14 +43,18 @@ if clientID in range(1, 128):
     hardwareStatus = api.GetHardwareStatusDirect(clientID)
     print("Hardware status is: ", hardwareStatus)
 
-    # now we need to set the adapter's filters to allow messages through
-    # SET_ALL_FILTERS_STATES_TO_PASS has command ID 3 (see Commands.py)
     print('-------------- Reading message start ----------------')
+
+    # now we need to set the adapter's filters to allow messages through
+    # we will also send another two arbitrary commands to the adapter.
+    # SET_ALL_FILTERS_STATES_TO_PASS has command ID 3 (see Commands.py)
     cmd_code_arr = [3, 9, 305]
     for code in cmd_code_arr:
+        # We call SendCommand to send a command to the adapter
         cmdCode = api.SendCommand(code, clientID)
-        print(f"Command received: {cmdCode}")
+        print(f"Command sent. Return code: {cmdCode}")
         for _ in range(1, 10000):
+            # We call ReadDirect, which sets up and calls RP1210_ReadMessage for us.
             msg = api.ReadDirect(clientID)
             if msg:
                 print("Received message:", api.ReadMessage(clientID, msg))
@@ -58,6 +62,7 @@ if clientID in range(1, 128):
             #     print('No Message received')
     print('-------------- Reading message end ----------------')
 
+    # Now let's send some messages!
     print('-------------- Sending message start ----------------')
     # send message to adapter
     send_msg_arr = [b'\xff\xff\xff\xff\x8f\xff\xff\xff',
@@ -67,6 +72,7 @@ if clientID in range(1, 128):
                     b'\x00']
 
     for sendmsg in send_msg_arr:
+        # We call SendMessage, which sends bytes to the adapter to transmit on the databus.
         sendmsg_code = api.SendMessage(clientID, sendmsg)
         if sendmsg_code == 0:
             print("Success. Message: ", sendmsg,
@@ -76,9 +82,9 @@ if clientID in range(1, 128):
                   sendmsg_code, ", Error message: ", RP1210.translateErrorCode(sendmsg_code))
     print('-------------- Sending message end ----------------')
 else:
-    print(
-        f"Failed to connect. Error code: {clientID}, error message: {api.GetErrorMsg(clientID)}")
+    # Connection failed. Call RP1210_GetErrorMsg to print the error message.
+    print(f"Failed to connect. Error code: {clientID}, error message: {api.GetErrorMsg(clientID)}")
 
-# disconnect the adapter
+# disconnect the adapter by calling RP1210_ClientDisconnect
 api.ClientDisconnect(DEVICE_ID)
 print("Adapters disconnected.")
