@@ -25,8 +25,9 @@ print("The connected adapter conforms to the RP1210C standard: ",
 # attempt to connect to the adapter
 clientID = api.ClientConnect(DEVICE_ID)  # Try to connect w/ default settings
 
-if clientID in range(0, 128): # if connection succeeded
-    print(f"Successfully connected and received code: {clientID} ({RP1210.translateErrorCode(clientID)})\n")
+if clientID in range(128):  # if connection succeeded
+    print(
+        f"Successfully connected and received code: {clientID} ({RP1210.translateErrorCode(clientID)})\n")
 
     # call ReadVersionDirect and print DLL and API version
     versionInfo = api.ReadVersionDirect()
@@ -52,7 +53,8 @@ if clientID in range(0, 128): # if connection succeeded
     for code in cmd_code_arr:
         # We call SendCommand to send a command to the adapter
         cmdCode = api.SendCommand(code, clientID)
-        print(f"Command sent. Return code: {cmdCode} ({RP1210.translateErrorCode(cmdCode)})")
+        print(
+            f"Command sent. Return code: {cmdCode} ({RP1210.translateErrorCode(cmdCode)})")
         for _ in range(1, 10000):
             # We call ReadDirect, which sets up and calls RP1210_ReadMessage for us.
             msg = api.ReadDirect(clientID)
@@ -87,7 +89,9 @@ if clientID in range(0, 128): # if connection succeeded
     if disconnectCode == 0:
         print("Adapters disconnected successfully.")
     else:
-        print("Adapter failed to disconnect:", RP1210.translateErrorCode(disconnectCode))
+        print("Adapter failed to disconnect:",
+              RP1210.translateErrorCode(disconnectCode))
 else:
     # Connection failed. Call RP1210_GetErrorMsg to print the error message.
-    print(f"Failed to connect. Error code: {clientID}, error message: {api.GetErrorMsg(clientID)}")
+    print(
+        f"Failed to connect. Error code: {clientID}, error message: {api.GetErrorMsg(clientID)}")
