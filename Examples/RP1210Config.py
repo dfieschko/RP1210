@@ -57,9 +57,17 @@ print(f"CAN formats supported: {config.getCANFormatsSupported()}")
 print(f"J1939 formats supported: {config.getJ1939FormatsSupported()}")
 print(f"CAN auto baud: {config.getCANAutoBaud()}")
 print(f"Connected device name: {config.getDevice(DEVICE_ID)}")
-print(f"List of devices on the file: {config.getDevices()}")
+print("List of devices on the file:")
+for device in config.getDevices():
+    print(f"\t{device}")
 print(f"List of device IDs on the file: {config.getDeviceIDs()}")
-print(f"protocol: {config.getProtocol()}")
-print(f"List of protocols on the file: {config.getProtocols()}")
-print(f"List of protocol names: {config.getProtocolNames()}")
+print(f"Current protocol: {config.getProtocol()}")
+print("List of protocols on the file:")
+for protocol in config.getProtocols():
+    print(f"\t{protocol}")
+print("List of protocol names:")
+for protocol_name in config.getProtocolNames():
+    print(f"\t{protocol_name}")
 print(f"List of protocol IDs: {config.getProtocolIDs()}")
+
+
