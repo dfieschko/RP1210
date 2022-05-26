@@ -404,7 +404,7 @@ class RP1210Config(ConfigParser):
 
     def getCity(self) -> str:
         """
-        Returns 'Address2' field from VendorInformation section.
+        Returns 'City' field from VendorInformation section.
 
         Returns an empty string if the field isn't found.
         """
