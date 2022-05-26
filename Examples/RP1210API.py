@@ -91,4 +91,3 @@ if clientID in range(0, 128): # if connection succeeded
 else:
     # Connection failed. Call RP1210_GetErrorMsg to print the error message.
     print(f"Failed to connect. Error code: {clientID}, error message: {api.GetErrorMsg(clientID)}")
-
