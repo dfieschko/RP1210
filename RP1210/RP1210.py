@@ -1107,7 +1107,7 @@ class RP1210API:
         """
         ClientInfo = create_string_buffer(BufferSize)
         self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, BufferSize, 0)
-        return ClientInfo.value
+        return ClientInfo.raw
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
         """
