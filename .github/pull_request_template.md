@@ -1,7 +1,7 @@
 ## ✨ Enhancements
 - Enhancements go here!
 
-## 🐛 Bugfixes
+## 🐛 Bugs Fixed
 - Bugs you fixed go here!
 
 ## 🗿 Miscellaneous
@@ -11,4 +11,5 @@
 Put the issues you closed here (e.g. closes #8)!
 
 ## 👀 Required Tests
-- [ ] 
+- [ ] Do the unit tests all pass?
+- [ ] Do the examples still work?
