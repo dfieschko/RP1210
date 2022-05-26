@@ -342,7 +342,7 @@ def test_disconnected_GetHardwareStatusDirect(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-    assert not rp1210.api.GetHardwareStatusDirect(0)
+    assert not int.from_bytes(rp1210.api.GetHardwareStatusDirect(0), 'big')
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_SendMessage(api_name : str):
