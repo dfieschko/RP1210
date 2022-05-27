@@ -1099,7 +1099,7 @@ class RP1210API:
             BufferSize = len(ClientInfoBuffer)
         return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0) & 0xFFFF
 
-    def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 64) -> bytes:
+    def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 16) -> bytes:
         """
         Calls GetHardwareStatus and returns the result directly.
 
@@ -1107,7 +1107,7 @@ class RP1210API:
         """
         ClientInfo = create_string_buffer(BufferSize)
         self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, BufferSize, 0)
-        return ClientInfo.value
+        return ClientInfo.raw
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
         """
@@ -1197,6 +1197,12 @@ class RP1210VendorList:
 
     def __len__(self) -> int:
         return self.numVendors()
+
+    def __str__(self) -> str:
+        """
+        Returns a list of api - vendor names
+        """
+        return ', '.join([str(i) for i in self.getVendorList()])
 
     def populate(self) -> None:
         """
@@ -1383,6 +1389,29 @@ class RP1210VendorList:
             return self.getCurrentDevice().getID()
         except Exception:
             return -1
+
+    def getVendorNames(self) -> list[str]:
+        """
+        Generates a list of vendor names that are listed in RP1210.ini file
+        """
+        return [vendor_name.getName() for vendor_name in self.getVendorList()]
+
+    def getAPINames(self) -> list[str]:
+        """
+        Generates a list of api names that are listed in RP1210.ini file
+        """
+        return [api_name.getAPIName() for api_name in self.getVendorList()]
+
+    def getDeviceIDs(self) -> list[str]:
+        """
+        Generates a list of device IDs based on current vendor
+        """
+        deviceIDs = self.getCurrentVendor().getDeviceIDs()
+
+        if deviceIDs and not isinstance(deviceIDs[0], str):
+            return [str(i) for i in deviceIDs]
+        return deviceIDs
+
 
 class RP1210Client(RP1210VendorList):
     """
