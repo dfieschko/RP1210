@@ -69,5 +69,3 @@ print("List of protocol names:")
 for protocol_name in config.getProtocolNames():
     print(f"\t{protocol_name}")
 print(f"List of protocol IDs: {config.getProtocolIDs()}")
-
-

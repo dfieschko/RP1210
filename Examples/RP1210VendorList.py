@@ -7,9 +7,19 @@ vendorList = RP1210.RP1210VendorList()
 print("List of vendors:")
 for vendor in vendorList.getVendorList():
     print(f"\t{vendor}")
-print(f"API Object: {vendorList.getAPI()}")  # TODO
+print(f"API Object: {vendorList.getAPI()}")
 print(f"Number of vendors: {vendorList.numVendors()}")
 print(f"Number of devices: {vendorList.numDevices()}")
+
+# Connect to specific adapter
+vendorList.setVendor("NULN2R32")
+vendorList.setDevice("1")
+vendorList.getAPI().ClientConnect(vendorList.getDeviceID())
+
+# Connect to first adapter in list
+vendorList.setVendorIndex(0)
+vendorList.setDeviceIndex(0)
+vendorList.getAPI().ClientConnect(vendorList.getDeviceID())
 
 # define API_NAME and DEVICE_ID
 API_NAME = "NULN2R32"
