@@ -1406,7 +1406,12 @@ class RP1210VendorList:
         """
         Generates a list of device IDs based on current vendor
         """
-        return self.getCurrentVendor().getDeviceIDs()
+        deviceIDs = self.getCurrentVendor().getDeviceIDs()
+
+        if deviceIDs and not isinstance(deviceIDs[0], str):
+            return [str(i) for i in deviceIDs]
+        return deviceIDs
+
 
 class RP1210Client(RP1210VendorList):
     """
