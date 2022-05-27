@@ -1412,7 +1412,6 @@ class RP1210VendorList:
             return [str(i) for i in deviceIDs]
         return deviceIDs
 
-
 class RP1210Client(RP1210VendorList):
     """
     Stores a list of all adapter vendors and devices read from .ini files (child of VendorList), and

@@ -10,6 +10,8 @@ for vendor in vendorList.getVendorList():
 print(f"API Object: {vendorList.getAPI()}")
 print(f"Number of vendors: {vendorList.numVendors()}")
 print(f"Number of devices: {vendorList.numDevices()}")
+print(f"All vendor names: {vendorList.getVendorNames()}")
+print(f"All API names: {vendorList.getAPINames()}")
 
 # Connect to specific adapter
 vendorList.setVendor("NULN2R32")
@@ -33,6 +35,7 @@ if API_NAME in [str(i).split(' ')[0] for i in vendorList.getVendorList()]:
         f"Current vendor: {vendorList.getCurrentVendor()}, name: {vendorList.getVendorName()}, index: {vendorList.getVendorIndex()}")
     print(
         f"Vendor at index 2: {vendorList.getVendor(2)}, vendor index of DG121032: {vendorList.getVendorIndex('DG121032')}")
+    print(f"All device IDs: {vendorList.getDeviceIDs()}")
 
     # check if the device is in the device list
     if DEVICE_ID in [str(i).split(' ')[0] for i in vendorList.getCurrentVendor().getDevices()]:
