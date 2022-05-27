@@ -1198,6 +1198,12 @@ class RP1210VendorList:
     def __len__(self) -> int:
         return self.numVendors()
 
+    def __str__(self) -> str:
+        """
+        Returns a list of api - vendor names
+        """
+        return ', '.join([str(i) for i in self.getVendorList()])
+
     def populate(self) -> None:
         """
         Populates vendors from RP121032.ini. Initializes an RP1210Config object for each vendor name
@@ -1383,6 +1389,24 @@ class RP1210VendorList:
             return self.getCurrentDevice().getID()
         except Exception:
             return -1
+
+    def getVendorNames(self) -> list[str]:
+        """
+        Generates a list of vendor names that are listed in RP1210.ini file
+        """
+        return [vendor_name.getName() for vendor_name in self.getVendorList()]
+
+    def getAPINames(self) -> list[str]:
+        """
+        Generates a list of api names that are listed in RP1210.ini file
+        """
+        return [api_name.getAPIName() for api_name in self.getVendorList()]
+
+    def getDeviceIDs(self) -> list[str]:
+        """
+        Generates a list of device IDs based on current vendor
+        """
+        return self.getCurrentVendor().getDeviceIDs()
 
 class RP1210Client(RP1210VendorList):
     """
