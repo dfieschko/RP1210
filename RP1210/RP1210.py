@@ -1417,14 +1417,11 @@ class RP1210VendorList:
         """
         return [api_name.getAPIName() for api_name in self.getVendorList()]
 
-    def getDeviceIDs(self) -> list[str]:
+    def getDeviceIDs(self) -> list[int]:
         """
         Generates a list of device IDs based on current vendor
         """
         deviceIDs = self.getCurrentVendor().getDeviceIDs()
-
-        if deviceIDs and not isinstance(deviceIDs[0], str):
-            return [str(i) for i in deviceIDs]
         return deviceIDs
 
 class RP1210Client(RP1210VendorList):
@@ -1438,7 +1435,7 @@ class RP1210Client(RP1210VendorList):
         super().__init__(rp121032_path, api_dir, config_dir)
 
     def __str__(self) -> str:
-        return self.clientID
+        return str(self.clientID)
         
     ###################
     # CLASS FUNCTIONS #
