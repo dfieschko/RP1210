@@ -1435,7 +1435,10 @@ class RP1210Client(RP1210VendorList):
         super().__init__(rp121032_path, api_dir, config_dir)
 
     def __str__(self) -> str:
-        return self.getCurrentVendor().getName()
+        try:
+            return self.getCurrentVendor().getName()
+        except Exception:
+            return ""
 
     def __int__(self) -> int:
         return self.clientID
