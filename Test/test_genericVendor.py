@@ -397,18 +397,18 @@ def test_RP1210Client_magic_methods():
     if client.getCurrentVendor():
         assert str(client) == client.getCurrentVendor().getName()
     else:
-        # has nor assigned vendor, vendor=""
+        # has not assigned vendor, vendor=""
         assert str(client) == ""
     assert int(client) == client.clientID
 
-def test_RP1210Protocol_magic_methods():
+def test_RP1210Protocol_magic_methods_arbitrary():
     """Test __bool__ in RP1210Protocol"""
     protocol = RP1210.RP1210Protocol({})
     assert bool(protocol) == bool({})
     protocol = RP1210.RP1210Protocol({'test':'1'})
     assert bool(protocol) == bool({'test':'1'})
 
-def test_RP1210Device_magic_methods():
+def test_RP1210Device_magic_methods_arbitrary():
     """Test __bool__ in RP1210Device"""
     device = RP1210.RP1210Device({})
     assert bool(device) == bool({})
@@ -422,7 +422,7 @@ def test_RP1210Config_magic_methods(api_name : str):
         pytest.skip(f"Skipping 'Remaining Functions' test for {api_name} due to missing dependencies.")
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
-    config=RP1210.RP1210Config(api_name, dll_path, ini_path)
+    config = RP1210.RP1210Config(api_name, dll_path, ini_path)
     assert bool(config) == config.isValid()
 
 @pytest.mark.parametrize("api_name", argvalues=INVALID_API_NAMES)
