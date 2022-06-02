@@ -181,7 +181,7 @@ class RP1210Protocol:
     - getDevices() (list[int])
     """
     def __init__(self,  section : dict) -> None:
-        self.section = section
+        self.contents = section
 
     def __str__(self) -> str:
         """Returns a string that can be used in a protocol selection combo box."""
@@ -190,28 +190,28 @@ class RP1210Protocol:
     def getDescription(self) -> str:
         """Returns ProtocolDescription parameter."""
         try:
-            return self.section["ProtocolDescription"]
+            return self.contents["ProtocolDescription"]
         except Exception:
             return ""
 
     def getSpeed(self) -> list[str]:
         """Returns ProtocolSpeed parameters as a list of strings."""
         try:
-            return str(self.section["ProtocolSpeed"]).split(',')
+            return str(self.contents["ProtocolSpeed"]).split(',')
         except Exception:
             return []
 
     def getString(self) -> str:
         """Returns ProtocolString parameter."""
         try:
-            return self.section["ProtocolString"]
+            return self.contents["ProtocolString"]
         except Exception:
             return ""
 
     def getParams(self) -> str:
         """Returns ProtocolParams parameter."""
         try:
-            return self.section["ProtocolParams"]
+            return self.contents["ProtocolParams"]
         except Exception:
             return ""
 
@@ -219,7 +219,7 @@ class RP1210Protocol:
         """Returns a list of device IDs supported by this protocol."""
         try:
             devices = []
-            section_list = str(self.section["Devices"]).split(',')
+            section_list = str(self.contents["Devices"]).split(',')
             for device in section_list:
                 devices.append(int(device))
             return devices
@@ -229,7 +229,10 @@ class RP1210Protocol:
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, RP1210Protocol):
             raise TypeError("Tried to compare RP1210Protocol with innappropriate object type.")
-        return self.section == __o.section
+        return self.contents == __o.contents
+
+    def __bool__(self):
+        return bool(self.contents)
 
 class RP1210Device:
     """
@@ -245,7 +248,7 @@ class RP1210Device:
     - getMultiJ1939Channels() (int)
     """
     def __init__(self,  section : dict) -> None:
-        self.section = section
+        self.contents = section
 
     def getID(self) -> int:
         """
@@ -254,42 +257,42 @@ class RP1210Device:
         Returns -1 if DeviceID is invalid.
         """
         try:
-            return int(self.section["DeviceID"])
+            return int(self.contents["DeviceID"])
         except Exception:
             return -1
 
     def getDescription(self) -> str:
         """Returns DeviceDescription parameter."""
         try:
-            return self.section["DeviceDescription"]
+            return self.contents["DeviceDescription"]
         except Exception:
             return ""
 
     def getName(self) -> str:
         """Returns DeviceName parameter."""
         try:
-            return self.section["DeviceName"]
+            return self.contents["DeviceName"]
         except Exception:
             return ""
 
     def getParams(self) -> str:
         """Returns DeviceParams parameter as a string."""
         try:
-            return self.section["DeviceParams"]
+            return self.contents["DeviceParams"]
         except Exception:
             return ""
     
     def getMultiCANChannels(self) -> int:
         """Returns MultiCANChannels parameter as int."""
         try:
-            return int(self.section["MultiCANChannels"])
+            return int(self.contents["MultiCANChannels"])
         except Exception:
             return 0
 
     def getMultiJ1939Channels(self) -> int:
         """Returns MultiJ1939Channels parameter as int."""
         try:
-            return int(self.section["MultiJ1939Channels"])
+            return int(self.contents["MultiJ1939Channels"])
         except Exception:
             return 0
 
@@ -307,7 +310,10 @@ class RP1210Device:
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, RP1210Device):
             raise TypeError("Tried to compare RP1210Device with innappropriate object type.")
-        return self.section == __o.section
+        return self.contents == __o.contents
+
+    def __bool__(self):
+        return bool(self.contents)
          
 class RP1210Config(ConfigParser):
     """
@@ -344,6 +350,9 @@ class RP1210Config(ConfigParser):
         else:
             err_str = " - (drivers invalid)"
         return self.getAPIName() + " - " + self.getName() + err_str
+
+    def __bool__(self) -> bool:
+        return self.isValid()
 
     def getAPI(self):
         """
@@ -404,7 +413,7 @@ class RP1210Config(ConfigParser):
 
     def getCity(self) -> str:
         """
-        Returns 'Address2' field from VendorInformation section.
+        Returns 'City' field from VendorInformation section.
 
         Returns an empty string if the field isn't found.
         """
@@ -788,6 +797,12 @@ class RP1210API:
         self._conforms_to_rp1210c = True
         self._libDir = WorkingAPIDirectory
 
+    def __bool__(self):
+        return self.isValid()
+
+    def __str__(self):
+        return self._api_name
+
     def getAPIName(self) -> str:
         """Returns API name for this API."""
         return self._api_name
@@ -1099,7 +1114,7 @@ class RP1210API:
             BufferSize = len(ClientInfoBuffer)
         return self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfoBuffer, BufferSize, 0) & 0xFFFF
 
-    def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 64) -> str:
+    def GetHardwareStatusDirect(self, ClientID : int, BufferSize = 16) -> bytes:
         """
         Calls GetHardwareStatus and returns the result directly.
 
@@ -1107,7 +1122,7 @@ class RP1210API:
         """
         ClientInfo = create_string_buffer(BufferSize)
         self.getDLL().RP1210_GetHardwareStatus(ClientID, ClientInfo, BufferSize, 0)
-        return str(ClientInfo.value, "utf-8")
+        return ClientInfo.raw
 
     def SendCommand(self, CommandNumber : int, ClientID : int, ClientCommand = b"", MessageSize = 0) -> int:
         """
@@ -1197,6 +1212,12 @@ class RP1210VendorList:
 
     def __len__(self) -> int:
         return self.numVendors()
+
+    def __str__(self) -> str:
+        """
+        Returns a list of api - vendor names
+        """
+        return ', '.join([str(i) for i in self.getVendorList()])
 
     def populate(self) -> None:
         """
@@ -1384,6 +1405,25 @@ class RP1210VendorList:
         except Exception:
             return -1
 
+    def getVendorNames(self) -> list[str]:
+        """
+        Generates a list of vendor names that are listed in RP1210.ini file
+        """
+        return [vendor.getName() for vendor in self.getVendorList()]
+
+    def getAPINames(self) -> list[str]:
+        """
+        Generates a list of api names that are listed in RP1210.ini file
+        """
+        return [api.getAPIName() for api in self.getVendorList()]
+
+    def getDeviceIDs(self) -> list[int]:
+        """
+        Generates a list of device IDs based on current vendor
+        """
+        deviceIDs = self.getCurrentVendor().getDeviceIDs()
+        return deviceIDs
+
 class RP1210Client(RP1210VendorList):
     """
     Stores a list of all adapter vendors and devices read from .ini files (child of VendorList), and
@@ -1394,6 +1434,15 @@ class RP1210Client(RP1210VendorList):
         self.clientID = 128 # DLL_NOT_INITIALIZED
         super().__init__(rp121032_path, api_dir, config_dir)
 
+    def __str__(self) -> str:
+        try:
+            return self.getCurrentVendor().getName()
+        except Exception:
+            return ""
+
+    def __int__(self) -> int:
+        return self.clientID
+        
     ###################
     # CLASS FUNCTIONS #
     ###################

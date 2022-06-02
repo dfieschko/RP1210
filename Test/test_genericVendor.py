@@ -342,7 +342,7 @@ def test_disconnected_GetHardwareStatusDirect(api_name : str):
     ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
     dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
     rp1210 = RP1210.RP1210Config(api_name, dll_path, ini_path)
-    assert not rp1210.api.GetHardwareStatusDirect(0)
+    assert not int.from_bytes(rp1210.api.GetHardwareStatusDirect(0), 'big')
 
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_disconnected_SendMessage(api_name : str):
@@ -373,3 +373,60 @@ def test_disconnected_Read(api_name : str):
     assert rp1210.api.ReadMessage(0, read_array_in) <= 0
     assert not read_array_in.value
     assert not rp1210.api.ReadDirect(0)
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210API_magic_methods(api_name : str):
+    """Test __bool__ and __str__ in RP1210API."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping 'Remaining Functions' test for {api_name} due to missing dependencies.")
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    api = RP1210.RP1210API(api_name, dll_path)
+    assert bool(api) == api.isValid()
+    assert str(api) == api.getAPIName()
+
+@pytest.mark.parametrize("api_name", argvalues=INVALID_API_NAMES)
+def test_RP1210API_magic_methods_with_invalid_api(api_name : str):
+    """Test __bool__ and __str__ in RP1210API with invalid API names."""
+    api = RP1210.RP1210API(api_name)
+    assert bool(api) == api.isValid()
+    assert str(api) == api.getAPIName()
+
+def test_RP1210Client_magic_methods():
+    """Test __str__ and __int__  in RP1210Client."""
+    client = RP1210.RP1210Client(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    if client.getCurrentVendor():
+        assert str(client) == client.getCurrentVendor().getName()
+    else:
+        # has not assigned vendor, vendor=""
+        assert str(client) == ""
+    assert int(client) == client.clientID
+
+def test_RP1210Protocol_magic_methods_arbitrary():
+    """Test __bool__ in RP1210Protocol"""
+    protocol = RP1210.RP1210Protocol({})
+    assert bool(protocol) == bool({})
+    protocol = RP1210.RP1210Protocol({'test':'1'})
+    assert bool(protocol) == bool({'test':'1'})
+
+def test_RP1210Device_magic_methods_arbitrary():
+    """Test __bool__ in RP1210Device"""
+    device = RP1210.RP1210Device({})
+    assert bool(device) == bool({})
+    device = RP1210.RP1210Device({'test':'1'})
+    assert bool(device) == bool({'test':'1'})
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210Config_magic_methods(api_name : str):
+    """Test __bool__ in RP1210Config."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping 'Remaining Functions' test for {api_name} due to missing dependencies.")
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    config = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    assert bool(config) == config.isValid()
+
+@pytest.mark.parametrize("api_name", argvalues=INVALID_API_NAMES)
+def test_RP1210Config_magic_methods_with_invalid_api(api_name : str):
+    """Test __bool__ in RP1210Config with invalid API names."""
+    config = RP1210.RP1210Config(api_name)
+    assert bool(config) == config.isValid()
