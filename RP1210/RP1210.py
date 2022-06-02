@@ -1409,13 +1409,13 @@ class RP1210VendorList:
         """
         Generates a list of vendor names that are listed in RP1210.ini file
         """
-        return [vendor_name.getName() for vendor_name in self.getVendorList()]
+        return [vendor.getName() for vendor in self.getVendorList()]
 
     def getAPINames(self) -> list[str]:
         """
         Generates a list of api names that are listed in RP1210.ini file
         """
-        return [api_name.getAPIName() for api_name in self.getVendorList()]
+        return [api.getAPIName() for api in self.getVendorList()]
 
     def getDeviceIDs(self) -> list[int]:
         """
@@ -1435,7 +1435,10 @@ class RP1210Client(RP1210VendorList):
         super().__init__(rp121032_path, api_dir, config_dir)
 
     def __str__(self) -> str:
-        return str(self.clientID)
+        return self.getCurrentVendor().getName()
+
+    def __int__(self) -> int:
+        return self.clientID
         
     ###################
     # CLASS FUNCTIONS #
