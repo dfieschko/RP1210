@@ -176,8 +176,7 @@ def test_vendors_and_devices():
     # check vendors
     for vendorIndex in range(vendors.numVendors()):
         vendors.setVendorIndex(vendorIndex)
-        assert vendors[vendorIndex] == vendors.getCurrentVendor(
-        ) == vendors.getVendor()
+        assert vendors[vendorIndex] == vendors.getCurrentVendor() == vendors.getVendor()
         assert vendors.deviceIndex == 0  # setting vendor index should set device index to 0
         # check devices
         for deviceIndex in range(vendors.numDevices()):
