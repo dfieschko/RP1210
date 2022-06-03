@@ -1737,7 +1737,7 @@ class RP1210Client(RP1210VendorList):
         milliseconds. Set either block to 0 for infinite time.
         """
         cmd_num = 215
-        cmd_data = Commands.setJ1939Baud(block1, block2)
+        cmd_data = Commands.setBlockingTimeout(block1, block2)
         cmd_size = 2
         return self.command(cmd_num, cmd_data, cmd_size)
 
