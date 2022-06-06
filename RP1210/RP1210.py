@@ -187,6 +187,14 @@ class RP1210Protocol:
         """Returns a string that can be used in a protocol selection combo box."""
         return self.getString() + " - " + self.getDescription()
 
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RP1210Protocol):
+            raise TypeError("Tried to compare RP1210Protocol with innappropriate object type.")
+        return self.contents == __o.contents
+
+    def __bool__(self):
+        return bool(self.contents)
+
     def getDescription(self) -> str:
         """Returns ProtocolDescription parameter."""
         try:
@@ -226,14 +234,6 @@ class RP1210Protocol:
         except Exception:
             return []
 
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, RP1210Protocol):
-            raise TypeError("Tried to compare RP1210Protocol with innappropriate object type.")
-        return self.contents == __o.contents
-
-    def __bool__(self):
-        return bool(self.contents)
-
 class RP1210Device:
     """
     Stores information for an RP1210 device, e.g. info stored in DeviceInformationXXX sections.
@@ -250,6 +250,28 @@ class RP1210Device:
     def __init__(self,  section : dict) -> None:
         self.contents = section
 
+    def __str__(self):
+        """Returns a string that can be used in a device selection combo box."""
+        ret_str = ""
+        if self.getID() == -1:
+            ret_str += "(Invalid Device)"
+        else:
+            ret_str += str(self.getID())
+        if self.getDescription() != "":
+            ret_str += " - " + self.getDescription()
+        return ret_str
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RP1210Device):
+            raise TypeError("Tried to compare RP1210Device with innappropriate object type.")
+        return self.contents == __o.contents
+
+    def __bool__(self):
+        return self.getID() != -1
+
+    def __int__(self) -> int:
+        return self.getID()
+         
     def getID(self) -> int:
         """
         Returns DeviceID parameter as int.
@@ -296,25 +318,6 @@ class RP1210Device:
         except Exception:
             return 0
 
-    def __str__(self):
-        """Returns a string that can be used in a device selection combo box."""
-        ret_str = ""
-        if self.getID() == -1:
-            ret_str += "(Invalid Device)"
-        else:
-            ret_str += str(self.getID())
-        if self.getDescription() != "":
-            ret_str += " - " + self.getDescription()
-        return ret_str
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, RP1210Device):
-            raise TypeError("Tried to compare RP1210Device with innappropriate object type.")
-        return self.contents == __o.contents
-
-    def __bool__(self):
-        return bool(self.contents)
-         
 class RP1210Config(ConfigParser):
     """
     Reads & stores Vendor API information. Child of ConfigParser. Use getAPINames() to get an
@@ -1222,6 +1225,14 @@ class RP1210VendorList:
     def api(self) -> RP1210API:
         return self.getAPI()
 
+    @property
+    def device(self) -> RP1210Device:
+        return self.getCurrentDevice()
+
+    @device.setter
+    def device(self, device):
+        self.setDevice(device)
+
     def __getitem__(self, index : int) -> RP1210Config:
         return self.vendors[index]
 
@@ -1327,21 +1338,26 @@ class RP1210VendorList:
         """
         self.deviceIndex = index
 
-    def setDevice(self, deviceID) -> None: 
+    def setDevice(self, device) -> None: 
         """
         Sets current device to device matching deviceID.
         """
-        index = self.getDeviceIndex(deviceID)
-        self.setDeviceIndex(index)
+        if isinstance(device, (int, RP1210Device)):
+            index = self.getDeviceIndex(device)
+            self.setDeviceIndex(index)
+        else:
+            raise TypeError("device param must be int (deviceID) or instance of RP1210Config.")
 
-    def getDeviceIndex(self, deviceID = -1) -> int:
+    def getDeviceIndex(self, deviceID = None) -> int:
         """
         Returns index of device matching deviceID for current vendor. Returns 0 if no match is found.
 
         Returns current device index if no deviceID is provided.
         """
-        if deviceID == -1:
+        if deviceID is None:
             return self.deviceIndex
+        if isinstance(deviceID, RP1210Device):
+            deviceID = deviceID.getID()
         index = 0
         try:
             for device in self.getCurrentVendor().getDevices():

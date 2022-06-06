@@ -268,3 +268,60 @@ def test_driver_clientid_fix_PEAKRP32(input, expected):
 
     api = TestAPI("PEAKRP32")
     assert api.fix(input) == expected
+
+def test_RP1210Client_magic_methods():
+    """Test __str__ and __int__  in RP1210Client."""
+    client = RP1210.RP1210Client(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    for vendor in client:
+        client.setVendor(vendor)
+        assert str(client) == client.getCurrentVendor().getName()
+    assert int(client) == client.clientID
+
+def test_RP1210Protocol_magic_methods_arbitrary():
+    """Test __bool__ in RP1210Protocol"""
+    protocol = RP1210.RP1210Protocol({})
+    assert bool(protocol) == bool({})
+    protocol = RP1210.RP1210Protocol({'test':'1'})
+    assert bool(protocol) == bool({'test':'1'})
+
+def test_RP1210Device_magic_methods_arbitrary():
+    """Test __bool__ in RP1210Device"""
+    device = RP1210.RP1210Device({})
+    assert not device
+    assert "Invalid" in str(device)
+    assert int(device) == -1
+    device2 = RP1210.RP1210Device({'test':'1'})
+    assert not device2
+    assert "Invalid" in str(device2)
+    assert int(device2) == -1
+    assert device != device2
+
+def test_RP1210VendorList_setDeviceByDeviceID():
+    """Access `device` property in RP1210VendorList."""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    for vendor in vendors:
+        vendors.setVendor(vendor)
+        for deviceID in vendor.getDeviceIDs():
+            vendors.setDevice(deviceID)
+            assert vendors.device == vendors.getCurrentDevice()
+            vendors.device = deviceID
+            assert vendors.device == vendors.getCurrentDevice()
+        
+def test_RP1210VendorList_setDeviceByDevice():
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    for vendor in vendors:
+        vendors.setVendor(vendor)
+        for deviceID in vendor.getDevices():
+            vendors.device = deviceID
+            assert vendors.device == vendors.getCurrentDevice()
+        for device in vendor.getDevices():
+            vendors.setDevice(device)
+            assert vendors.device == vendors.getCurrentDevice()
+
+def test_RP1210VendorList_setDevice_Error():
+    """Invalid cases of setDevice"""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    for vendor in vendors:
+        vendors.setVendor(vendor)
+        with pytest.raises(TypeError):
+            vendors.device = "dinglebop"

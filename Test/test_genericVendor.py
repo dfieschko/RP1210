@@ -391,30 +391,6 @@ def test_RP1210API_magic_methods_with_invalid_api(api_name : str):
     assert bool(api) == api.isValid()
     assert str(api) == api.getAPIName()
 
-def test_RP1210Client_magic_methods():
-    """Test __str__ and __int__  in RP1210Client."""
-    client = RP1210.RP1210Client(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-    if client.getCurrentVendor():
-        assert str(client) == client.getCurrentVendor().getName()
-    else:
-        # has not assigned vendor, vendor=""
-        assert str(client) == ""
-    assert int(client) == client.clientID
-
-def test_RP1210Protocol_magic_methods_arbitrary():
-    """Test __bool__ in RP1210Protocol"""
-    protocol = RP1210.RP1210Protocol({})
-    assert bool(protocol) == bool({})
-    protocol = RP1210.RP1210Protocol({'test':'1'})
-    assert bool(protocol) == bool({'test':'1'})
-
-def test_RP1210Device_magic_methods_arbitrary():
-    """Test __bool__ in RP1210Device"""
-    device = RP1210.RP1210Device({})
-    assert bool(device) == bool({})
-    device = RP1210.RP1210Device({'test':'1'})
-    assert bool(device) == bool({'test':'1'})
-
 @pytest.mark.parametrize("api_name", argvalues=API_NAMES)
 def test_RP1210Config_magic_methods(api_name : str):
     """Test __bool__ in RP1210Config."""

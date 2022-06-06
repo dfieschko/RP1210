@@ -260,3 +260,11 @@ def test_vendorlist_setVendor_newVendor():
     assert vendors.getAPIName() == api_name
     assert vendors.getVendorIndex() == vendors.getVendorIndex(api_name) != 0
     assert vendors.vendor == config
+
+def test_vendorlist_setVendor_fromList():
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    length = len(vendors)
+    for vendor in vendors:
+        vendors.setVendor(vendor)
+        assert vendors.vendor == vendor
+        assert len(vendors) == length # make sure existing vendors aren't readded
