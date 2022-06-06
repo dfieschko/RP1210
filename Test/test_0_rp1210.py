@@ -5,7 +5,17 @@ from RP1210 import sanitize_msg_param
 import RP1210
 import pytest
 
-from Test.test_0_vendorlist import RP121032_PATH
+API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32",
+             "CMNSI632", "CIL7R32", "DrewLinQ", "DTKRP32"]
+INVALID_API_NAMES = ["empty_api", "invalid_api",
+                     "extra_empty_api", "invalid_pd_api"]
+
+# These tests are meant to be run with cwd @ repository's highest-level directory
+CWD = os.getcwd()
+TEST_FILES_DIRECTORY = CWD + ".\\Test\\test-files"
+INI_DIRECTORY = TEST_FILES_DIRECTORY + "\\ini-files"
+DLL_DIRECTORY = TEST_FILES_DIRECTORY + "\\dlls"
+RP121032_PATH = TEST_FILES_DIRECTORY + "\\RP121032.ini"
 
 def delete_file(path : str):
     if os.path.exists(path):

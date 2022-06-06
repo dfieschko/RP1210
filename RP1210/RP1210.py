@@ -5,7 +5,7 @@ import os
 import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
-from typing import Literal
+from typing import Literal, Type
 from RP1210 import Commands, sanitize_msg_param
 
 RP1210_ERRORS = {
@@ -321,7 +321,6 @@ class RP1210Config(ConfigParser):
     RP1210 API name to feed to this class.
 
     This class has functions for reading EVERY SINGLE data field defined in the RP1210C standard.
-    As such, it is embarrassingly long.
 
     This class holds an instance of RP1210API, which you can use to call RP1210 functions.
     - `nexiq = RP1210Config("NULN2R32")`
@@ -353,6 +352,9 @@ class RP1210Config(ConfigParser):
 
     def __bool__(self) -> bool:
         return self.isValid()
+
+    def __eq__(self, other) -> bool:
+        return str(self) == str(other)
 
     def getAPI(self):
         """
@@ -1204,6 +1206,15 @@ class RP1210VendorList:
         self._config_path = config_dir
         self.populate()
 
+    @property
+    def vendor(self) -> RP1210Config:
+        """Currently selected vendor in RP1210VendorList."""
+        return self.getCurrentVendor()
+
+    @vendor.setter
+    def vendor(self, vendor):
+        self.setVendor(vendor)
+
     def __getitem__(self, index : int) -> RP1210Config:
         return self.vendors[index]
 
@@ -1225,16 +1236,22 @@ class RP1210VendorList:
         that is found.
         """
         self.vendors.clear()
-        api_list = getAPINames(self._rp121032_path)
-        try:
-            for api_name in api_list:
-                try:
-                    self.vendors.append(RP1210Config(api_name, self._api_path, self._config_path))
-                except Exception:
-                    # skip this API if its .ini file can't be parsed
-                    pass
-        except Exception:
-            self.vendors = []
+        for api_name in getAPINames(self._rp121032_path):
+            self.addVendor(api_name)
+
+    def addVendor(self, vendor):
+        """
+        Adds a vendor to the vendor list.
+        
+        Will either take API_NAME or an RP1210Config object.
+        """
+        if isinstance(vendor, str):
+            vendor = RP1210Config(vendor, self._api_path, self._config_path)
+            self.vendors.append(vendor)
+        elif isinstance(vendor, RP1210Config):
+            self.vendors.append(vendor)
+        else:
+            raise TypeError("Vendor must be str (API_NAME) or instance of RP1210Config.")
 
     def getList(self) -> list[RP1210Config]:
         """
@@ -1278,14 +1295,24 @@ class RP1210VendorList:
         self.vendorIndex = index
         self.deviceIndex = 0
 
-    def setVendor(self, api_name : str) -> None:
+    def setVendor(self, vendor) -> None:
         """
         Sets current vendor by api_name (e.g. NULN2R32).
 
+        Will now also accept RP1210Config object as argument.
+
         Will set index to 0 if api_name is not found in RP121032.ini.
         """
-        index = self.getVendorIndex(api_name)
-        self.setVendorIndex(index)
+        if isinstance(vendor, str): # set by api_name
+            index = self.getVendorIndex(vendor)
+            self.setVendorIndex(index)
+        elif isinstance(vendor, RP1210Config): # set by RP1210Config object
+            api_name = vendor.getAPIName()
+            if api_name not in self.getAPINames(): # if vendor not in list, add it
+                self.addVendor(vendor)
+            self.setVendor(api_name)
+        else:
+            raise TypeError("Vendor must be str (API_NAME) or instance of RP1210Config.")
 
     def setDeviceIndex(self, index : int) -> None:
         """
@@ -1318,7 +1345,7 @@ class RP1210VendorList:
             return 0
         return 0
 
-    def getVendor(self, index : int = None) -> RP1210Config:
+    def getVendor(self, vendor = None) -> RP1210Config:
         """
         Returns RP1210Config object in vendor list at specified index.
 
@@ -1327,11 +1354,11 @@ class RP1210VendorList:
         Will return None on error.
         """
         try:
-            if index is None:
+            if vendor is None:
                 return self.getCurrentVendor()
-            if isinstance(index, str):
-                return self.vendors[self.getVendorIndex(index)]
-            return self.vendors[index]
+            if isinstance(vendor, str): # find by api name
+                return self.vendors[self.getVendorIndex(vendor)]
+            return self.vendors[vendor] # find by index
         except Exception:
             return None
 
@@ -1411,6 +1438,12 @@ class RP1210VendorList:
         """
         return [vendor.getName() for vendor in self.getVendorList()]
 
+    def getAPIName(self) -> str:
+        """
+        Returns API name of current vendor.
+        """
+        return self.getCurrentVendor().getAPIName()
+
     def getAPINames(self) -> list[str]:
         """
         Generates a list of api names that are listed in RP1210.ini file
@@ -1435,10 +1468,7 @@ class RP1210Client(RP1210VendorList):
         super().__init__(rp121032_path, api_dir, config_dir)
 
     def __str__(self) -> str:
-        try:
-            return self.getCurrentVendor().getName()
-        except Exception:
-            return ""
+        return self.getCurrentVendor().getName()
 
     def __int__(self) -> int:
         return self.clientID

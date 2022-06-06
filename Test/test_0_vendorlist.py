@@ -1,9 +1,7 @@
-from configparser import ConfigParser
 import os
 import pytest
-from RP1210 import sanitize_msg_param
 import RP1210
-from ctypes import cdll, create_string_buffer
+from ctypes import cdll
 from RP1210.RP1210 import RP1210VendorList, getAPINames
 
 API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32",
@@ -142,7 +140,7 @@ def test_vendorlist_index():
     for x in range(vendors.numVendors()):
         vendors.setVendorIndex(x)
         assert vendors.getVendorIndex() == x
-        assert vendors.getVendor().getName() == vendors.getCurrentVendor().getName()
+        assert vendors.getVendor().getName() == vendors.getCurrentVendor().getName() == vendors.vendor.getName()
 
 
 def test_getlist():
@@ -176,7 +174,7 @@ def test_vendors_and_devices():
     # check vendors
     for vendorIndex in range(vendors.numVendors()):
         vendors.setVendorIndex(vendorIndex)
-        assert vendors[vendorIndex] == vendors.getCurrentVendor() == vendors.getVendor()
+        assert vendors[vendorIndex] == vendors.getCurrentVendor() == vendors.getVendor() == vendors.vendor
         assert vendors.deviceIndex == 0  # setting vendor index should set device index to 0
         # check devices
         for deviceIndex in range(vendors.numDevices()):
@@ -213,15 +211,52 @@ def test_getVendorNames_getAPINames_getDeviceIDs():
         api_vendor_names.append(f'{value} - {vendor_names[index]}')
         # set vendor by vendor index indead of name
         vendors.setVendorIndex(index)
-        assert value == vendors.getCurrentVendor(
-        ).getAPIName() == vendors.getVendor().getAPIName()
+        assert value == vendors.getCurrentVendor().getAPIName() == vendors.getVendor().getAPIName()
         assert vendors.getDeviceIndex() == 0  # default device set to 0
 
         # check device IDs
         deviceIDs = vendors.getDeviceIDs()
         curr_vendor = vendors.getCurrentVendor()
-        assert deviceIDs == curr_vendor.getDeviceIDs()
+        assert deviceIDs == curr_vendor.getDeviceIDs() == vendors.vendor.getDeviceIDs()
 
     # check if api - vendor is same as __str__ of RP1210VendorList
     assert ', '.join(api_vendor_names) == str(vendors) == (
         ', ').join([str(i)for i in vendors.getVendorList()])
+
+def test_vendorlist_array():
+    """Treats vendor list as a list of RP1210Config objects."""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    for api_name in vendors.getAPINames():
+        assert api_name in getAPINames()
+    assert len(vendors) == vendors.numVendors() == len(vendors.vendors)
+    for vendor in vendors:
+        assert vendor.getAPIName() in vendors.getAPINames()
+    for x in range(vendors.numVendors()):
+        assert vendors[x].getName() == vendors.getVendor(x).getName()
+
+def test_vendorlist_vendor():
+    """Tests the `vendor` property of VendorList."""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    assert vendors.getVendorIndex() == 0
+    assert vendors.vendor == vendors.getCurrentVendor()
+    for vendor in vendors:
+        vendors.vendor = vendor
+        assert vendors.getCurrentVendor() == vendor == vendors.vendor
+
+def test_vendorlist_setVendor_invalidType():
+    """Call setVendor with invalid type."""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    with pytest.raises(TypeError):
+        vendors.setVendor(432452)
+
+def test_vendorlist_setVendor_newVendor():
+    """Call setVendor with vendor that isn't in list."""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    api_name = "dinglebop"
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    config = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    vendors.setVendor(config)
+    assert vendors.getAPIName() == api_name
+    assert vendors.getVendorIndex() == vendors.getVendorIndex(api_name) != 0
+    assert vendors.vendor == config
