@@ -227,7 +227,7 @@ def test_vendorlist_array():
     """Treats vendor list as a list of RP1210Config objects."""
     vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     for api_name in vendors.getAPINames():
-        assert api_name in getAPINames()
+        assert api_name in getAPINames(RP121032_PATH)
     assert len(vendors) == vendors.numVendors() == len(vendors.vendors)
     for vendor in vendors:
         assert vendor.getAPIName() in vendors.getAPINames()

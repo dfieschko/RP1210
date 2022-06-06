@@ -488,3 +488,16 @@ def test_RP1210VendorList_setVendorByVendor(api_name : str):
     assert vendors.getAPIName() == api_name
     assert vendors.getVendorIndex() == vendors.getVendorIndex(api_name)
     assert vendors.vendor == config
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210VendorList_accessAPI(api_name : str):
+    """Access `api` property in RP1210VendorList."""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    api = RP1210.RP1210API(api_name, dll_path)
+    vendors.setVendor(api_name)
+    assert vendors.api == api == api_name
+    assert vendors.getAPIName() == vendors.api.getAPIName()
+    # setter should raise exception
+    with pytest.raises(AttributeError):
+        vendors.api = api

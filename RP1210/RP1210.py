@@ -5,7 +5,7 @@ import os
 import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
-from typing import Literal, Type
+from typing import Literal
 from RP1210 import Commands, sanitize_msg_param
 
 RP1210_ERRORS = {
@@ -805,6 +805,9 @@ class RP1210API:
     def __str__(self):
         return self._api_name
 
+    def __eq__(self, other):
+        return str(self) == str(other)
+
     def getAPIName(self) -> str:
         """Returns API name for this API."""
         return self._api_name
@@ -1214,6 +1217,10 @@ class RP1210VendorList:
     @vendor.setter
     def vendor(self, vendor):
         self.setVendor(vendor)
+
+    @property
+    def api(self) -> RP1210API:
+        return self.getAPI()
 
     def __getitem__(self, index : int) -> RP1210Config:
         return self.vendors[index]
