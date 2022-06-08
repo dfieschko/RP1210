@@ -834,8 +834,8 @@ class RP1210API:
         Can take in a relative and absolute paths files and directories.
         
         If given a directory (by setting `WorkingAPIDirectory` param in `__init__()`), will attempt to
-        load DLL corresponding to `self._api_name` from that directory. If a working directory is not provided at
-        initialization of `RP1210API()`, will assume relative to launch path.
+        load DLL from that directory. If a working directory is not provided at
+        initialization of `RP1210API()`, will use default RP1210 DLL location.
         """
         if self._libDir is not None:
             path = ""
