@@ -102,3 +102,20 @@ ResponseCodes = {
     0x94 : "Resource Temporarily Not Available",
 }
 """Dict of response code definitions. Missing values are reserved by ISO/SAE or proprietary."""
+
+def translateRequestSID(sid : int) -> str:
+    """Translates a UDS Request SID (service ID) to its service name."""
+    return ServiceNames.get(sid, "Proprietary/Reserved")
+
+def translateResponseSID(sid : int) -> str:
+    """Translates a UDS Response SID (service ID) to its service name."""
+    return ServiceNames.get(sid - 0x40, "Proprietary/Reserved")
+
+def translateResponseCode(code : int) -> str:
+    """Returns a description of the specified UDS response code."""
+    # cover some specific cases
+    if 0x95 <= code <= 0xEF:
+        return "Reserved For Specific Conditions Not Correct"
+    if 0xF0 <= code <= 0xFE:
+        return "Conditions Not Correct: Vehicle Manufacturer Specific"
+    return ResponseCodes.get(code, "ISO/SAE Reserved")
