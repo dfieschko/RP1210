@@ -940,9 +940,9 @@ def getJ1939ProtocolDescription(protocol : int) -> str:
     else:
         return "Invalid J1939 protocol format selected."
 
-def generateNetworkManagementName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes], vs: Union[int, bytes],
-                                func: Union[int, bytes], func_inst: Union[int, bytes], ecu_inst: Union[int, bytes],
-                                mc: Union[int, bytes], id_n: Union[int, bytes]) -> bytes:
+def generateNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes],
+                        vs: Union[int, bytes], func: Union[int, bytes], func_inst: Union[int, bytes],
+                        ecu_inst: Union[int, bytes], mc: Union[int, bytes], id_n: Union[int, bytes]) -> bytes:
     """ 
     Generate network management NAME which is an 8 bytes numerical value composed of 10 fields  
     (except Reserved field which is always set to 0, so only 9 fields are passed to the function)
@@ -960,35 +960,7 @@ def generateNetworkManagementName(aac: Union[int, bytes], ig: Union[int, bytes],
     Returns: 
         bytes: network management NAME 
     """
-    # check data type
-    if (isinstance(aac, (int, bytes)) and isinstance(ig, (int, bytes)) and isinstance(vsi, (int, bytes)) and
-        isinstance(vs, (int, bytes)) and isinstance(func, (int, bytes)) and isinstance(func_inst, (int, bytes)) and
-        isinstance(ecu_inst, (int, bytes)) and isinstance(mc, (int, bytes)) and isinstance(id_n, (int, bytes))) == False:
-        raise TypeError(
-            "Data type of parameters must be either integer or bytes.")
-
-    # check range
-    if aac not in [0, 1]:
-        raise IndexError(
-            'Arbitrary Addess Capable is not in the range [0, 1].')
-    if ig not in range(8):
-        raise IndexError('Industry Group is not in the range [0, 7].')
-    if vsi not in range(16):
-        raise IndexError(
-            'Vehicle System Instance is not in the range [0, 15].')
-    if vs not in range(127):
-        raise IndexError('Vehicle System is not in the range [0, 126].')
-    if func not in range(254):
-        raise IndexError('Function is not in the range [0, 154].')
-    if func_inst not in range(32):
-        raise IndexError('Function Instance is not in the range [0, 31].')
-    if ecu_inst not in range(8):
-        raise IndexError('ECU Instance is not in the range [0, 7].')
-    if mc not in range(2048):
-        raise IndexError('Manufacturer Code is not in the range [0, 2047].')
-    if id_n not in range(2097152):
-        raise IndexError('Identity number is not in the range [0, 2097151].')
-
+    checkNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n)
     # combine Arbitrary Addess Capable, Industry Group, and Vehicle System Instance (1 byte)
     if isinstance(aac, bytes):
         aac = int.from_bytes(aac, 'big')
@@ -1021,3 +993,37 @@ def generateNetworkManagementName(aac: Union[int, bytes], ig: Union[int, bytes],
     name += sanitize_msg_param((mc << 21) | id_n, 4)
 
     return name
+
+
+def checkNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes],
+                    vs: Union[int, bytes], func: Union[int, bytes], func_inst: Union[int, bytes],
+                    ecu_inst: Union[int, bytes], mc: Union[int, bytes], id_n: Union[int, bytes]) -> None:
+    
+    # check data type
+    if (isinstance(aac, (int, bytes)) and isinstance(ig, (int, bytes)) and isinstance(vsi, (int, bytes)) and
+        isinstance(vs, (int, bytes)) and isinstance(func, (int, bytes)) and isinstance(func_inst, (int, bytes)) and
+        isinstance(ecu_inst, (int, bytes)) and isinstance(mc, (int, bytes)) and isinstance(id_n, (int, bytes))) == False:
+        raise TypeError(
+            "Data type of parameters must be either integer or bytes.")
+
+    # check range
+    if aac not in [0, 1]:
+        raise IndexError(
+            'Arbitrary Addess Capable is not in the range [0, 1].')
+    if ig not in range(8):
+        raise IndexError('Industry Group is not in the range [0, 7].')
+    if vsi not in range(16):
+        raise IndexError(
+            'Vehicle System Instance is not in the range [0, 15].')
+    if vs not in range(127):
+        raise IndexError('Vehicle System is not in the range [0, 126].')
+    if func not in range(254):
+        raise IndexError('Function is not in the range [0, 154].')
+    if func_inst not in range(32):
+        raise IndexError('Function Instance is not in the range [0, 31].')
+    if ecu_inst not in range(8):
+        raise IndexError('ECU Instance is not in the range [0, 7].')
+    if mc not in range(2048):
+        raise IndexError('Manufacturer Code is not in the range [0, 2047].')
+    if id_n not in range(2097152):
+        raise IndexError('Identity number is not in the range [0, 2097151].')
