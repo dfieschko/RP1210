@@ -7,6 +7,7 @@ copyright of SAE.
 """
 
 from RP1210 import sanitize_msg_param
+from typing import Union
 
 def toJ1939Message(pgn, pri, sa, da, data, size = 0, how = 0) -> bytes:
     """
@@ -938,3 +939,85 @@ def getJ1939ProtocolDescription(protocol : int) -> str:
         return "Baud formula derived from Intel implementations."
     else:
         return "Invalid J1939 protocol format selected."
+
+def generateNetworkManagementName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes], vs: Union[int, bytes],
+                                func: Union[int, bytes], func_inst: Union[int, bytes], ecu_inst: Union[int, bytes],
+                                mc: Union[int, bytes], id_n: Union[int, bytes]) -> bytes:
+    """ 
+    Generate network management NAME which is an 8 bytes numerical value composed of 10 fields  
+    (except Reserved field which is always set to 0, so only 9 fields are passed to the function)
+    described as following: 
+        - Arbitrary Addess Capable (1 bit) 
+        - Industry Group (3 bits) 
+        - Vehicle System Instance (4 bits) 
+        - Vehicle System (7 bits) 
+        - Reserved (1 bit): always set to 0 
+        - Function (8 bits) 
+        - Function Instance (5 bits) 
+        - ECU Instance (3 bits) 
+        - Manufacturer Code (11 bits) 
+        - Identity Number (21 bits) 
+    Returns: 
+        bytes: network management NAME 
+    """
+    # check data type
+    if (isinstance(aac, (int, bytes)) and isinstance(ig, (int, bytes)) and isinstance(vsi, (int, bytes)) and
+        isinstance(vs, (int, bytes)) and isinstance(func, (int, bytes)) and isinstance(func_inst, (int, bytes)) and
+        isinstance(ecu_inst, (int, bytes)) and isinstance(mc, (int, bytes)) and isinstance(id_n, (int, bytes))) == False:
+        raise TypeError(
+            "Data type of parameters must be either integer or bytes.")
+
+    # check range
+    if aac not in [0, 1]:
+        raise IndexError(
+            'Arbitrary Addess Capable is not in the range [0, 1].')
+    if ig not in range(8):
+        raise IndexError('Industry Group is not in the range [0, 7].')
+    if vsi not in range(16):
+        raise IndexError(
+            'Vehicle System Instance is not in the range [0, 15].')
+    if vs not in range(127):
+        raise IndexError('Vehicle System is not in the range [0, 126].')
+    if func not in range(254):
+        raise IndexError('Function is not in the range [0, 154].')
+    if func_inst not in range(32):
+        raise IndexError('Function Instance is not in the range [0, 31].')
+    if ecu_inst not in range(8):
+        raise IndexError('ECU Instance is not in the range [0, 7].')
+    if mc not in range(2048):
+        raise IndexError('Manufacturer Code is not in the range [0, 2047].')
+    if id_n not in range(2097152):
+        raise IndexError('Identity number is not in the range [0, 2097151].')
+
+    # combine Arbitrary Addess Capable, Industry Group, and Vehicle System Instance (1 byte)
+    if isinstance(aac, bytes):
+        aac = int.from_bytes(aac, 'big')
+    if isinstance(ig, bytes):
+        ig = int.from_bytes(ig, 'big')
+    if isinstance(vsi, bytes):
+        vsi = int.from_bytes(vsi, 'big')
+    name = sanitize_msg_param((aac << 7) | (ig << 4) | vsi, 1)
+
+    # combine Vehicle System and Reserved (1 byte)
+    if isinstance(vs, bytes):
+        vs = int.from_bytes(vs, 'big')
+    name += sanitize_msg_param(vs << 1, 1)
+
+    # concate Function (1 byte)
+    name += sanitize_msg_param(func, 1)
+
+    # combine Function Instance and ECU Instance (1 byte)
+    if isinstance(func_inst, bytes):
+        func_inst = int.from_bytes(func_inst, 'big')
+    if isinstance(ecu_inst, bytes):
+        ecu_inst = int.from_bytes(ecu_inst, 'big')
+    name += sanitize_msg_param((func_inst << 3) | ecu_inst, 1)
+
+    # combine manufacturer Code and Identity Number (4 bytes)
+    if isinstance(mc, bytes):
+        mc = int.from_bytes(mc, 'big')
+    if isinstance(id_n, bytes):
+        id_n = int.from_bytes(id_n, 'big')
+    name += sanitize_msg_param((mc << 21) | id_n, 4)
+
+    return name

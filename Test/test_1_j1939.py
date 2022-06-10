@@ -1,6 +1,7 @@
 from RP1210 import J1939, Commands, sanitize_msg_param
 import binascii
 import pytest
+import random
 
 def test_getJ1939ProtocolString_default():
     assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"
@@ -505,3 +506,63 @@ def test_J1939Message_eq_noexception():
     assert not msg == ""
     assert not msg == []
     assert not msg == b'asdfasf'
+
+@pytest.mark.parametrize("aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n",
+                         argvalues=[
+                             (0, 0, 0, 0, 0, 0, 0, 0, 0),
+                             (random.randint(0,1), random.randint(0,7), random.randint(0,15), random.randint(0,126), random.randint(0,254), random.randint(0,31), random.randint(0,7), random.randint(0,2047), random.randint(0,2097151)),
+                             (random.randint(0,1), random.randint(0,7), random.randint(0,15), random.randint(0,126), random.randint(0,254), random.randint(0,31), random.randint(0,7), random.randint(0,2047), random.randint(0,2097151)),
+                             (random.randint(0,1), random.randint(0,7), random.randint(0,15), random.randint(0,126), random.randint(0,254), random.randint(0,31), random.randint(0,7), random.randint(0,2047), random.randint(0,2097151)),
+                             (random.randint(0,1), random.randint(0,7), random.randint(0,15), random.randint(0,126), random.randint(0,254), random.randint(0,31), random.randint(0,7), random.randint(0,2047), random.randint(0,2097151)),
+                             (random.randint(0,1), random.randint(0,7), random.randint(0,15), random.randint(0,126), random.randint(0,254), random.randint(0,31), random.randint(0,7), random.randint(0,2047), random.randint(0,2097151)),
+                             
+                         ])
+def test_generateNetworkManagementName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n):
+    """Test generateNetworkManagementName() function"""
+    def generateName(arr: list[int], size: list[int] = None):
+        if size is None:
+            size = [1,3,4,7,8,5,3,11,21]
+        ans = 0
+        for count in range(len(arr)):
+            if count == 4: # for Reserved field which is always set to 0
+                ans = (ans << 1) + 0
+            ans = (ans << size[count]) | arr[count]
+        return ans
+    expected_result = generateName([aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n]).to_bytes(8, 'big')
+    actual_result = J1939.generateNetworkManagementName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n)
+    assert len(actual_result) == 8
+    assert actual_result == expected_result
+
+def test_generateNetworkManagementName_invalid_input():
+    """Test generateNetworkManagementName() function with invalid inputs"""
+    # a list of different data types
+    invalid_type = ['1', 0.1, [0,1], (1,), {'test':1}, {1223, 2323, 113}]
+    # a dictionary of each field and out-of-range int/bytes
+    invalid_range={
+        'aac': [2, b'\xff'],
+        'ig': [8, b'd', -1],
+        'vsi': [16, b'\xfe'],
+        'vs': [127, b'\x85'],
+        'func': [255, -1, -22],
+        'funct_inst': [32, -88],
+        'ecu_inst': [8, b'\x01\xff'],
+        'mc': [2048, -243],
+        'id_n': [2097152, b'\xb8\x96\x80']
+    }
+    for field in range(9):
+        parameters_type = [0]*9
+        parameters_range = [0]*9
+
+        # test data types
+        for value in invalid_type:
+            parameters_type[field] = value
+            with pytest.raises(TypeError, match=r".* must be either integer or bytes."):
+                J1939.generateNetworkManagementName(*parameters_type)
+
+        # test data range
+        range_arr=invalid_range[list(invalid_range.keys())[field]]
+        for val in range_arr:
+            parameters_range[field]=val
+            with pytest.raises(IndexError, match=r".* is not in the range .*"):
+                J1939.generateNetworkManagementName(*parameters_range)
+    
