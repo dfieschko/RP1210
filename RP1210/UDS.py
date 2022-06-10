@@ -256,7 +256,7 @@ class UDSMessage:
         3. Data ID (0 or 2 bytes)
         4. Data (0 or n bytes)
         """
-        return self.to_bytes(self)
+        return self.to_bytes()
 
     @property
     def value(self) -> int:
