@@ -166,7 +166,7 @@ class UDSMessage:
             return translateRequestSID(self._sid)
 
     def __str__(self) -> str:
-        return self.raw.decode('utf-8')
+        return self.raw.decode('utf-8', errors='replace')
 
     def __int__(self) -> int:
         return self.value # I'm torn between returning self.value and self._sid
@@ -221,7 +221,7 @@ class UDSMessage:
             raise AttributeError("Attempted to set DID of UDS service that doesn't include a DID.")
         if not isinstance(val, int): # handle bytes & str
             val = int.from_bytes(sanitize_msg_param(val, 2), 'big')
-        self._subfn = val & 0xFFFF
+        self._did = val & 0xFFFF
 
     @property
     def data(self) -> bytes:
@@ -236,8 +236,10 @@ class UDSMessage:
     def data(self, val : bytes):
         if not self._hasData: # attempted to assign data when data doesn't exist for this service
             raise AttributeError("Attempted to set data of UDS service that doesn't include a data field.")
+        if not isinstance(val, bytes):
+            val = sanitize_msg_param(val)
         if len(val) != self._dataSize: # check for length mismatches
-            if self._dataSizeCanChange: # update data size if possible
+            if self._dataSizeCanChange: # update data size if allowed
                 self._dataSize = len(val)
             elif len(val) < self._dataSize: # stuff with bytes to fill data size
                 val += BYTE_STUFFING_VALUE * (self._dataSize - len(val)) # stuff to fit
@@ -258,7 +260,15 @@ class UDSMessage:
         3. Data ID (0 or 2 bytes)
         4. Data (0 or n bytes)
         """
-        return self.to_bytes()
+        val = b''
+        val += sanitize_msg_param(self._sid, 1)
+        if self._hasSubfn:
+            val += sanitize_msg_param(self._subfn, 1)
+        if self._hasDID:
+            val += sanitize_msg_param(self._did, 2)
+        if self._hasData:
+            val += sanitize_msg_param(self._data, self._dataSize)
+        return val
 
     @property
     def value(self) -> int:
@@ -270,16 +280,3 @@ class UDSMessage:
         if self._data is None:
             return 0
         return int.from_bytes(self._data, 'big')
-
-    @classmethod
-    def to_bytes(cls)-> bytes:
-        val = b''
-        val += sanitize_msg_param(cls._sid, 1)
-        if cls._hasSubfn:
-            val += sanitize_msg_param(cls._subfn, 1)
-        if cls._hasDID:
-            val += sanitize_msg_param(cls._did, 2)
-        if cls._hasData:
-            val += sanitize_msg_param(cls._data, cls._dataSize)
-        return val
-
