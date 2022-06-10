@@ -119,3 +119,37 @@ def translateResponseCode(code : int) -> str:
     if 0xF0 <= code <= 0xFE:
         return "Conditions Not Correct: Vehicle Manufacturer Specific"
     return ResponseCodes.get(code, "ISO/SAE Reserved")
+
+class services:
+    """
+    Names all services supported by this package by SID.
+
+    All this does is provide an SID for convenience; you can just as easily name SIDs directly.
+    """
+    DiagnosticSessionControl = 0x10
+
+
+class UDSMessage:
+    """
+    Class containing all UDS message classes that are supported by this package. Initialize this
+    with SID from `services`, e.g.:
+        ```msg = UDSMessage(services.DiagnosticSessionControl)```
+    
+    Each UDS message consists of 1 SID byte, with the existence of other properties
+    depending on the service:
+    - `sid`   (int - 1 byte)
+    - `subfn` (int - 0 or 1 bytes)
+    - `did`   (int - 0 or 2 bytes)
+    - `data`  (bytes - n bytes)
+    """
+    _isResponse = False
+    _hasSubfn = False
+    _hasDID = False
+    _hasData = False
+
+    _sid = None
+    _subfn = None
+    _did = None
+
+    def name(self):
+        return ServiceNames.get(self._sid, "Proprietary/Reserved")
