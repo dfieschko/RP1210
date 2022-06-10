@@ -1,5 +1,9 @@
 """A package for parsing and creating Unified Diagnostic Services messages."""
 
+from RP1210 import sanitize_msg_param
+
+BYTE_STUFFING_VALUE = b'\xAA'
+
 ServiceNames = {
     # Diagnostic and Communications Management
     0x10 : "Diagnostic Session Control",
@@ -120,20 +124,19 @@ def translateResponseCode(code : int) -> str:
         return "Conditions Not Correct: Vehicle Manufacturer Specific"
     return ResponseCodes.get(code, "ISO/SAE Reserved")
 
-class services:
+class sid:
     """
     Names all services supported by this package by SID.
 
     All this does is provide an SID for convenience; you can just as easily name SIDs directly.
     """
     DiagnosticSessionControl = 0x10
+    ECUReset = 0x11
 
 
 class UDSMessage:
     """
-    Class containing all UDS message classes that are supported by this package. Initialize this
-    with SID from `services`, e.g.:
-        ```msg = UDSMessage(services.DiagnosticSessionControl)```
+    Parent to UDS request & response subclasses.
     
     Each UDS message consists of 1 SID byte, with the existence of other properties
     depending on the service:
@@ -143,13 +146,138 @@ class UDSMessage:
     - `data`  (bytes - n bytes)
     """
     _isResponse = False
-    _hasSubfn = False
-    _hasDID = False
-    _hasData = False
+    _hasSubfn   = False
+    _hasDID     = False
+    _hasData    = False
+    _dataSize   = 0
+    _dataSizeCanChange = False
 
-    _sid = None
-    _subfn = None
-    _did = None
+    _sid    = None #type: int
+    _subfn  = None #type: int
+    _did    = None #type: int
+    _data   = None #type: bytes
 
     def name(self):
-        return ServiceNames.get(self._sid, "Proprietary/Reserved")
+        if self._isResponse:
+            return translateResponseSID(self._sid)
+        else:
+            return translateRequestSID(self._sid)
+
+    def __str__(self) -> str:
+        return self.raw.decode('utf-8')
+
+    def __int__(self) -> int:
+        return self.value # I'm torn between returning self.value and self._sid
+
+    def __bytes__(self) -> bytes:
+        return self.raw
+
+    def __len__(self) -> int:
+        return len(self.raw)
+
+    def __getitem__(self, index : int) -> int:
+        return self.raw[index]
+
+    @property
+    def sid(self) -> int:
+        """
+        Service ID (8-bit unsigned integer).
+
+        This property is immutable.
+        """
+        return self._sid
+
+    @property
+    def subfn(self) -> int:
+        """
+        Sub-Function ID (8-bit unsigned integer).
+        
+        Will be None if the service does not have a sub-function.
+        """
+        return self._subfn
+
+    @subfn.setter
+    def subfn(self, val : int):
+        if not self._hasSubfn: # attempted to assign subfn when sub-function doesn't exist for this service
+            raise AttributeError("Attempted to set subfn of UDS service that doesn't have sub-functions available.")
+        if not isinstance(val, int): # handle bytes & str
+            val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
+        self._subfn = val & 0xFF
+
+    @property
+    def did(self) -> int:
+        """
+        Data ID (16-bit unsigned integer). Acts like a function argument in most cases.
+
+        Will be None if the service does not have a DID.
+        """
+        return self._did
+
+    @did.setter
+    def did(self, val : int):
+        if not self._hasDID: # attempted to assign DID when DID doesn't exist for this service
+            raise AttributeError("Attempted to set DID of UDS service that doesn't include a DID.")
+        if not isinstance(val, int): # handle bytes & str
+            val = int.from_bytes(sanitize_msg_param(val, 2), 'big')
+        self._subfn = val & 0xFFFF
+
+    @property
+    def data(self) -> bytes:
+        """
+        Data field (n bytes).
+
+        Will be None if the service does not have a data field.
+        """
+        return self._data
+
+    @data.setter
+    def data(self, val : bytes):
+        if not self._hasData: # attempted to assign data when data doesn't exist for this service
+            raise AttributeError("Attempted to set data of UDS service that doesn't include a data field.")
+        if len(val) != self._dataSize: # check for length mismatches
+            if self._dataSizeCanChange: # update data size if possible
+                self._dataSize = len(val)
+            elif len(val) < self._dataSize: # stuff with bytes to fill data size
+                val += BYTE_STUFFING_VALUE * (self._dataSize - len(val)) # stuff to fit
+            else:
+                raise ValueError("Data value for UDS message is too large!")
+        self._data = val
+
+    @property
+    def raw(self) -> bytes:
+        """
+        Raw bytes representing the service.
+        
+        Does not include protocol-specific data like CANID.
+
+        Byteorder:
+        1. Service ID (1 byte)
+        2. Sub-Function ID (0 or 1 bytes)
+        3. Data ID (0 or 2 bytes)
+        4. Data (0 or n bytes)
+        """
+        return self.to_bytes(self)
+
+    @property
+    def value(self) -> int:
+        """
+        Integer value of UDS message data field.
+
+        If message doesn't contain a data field, returns 0.
+        """
+        if self._data is None:
+            return 0
+        return int.from_bytes(self._data, 'big')
+
+    @classmethod
+    def to_bytes(cls)-> bytes:
+        val = b''
+        val += cls._sid.to_bytes(1, 'big')
+        if cls._hasSubfn:
+            val += cls._subfn.to_bytes(1, 'big')
+        if cls._hasDID:
+            val += cls._did.to_bytes(2, 'big')
+        if cls._hasData:
+            val += sanitize_msg_param(cls._data, cls._dataSize)
+        return val
+
