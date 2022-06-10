@@ -124,7 +124,7 @@ def translateResponseCode(code : int) -> str:
         return "Conditions Not Correct: Vehicle Manufacturer Specific"
     return ResponseCodes.get(code, "ISO/SAE Reserved")
 
-class sid:
+class services:
     """
     Names all services supported by this package by SID.
 
@@ -153,9 +153,11 @@ class UDSMessage:
     _dataSizeCanChange = False
 
     _sid    = None #type: int
-    _subfn  = None #type: int
-    _did    = None #type: int
-    _data   = None #type: bytes
+
+    def __init__(self):
+        self._subfn  = None #type: int
+        self._did    = None #type: int
+        self._data   = None #type: bytes
 
     def name(self):
         if self._isResponse:
@@ -272,11 +274,11 @@ class UDSMessage:
     @classmethod
     def to_bytes(cls)-> bytes:
         val = b''
-        val += cls._sid.to_bytes(1, 'big')
+        val += sanitize_msg_param(cls._sid, 1)
         if cls._hasSubfn:
-            val += cls._subfn.to_bytes(1, 'big')
+            val += sanitize_msg_param(cls._subfn, 1)
         if cls._hasDID:
-            val += cls._did.to_bytes(2, 'big')
+            val += sanitize_msg_param(cls._did, 2)
         if cls._hasData:
             val += sanitize_msg_param(cls._data, cls._dataSize)
         return val
