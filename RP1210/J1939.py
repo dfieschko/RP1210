@@ -6,8 +6,8 @@ While a dict of J1939 PGNs would be convenient, they are not provided here becau
 copyright of SAE.
 """
 
-from RP1210 import sanitize_msg_param
 from typing import Union
+from RP1210 import sanitize_msg_param
 
 def toJ1939Message(pgn, pri, sa, da, data, size = 0, how = 0) -> bytes:
     """
@@ -960,7 +960,9 @@ def generateNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Unio
     Returns: 
         bytes: network management NAME 
     """
+    # check data type and range
     checkNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n)
+    
     # combine Arbitrary Addess Capable, Industry Group, and Vehicle System Instance (1 byte)
     if isinstance(aac, bytes):
         aac = int.from_bytes(aac, 'big')
@@ -998,11 +1000,12 @@ def generateNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Unio
 def checkNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes],
                     vs: Union[int, bytes], func: Union[int, bytes], func_inst: Union[int, bytes],
                     ecu_inst: Union[int, bytes], mc: Union[int, bytes], id_n: Union[int, bytes]) -> None:
-    
+    """Check if data type and data range are valid
+    """
     # check data type
-    if (isinstance(aac, (int, bytes)) and isinstance(ig, (int, bytes)) and isinstance(vsi, (int, bytes)) and
+    if not (isinstance(aac, (int, bytes)) and isinstance(ig, (int, bytes)) and isinstance(vsi, (int, bytes)) and
         isinstance(vs, (int, bytes)) and isinstance(func, (int, bytes)) and isinstance(func_inst, (int, bytes)) and
-        isinstance(ecu_inst, (int, bytes)) and isinstance(mc, (int, bytes)) and isinstance(id_n, (int, bytes))) == False:
+        isinstance(ecu_inst, (int, bytes)) and isinstance(mc, (int, bytes)) and isinstance(id_n, (int, bytes))):
         raise TypeError(
             "Data type of parameters must be either integer or bytes.")
 
