@@ -1,6 +1,8 @@
+from typing import Union
 from RP1210 import J1939, Commands, sanitize_msg_param
 import binascii
 import pytest
+
 
 def test_getJ1939ProtocolString_default():
     assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"
@@ -505,3 +507,63 @@ def test_J1939Message_eq_noexception():
     assert not msg == ""
     assert not msg == []
     assert not msg == b'asdfasf'
+
+@pytest.mark.parametrize("aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n",
+                         argvalues=[
+                             (0, 0, 0, 0, 0, 0, 0, 0, 0),
+                             (1, 7, 15, 126, 254, 31, 7, 2047, 2097151),
+                             (1, 6, 2, 5, 148, 21, 2, 1561, 1847634),
+                             (0, 0, 4, 84, 234, 23, 3, 1178, 97414),
+                             (b'', 5, b'\x04', 55, b'G', b'\x1c', b'\x04',2000, b'\x0c\x1a\xaf'),
+                             (b'', b'', b'\x04', b' ', b'G', b'\x1c', b'\x04', b'\x07Y', b'\x0c\x1a\xaf')
+                         ])
+def test_generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n):
+    """Test generateNetMgmtName() function"""
+    def generateName(arr: Union[list[int], list[bytes]], size: list[int] = [1,3,4,7,8,5,3,11,21]):
+        ans = 0
+        for count in range(len(arr)):
+            curr = arr[count]
+            if isinstance(curr, bytes):
+                curr = int.from_bytes(curr, 'big')
+            if count == 4: # for Reserved field which is always set to 0
+                ans = (ans << 1) + 0
+            ans = (ans << size[count]) | curr
+        return ans
+    expected_result = generateName([aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n]).to_bytes(8, 'big')
+    actual_result = J1939.generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n)
+    assert len(actual_result) == 8
+    assert actual_result == expected_result
+
+def test_generateNetMgmtName_invalid_input():
+    """Test generateNetMgmtName() function with invalid inputs"""
+    # a list of different data types
+    invalid_type = [0.1]
+    # a dictionary of each field and out-of-range int/bytes
+    invalid_range={
+        'aac': [2, b'\xff'],
+        'ig': [8, b'd', -1],
+        'vsi': [16, b'\xfe'],
+        'vs': [127, b'\x85'],
+        'func': [255, -1, -22],
+        'funct_inst': [32, -88],
+        'ecu_inst': [8, b'\x01\xff'],
+        'mc': [2048, -243],
+        'id_n': [2097152, b'\xb8\x96\x80']
+    }
+    for field in range(9):
+        parameters_type = [0]*9
+        parameters_range = [0]*9
+
+        # test data types
+        for value in invalid_type:
+            parameters_type[field] = value
+            with pytest.raises(TypeError, match=r"Invalid type used for sanitize_msg_param.*"):
+                J1939.generateNetMgmtName(*parameters_type)
+
+        # test data range
+        range_arr=invalid_range[list(invalid_range.keys())[field]]
+        for val in range_arr:
+            parameters_range[field]=val
+            with pytest.raises(IndexError, match=r".* is not in the range .*"):
+                J1939.generateNetMgmtName(*parameters_range)
+    
