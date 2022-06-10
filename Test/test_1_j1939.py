@@ -1,7 +1,8 @@
-from calendar import c
+from typing import Union
 from RP1210 import J1939, Commands, sanitize_msg_param
 import binascii
 import pytest
+
 
 def test_getJ1939ProtocolString_default():
     assert J1939.getJ1939ProtocolString() == b"J1939:Baud=Auto"
@@ -513,12 +514,12 @@ def test_J1939Message_eq_noexception():
                              (1, 7, 15, 126, 154, 31, 7, 2047, 2097151),
                              (1, 6, 2, 5, 148, 21, 2, 1561, 1847634),
                              (0, 0, 4, 84, 234, 23, 3, 1178, 97414),
-                             (0, 3, 15, 24, 163, 0, 5, 0, 669377),
+                             (b'', 5, b'\x04', 55, b'G', b'\x1c', b'\x04',2000, b'\x0c\x1a\xaf'),
                              (b'', b'', b'\x04', b' ', b'G', b'\x1c', b'\x04', b'\x07Y', b'\x0c\x1a\xaf')
                          ])
 def test_generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n):
     """Test generateNetMgmtName() function"""
-    def generateName(arr: list[int, bytes], size: list[int] = [1,3,4,7,8,5,3,11,21]):
+    def generateName(arr: Union[list[int], list[bytes]], size: list[int] = [1,3,4,7,8,5,3,11,21]):
         ans = 0
         for count in range(len(arr)):
             curr = arr[count]

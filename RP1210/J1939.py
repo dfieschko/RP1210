@@ -961,8 +961,30 @@ def generateNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Unio
         bytes: network management NAME 
     """
     # check data type and range
-    aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n = checkNetMgmtName(
+    aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n = checkDataType(
         aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n)
+
+    # check range
+    if aac not in [0, 1]:
+        raise IndexError(
+            'Arbitrary Addess Capable is not in the range [0, 1].')
+    if ig not in range(8):
+        raise IndexError('Industry Group is not in the range [0, 7].')
+    if vsi not in range(16):
+        raise IndexError(
+            'Vehicle System Instance is not in the range [0, 15].')
+    if vs not in range(127):
+        raise IndexError('Vehicle System is not in the range [0, 126].')
+    if func not in range(254):
+        raise IndexError('Function is not in the range [0, 154].')
+    if func_inst not in range(32):
+        raise IndexError('Function Instance is not in the range [0, 31].')
+    if ecu_inst not in range(8):
+        raise IndexError('ECU Instance is not in the range [0, 7].')
+    if mc not in range(2048):
+        raise IndexError('Manufacturer Code is not in the range [0, 2047].')
+    if id_n not in range(2097152):
+        raise IndexError('Identity number is not in the range [0, 2097151].')
     
     # combine Arbitrary Addess Capable, Industry Group, and Vehicle System Instance (1 byte)
     name = sanitize_msg_param((aac << 7) | (ig << 4) | vsi, 1)
@@ -981,7 +1003,7 @@ def generateNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Unio
 
     return name
 
-def checkNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes],
+def checkDataType(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes],
                     vs: Union[int, bytes], func: Union[int, bytes], func_inst: Union[int, bytes],
                     ecu_inst: Union[int, bytes], mc: Union[int, bytes], id_n: Union[int, bytes]) -> list[int]:
     """Check if data type and data range are valid and convert all values to integer
@@ -1012,27 +1034,5 @@ def checkNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[i
         mc = int.from_bytes(mc, 'big')
     if isinstance(id_n, bytes):
         id_n = int.from_bytes(id_n, 'big')
-
-    # check range
-    if aac not in [0, 1]:
-        raise IndexError(
-            'Arbitrary Addess Capable is not in the range [0, 1].')
-    if ig not in range(8):
-        raise IndexError('Industry Group is not in the range [0, 7].')
-    if vsi not in range(16):
-        raise IndexError(
-            'Vehicle System Instance is not in the range [0, 15].')
-    if vs not in range(127):
-        raise IndexError('Vehicle System is not in the range [0, 126].')
-    if func not in range(254):
-        raise IndexError('Function is not in the range [0, 154].')
-    if func_inst not in range(32):
-        raise IndexError('Function Instance is not in the range [0, 31].')
-    if ecu_inst not in range(8):
-        raise IndexError('ECU Instance is not in the range [0, 7].')
-    if mc not in range(2048):
-        raise IndexError('Manufacturer Code is not in the range [0, 2047].')
-    if id_n not in range(2097152):
-        raise IndexError('Identity number is not in the range [0, 2097151].')
 
     return aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n
