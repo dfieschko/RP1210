@@ -511,7 +511,7 @@ def test_J1939Message_eq_noexception():
 @pytest.mark.parametrize("aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n",
                          argvalues=[
                              (0, 0, 0, 0, 0, 0, 0, 0, 0),
-                             (1, 7, 15, 126, 154, 31, 7, 2047, 2097151),
+                             (1, 7, 15, 126, 254, 31, 7, 2047, 2097151),
                              (1, 6, 2, 5, 148, 21, 2, 1561, 1847634),
                              (0, 0, 4, 84, 234, 23, 3, 1178, 97414),
                              (b'', 5, b'\x04', 55, b'G', b'\x1c', b'\x04',2000, b'\x0c\x1a\xaf'),
@@ -537,7 +537,7 @@ def test_generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id
 def test_generateNetMgmtName_invalid_input():
     """Test generateNetMgmtName() function with invalid inputs"""
     # a list of different data types
-    invalid_type = ['1', 0.1, [0,1], (1,), {'test':1}, {1223, 2323, 113}]
+    invalid_type = [0.1]
     # a dictionary of each field and out-of-range int/bytes
     invalid_range={
         'aac': [2, b'\xff'],
@@ -557,7 +557,7 @@ def test_generateNetMgmtName_invalid_input():
         # test data types
         for value in invalid_type:
             parameters_type[field] = value
-            with pytest.raises(TypeError, match=r".* must be either integer or bytes."):
+            with pytest.raises(TypeError, match=r"Invalid type used for sanitize_msg_param.*"):
                 J1939.generateNetMgmtName(*parameters_type)
 
         # test data range

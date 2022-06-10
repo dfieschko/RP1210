@@ -940,9 +940,7 @@ def getJ1939ProtocolDescription(protocol : int) -> str:
     else:
         return "Invalid J1939 protocol format selected."
 
-def generateNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes],
-                        vs: Union[int, bytes], func: Union[int, bytes], func_inst: Union[int, bytes],
-                        ecu_inst: Union[int, bytes], mc: Union[int, bytes], id_n: Union[int, bytes]) -> bytes:
+def generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n) -> bytes:
     """ 
     Generate network management NAME which is an 8 bytes numerical value composed of 10 fields  
     (except Reserved field which is always set to 0, so only 9 fields are passed to the function)
@@ -960,30 +958,46 @@ def generateNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Unio
     Returns: 
         bytes: network management NAME 
     """
-    # check data type and range
-    aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n = checkDataType(
-        aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n)
+    # convert to integer
+    if not isinstance(aac, int):
+        aac = int.from_bytes(sanitize_msg_param(aac), 'big')
+    if not isinstance(ig, int):
+        ig = int.from_bytes(sanitize_msg_param(ig), 'big')
+    if not isinstance(vsi, int):
+        vsi = int.from_bytes(sanitize_msg_param(vsi), 'big')
+    if not isinstance(vs, int):
+        vs = int.from_bytes(sanitize_msg_param(vs), 'big')
+    if not isinstance(func , int):
+        func = int.from_bytes(sanitize_msg_param(func), 'big')
+    if not isinstance(func_inst, int):
+        func_inst = int.from_bytes(sanitize_msg_param(func_inst), 'big')
+    if not isinstance(ecu_inst, int):
+        ecu_inst = int.from_bytes(sanitize_msg_param(ecu_inst), 'big')
+    if not isinstance(mc, int):
+        mc = int.from_bytes(sanitize_msg_param(mc), 'big')
+    if not isinstance(id_n, int):
+        id_n = int.from_bytes(sanitize_msg_param(id_n), 'big')
 
     # check range
     if aac not in [0, 1]:
         raise IndexError(
             'Arbitrary Addess Capable is not in the range [0, 1].')
-    if ig not in range(8):
+    if not 0 <= ig <= 7:
         raise IndexError('Industry Group is not in the range [0, 7].')
-    if vsi not in range(16):
+    if not 0 <= vsi <= 15:
         raise IndexError(
             'Vehicle System Instance is not in the range [0, 15].')
-    if vs not in range(127):
+    if not 0 <= vs <= 126:
         raise IndexError('Vehicle System is not in the range [0, 126].')
-    if func not in range(254):
-        raise IndexError('Function is not in the range [0, 154].')
-    if func_inst not in range(32):
+    if not 0 <= func <= 254:
+        raise IndexError('Function is not in the range [0, 254].')
+    if not 0 <= func_inst <= 31:
         raise IndexError('Function Instance is not in the range [0, 31].')
-    if ecu_inst not in range(8):
+    if not 0 <= ecu_inst <= 7:
         raise IndexError('ECU Instance is not in the range [0, 7].')
-    if mc not in range(2048):
+    if not 0 <= mc <= 2047:
         raise IndexError('Manufacturer Code is not in the range [0, 2047].')
-    if id_n not in range(2097152):
+    if not 0 <= id_n <= 2097151:
         raise IndexError('Identity number is not in the range [0, 2097151].')
     
     # combine Arbitrary Addess Capable, Industry Group, and Vehicle System Instance (1 byte)
@@ -1002,37 +1016,3 @@ def generateNetMgmtName(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Unio
     name += sanitize_msg_param((mc << 21) | id_n, 4)
 
     return name
-
-def checkDataType(aac: Union[int, bytes], ig: Union[int, bytes], vsi: Union[int, bytes],
-                    vs: Union[int, bytes], func: Union[int, bytes], func_inst: Union[int, bytes],
-                    ecu_inst: Union[int, bytes], mc: Union[int, bytes], id_n: Union[int, bytes]) -> list[int]:
-    """Check if data type and data range are valid and convert all values to integer
-    """
-    # check data type
-    if not (isinstance(aac, (int, bytes)) and isinstance(ig, (int, bytes)) and isinstance(vsi, (int, bytes)) and
-        isinstance(vs, (int, bytes)) and isinstance(func, (int, bytes)) and isinstance(func_inst, (int, bytes)) and
-        isinstance(ecu_inst, (int, bytes)) and isinstance(mc, (int, bytes)) and isinstance(id_n, (int, bytes))):
-        raise TypeError(
-            "Data type of parameters must be either integer or bytes.")
-    
-    # convert to integer
-    if isinstance(aac, bytes):
-        aac = int.from_bytes(aac, 'big')
-    if isinstance(ig, bytes):
-        ig = int.from_bytes(ig, 'big')
-    if isinstance(vsi, bytes):
-        vsi = int.from_bytes(vsi, 'big')
-    if isinstance(vs, bytes):
-        vs = int.from_bytes(vs, 'big')
-    if isinstance(func , bytes):
-        func = int.from_bytes(func, 'big')
-    if isinstance(func_inst, bytes):
-        func_inst = int.from_bytes(func_inst, 'big')
-    if isinstance(ecu_inst, bytes):
-        ecu_inst = int.from_bytes(ecu_inst, 'big')
-    if isinstance(mc, bytes):
-        mc = int.from_bytes(mc, 'big')
-    if isinstance(id_n, bytes):
-        id_n = int.from_bytes(id_n, 'big')
-
-    return aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n
