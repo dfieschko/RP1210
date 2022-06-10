@@ -2,6 +2,7 @@
 Basic tests for UDS.py.
 """
 
+from tabnanny import check
 import pytest
 from RP1210 import UDS
 
@@ -68,19 +69,134 @@ def test_UDSMessage_allEnabled_isRequest():
 
     msg.subfn = 0x30
     assert msg.subfn == 0x30
+    msg.subfn = b'\x31'
+    assert msg.subfn == 0x31
+    assert msg.raw == b'\xAA\x31\x00\x00\x00\x00\x00\x00'
+    checkMagicMethods(msg)
+
+    msg.did = 0xABCD
+    assert msg.did == 0xABCD
+    msg.did = b'\xDC\xBA'
+    assert msg.did == 0xDCBA
+    assert msg.raw == b'\xAA\x31\xDC\xBA\x00\x00\x00\x00'
+    checkMagicMethods(msg)
+
+    msg.data = b'\xDE\xAD\xBE\xEF'
+    assert msg.data == b'\xDE\xAD\xBE\xEF'
+    assert msg.raw == b'\xAA\x31\xDC\xBA\xDE\xAD\xBE\xEF'
+    assert msg.value == 0xDEADBEEF
+    checkMagicMethods(msg)
+
+    msg.data = b'\xC0\xFF\xEE' # dataSizeCanChange is enabled, so this will change data size
+    assert len(msg.data) == 3
+    assert msg.data == b'\xC0\xFF\xEE'
+    assert msg.raw == b'\xAA\x31\xDC\xBA\xC0\xFF\xEE'
+    assert msg.value == 0xC0FFEE
+    checkMagicMethods(msg)
+
+    msg.data = 0xDEADBEEF
+    assert len(msg.data) == 4
+    assert msg.data == b'\xDE\xAD\xBE\xEF'
+    assert msg.raw == b'\xAA\x31\xDC\xBA\xDE\xAD\xBE\xEF'
+    assert msg.value == 0xDEADBEEF
+    checkMagicMethods(msg)
+
+    msg._dataSizeCanChange = False
+    msg.data = 0xFF
+    assert len(msg.data) == 4
+    assert msg.data == b'\xFF\xAA\xAA\xAA'
+    assert msg.raw == b'\xAA\x31\xDC\xBA\xFF\xAA\xAA\xAA'
+    assert msg.value == 0xFFAAAAAA
+    checkMagicMethods(msg)
+
+    with pytest.raises(ValueError):
+        msg._dataSizeCanChange = False
+        msg.data = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+    # data shouldn't change
+    assert len(msg.data) == 4
+    assert msg.data == b'\xFF\xAA\xAA\xAA'
+    assert msg.raw == b'\xAA\x31\xDC\xBA\xFF\xAA\xAA\xAA'
+    assert msg.value == 0xFFAAAAAA
+    checkMagicMethods(msg)
+
+def test_UDSMessage_allEnabled_isResponse():
+    """
+    Run a test case with all parameters enabled. This one sets isResponse to True and uses a
+    Response SID.
+    """
+    class EverythingMessage(UDS.UDSMessage):
+        _isResponse = True
+        _hasSubfn = True
+        _hasDID = True
+        _hasData = True
+        _dataSize = 4
+        _dataSizeCanChange = True
+
+        _sid = 0x75
+
+    msg = EverythingMessage()
+    assert msg.sid == 0x75
+    assert msg.subfn is None
+    assert msg.did is None
+    assert msg.data is None
+    assert msg.raw == b'\x75\x00\x00\x00\x00\x00\x00\x00'
+    assert msg.value == 0
+    checkMagicMethods(msg)
+    assert msg.name() == "Request Upload"
+
+    msg.subfn = 0x30
+    assert msg.subfn == 0x30
     msg.subfn = b'\x30'
     assert msg.subfn == 0x30
-    assert msg.raw == b'\xAA\x30\x00\x00\x00\x00\x00\x00'
+    assert msg.raw == b'\x75\x30\x00\x00\x00\x00\x00\x00'
+    checkMagicMethods(msg)
 
     msg.did = 0xABCD
     assert msg.did == 0xABCD
     msg.did = b'\xAB\xCD'
     assert msg.did == 0xABCD
-    assert msg.raw == b'\xAA\x30\xAB\xCD\x00\x00\x00\x00'
+    assert msg.raw == b'\x75\x30\xAB\xCD\x00\x00\x00\x00'
+    checkMagicMethods(msg)
 
     msg.data = b'\xDE\xAD\xBE\xEF'
     assert msg.data == b'\xDE\xAD\xBE\xEF'
-    assert msg.raw == b'\xAA\x30\xAB\xCD\xDE\xAD\xBE\xEF'
+    assert msg.raw == b'\x75\x30\xAB\xCD\xDE\xAD\xBE\xEF'
     assert msg.value == 0xDEADBEEF
+    checkMagicMethods(msg)
 
+def test_UDSMessage_allDisabled():
+    """
+    Run a test case with all parameters disabled.
+    """
+    class NothingMessage(UDS.UDSMessage):
+        _isResponse = True
+        _hasSubfn = False
+        _hasDID = False
+        _hasData = False
+
+        _sid = 0x75
+
+    msg = NothingMessage()
+    checkMagicMethods(msg)
+    assert msg.sid == 0x75
+    assert msg.subfn is None
+    assert msg.did is None
+    assert msg.data is None
+    assert msg.raw == b'\x75'
+    assert msg.value == 0
+    checkMagicMethods(msg)
+
+    with pytest.raises(AttributeError):
+        msg.subfn = 0xAA
+    assert msg.subfn is None
+    checkMagicMethods(msg)
+
+    with pytest.raises(AttributeError):
+        msg.did = 0xABCD
+    assert msg.did is None
+    checkMagicMethods(msg)
+
+    with pytest.raises(AttributeError):
+        msg.data = b'\xAA\xAA'
+    assert msg.data is None
     checkMagicMethods(msg)
