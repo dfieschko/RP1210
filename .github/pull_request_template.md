@@ -8,7 +8,7 @@
 - Changes that aren't enhancements or bugfixes go here!
 
 ## ✔️ Closed Issues
-Put the issues you closed here!
+Put the issues this PR will close here!
 
 ## 👀 Checklist
 - [ ] Did you test your changes?
