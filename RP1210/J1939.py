@@ -6,6 +6,7 @@ While a dict of J1939 PGNs would be convenient, they are not provided here becau
 copyright of SAE.
 """
 
+from typing import Union
 from RP1210 import sanitize_msg_param
 
 def toJ1939Message(pgn, pri, sa, da, data, size = 0, how = 0) -> bytes:
@@ -938,3 +939,80 @@ def getJ1939ProtocolDescription(protocol : int) -> str:
         return "Baud formula derived from Intel implementations."
     else:
         return "Invalid J1939 protocol format selected."
+
+def generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n) -> bytes:
+    """ 
+    Generate network management NAME which is an 8 bytes numerical value composed of 10 fields  
+    (except Reserved field which is always set to 0, so only 9 fields are passed to the function)
+    described as following: 
+        - Arbitrary Addess Capable (1 bit) 
+        - Industry Group (3 bits) 
+        - Vehicle System Instance (4 bits) 
+        - Vehicle System (7 bits) 
+        - Reserved (1 bit): always set to 0 
+        - Function (8 bits) 
+        - Function Instance (5 bits) 
+        - ECU Instance (3 bits) 
+        - Manufacturer Code (11 bits) 
+        - Identity Number (21 bits) 
+    Returns: 
+        bytes: network management NAME 
+    """
+    # convert to integer
+    if not isinstance(aac, int):
+        aac = int.from_bytes(sanitize_msg_param(aac), 'big')
+    if not isinstance(ig, int):
+        ig = int.from_bytes(sanitize_msg_param(ig), 'big')
+    if not isinstance(vsi, int):
+        vsi = int.from_bytes(sanitize_msg_param(vsi), 'big')
+    if not isinstance(vs, int):
+        vs = int.from_bytes(sanitize_msg_param(vs), 'big')
+    if not isinstance(func , int):
+        func = int.from_bytes(sanitize_msg_param(func), 'big')
+    if not isinstance(func_inst, int):
+        func_inst = int.from_bytes(sanitize_msg_param(func_inst), 'big')
+    if not isinstance(ecu_inst, int):
+        ecu_inst = int.from_bytes(sanitize_msg_param(ecu_inst), 'big')
+    if not isinstance(mc, int):
+        mc = int.from_bytes(sanitize_msg_param(mc), 'big')
+    if not isinstance(id_n, int):
+        id_n = int.from_bytes(sanitize_msg_param(id_n), 'big')
+
+    # check range
+    if aac not in [0, 1]:
+        raise IndexError(
+            'Arbitrary Addess Capable is not in the range [0, 1].')
+    if not 0 <= ig <= 7:
+        raise IndexError('Industry Group is not in the range [0, 7].')
+    if not 0 <= vsi <= 15:
+        raise IndexError(
+            'Vehicle System Instance is not in the range [0, 15].')
+    if not 0 <= vs <= 126:
+        raise IndexError('Vehicle System is not in the range [0, 126].')
+    if not 0 <= func <= 254:
+        raise IndexError('Function is not in the range [0, 254].')
+    if not 0 <= func_inst <= 31:
+        raise IndexError('Function Instance is not in the range [0, 31].')
+    if not 0 <= ecu_inst <= 7:
+        raise IndexError('ECU Instance is not in the range [0, 7].')
+    if not 0 <= mc <= 2047:
+        raise IndexError('Manufacturer Code is not in the range [0, 2047].')
+    if not 0 <= id_n <= 2097151:
+        raise IndexError('Identity number is not in the range [0, 2097151].')
+    
+    # combine Arbitrary Addess Capable, Industry Group, and Vehicle System Instance (1 byte)
+    name = sanitize_msg_param((aac << 7) | (ig << 4) | vsi, 1)
+
+    # combine Vehicle System and Reserved (1 byte)
+    name += sanitize_msg_param(vs << 1, 1)
+
+    # concate Function (1 byte)
+    name += sanitize_msg_param(func, 1)
+
+    # combine Function Instance and ECU Instance (1 byte)
+    name += sanitize_msg_param((func_inst << 3) | ecu_inst, 1)
+
+    # combine manufacturer Code and Identity Number (4 bytes)
+    name += sanitize_msg_param((mc << 21) | id_n, 4)
+
+    return name

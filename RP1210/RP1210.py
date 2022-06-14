@@ -187,6 +187,14 @@ class RP1210Protocol:
         """Returns a string that can be used in a protocol selection combo box."""
         return self.getString() + " - " + self.getDescription()
 
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RP1210Protocol):
+            raise TypeError("Tried to compare RP1210Protocol with innappropriate object type.")
+        return self.contents == __o.contents
+
+    def __bool__(self):
+        return bool(self.contents)
+
     def getDescription(self) -> str:
         """Returns ProtocolDescription parameter."""
         try:
@@ -226,14 +234,6 @@ class RP1210Protocol:
         except Exception:
             return []
 
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, RP1210Protocol):
-            raise TypeError("Tried to compare RP1210Protocol with innappropriate object type.")
-        return self.contents == __o.contents
-
-    def __bool__(self):
-        return bool(self.contents)
-
 class RP1210Device:
     """
     Stores information for an RP1210 device, e.g. info stored in DeviceInformationXXX sections.
@@ -250,6 +250,28 @@ class RP1210Device:
     def __init__(self,  section : dict) -> None:
         self.contents = section
 
+    def __str__(self):
+        """Returns a string that can be used in a device selection combo box."""
+        ret_str = ""
+        if self.getID() == -1:
+            ret_str += "(Invalid Device)"
+        else:
+            ret_str += str(self.getID())
+        if self.getDescription() != "":
+            ret_str += " - " + self.getDescription()
+        return ret_str
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, RP1210Device):
+            raise TypeError("Tried to compare RP1210Device with innappropriate object type.")
+        return self.contents == __o.contents
+
+    def __bool__(self):
+        return self.getID() != -1
+
+    def __int__(self) -> int:
+        return self.getID()
+         
     def getID(self) -> int:
         """
         Returns DeviceID parameter as int.
@@ -296,32 +318,12 @@ class RP1210Device:
         except Exception:
             return 0
 
-    def __str__(self):
-        """Returns a string that can be used in a device selection combo box."""
-        ret_str = ""
-        if self.getID() == -1:
-            ret_str += "(Invalid Device)"
-        else:
-            ret_str += str(self.getID())
-        if self.getDescription() != "":
-            ret_str += " - " + self.getDescription()
-        return ret_str
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, RP1210Device):
-            raise TypeError("Tried to compare RP1210Device with innappropriate object type.")
-        return self.contents == __o.contents
-
-    def __bool__(self):
-        return bool(self.contents)
-         
 class RP1210Config(ConfigParser):
     """
     Reads & stores Vendor API information. Child of ConfigParser. Use getAPINames() to get an
     RP1210 API name to feed to this class.
 
     This class has functions for reading EVERY SINGLE data field defined in the RP1210C standard.
-    As such, it is embarrassingly long.
 
     This class holds an instance of RP1210API, which you can use to call RP1210 functions.
     - `nexiq = RP1210Config("NULN2R32")`
@@ -353,6 +355,9 @@ class RP1210Config(ConfigParser):
 
     def __bool__(self) -> bool:
         return self.isValid()
+
+    def __eq__(self, other) -> bool:
+        return str(self) == str(other)
 
     def getAPI(self):
         """
@@ -803,6 +808,9 @@ class RP1210API:
     def __str__(self):
         return self._api_name
 
+    def __eq__(self, other):
+        return str(self) == str(other)
+
     def getAPIName(self) -> str:
         """Returns API name for this API."""
         return self._api_name
@@ -1204,6 +1212,27 @@ class RP1210VendorList:
         self._config_path = config_dir
         self.populate()
 
+    @property
+    def vendor(self) -> RP1210Config:
+        """Currently selected vendor in RP1210VendorList."""
+        return self.getCurrentVendor()
+
+    @vendor.setter
+    def vendor(self, vendor):
+        self.setVendor(vendor)
+
+    @property
+    def api(self) -> RP1210API:
+        return self.getAPI()
+
+    @property
+    def device(self) -> RP1210Device:
+        return self.getCurrentDevice()
+
+    @device.setter
+    def device(self, device):
+        self.setDevice(device)
+
     def __getitem__(self, index : int) -> RP1210Config:
         return self.vendors[index]
 
@@ -1225,16 +1254,22 @@ class RP1210VendorList:
         that is found.
         """
         self.vendors.clear()
-        api_list = getAPINames(self._rp121032_path)
-        try:
-            for api_name in api_list:
-                try:
-                    self.vendors.append(RP1210Config(api_name, self._api_path, self._config_path))
-                except Exception:
-                    # skip this API if its .ini file can't be parsed
-                    pass
-        except Exception:
-            self.vendors = []
+        for api_name in getAPINames(self._rp121032_path):
+            self.addVendor(api_name)
+
+    def addVendor(self, vendor):
+        """
+        Adds a vendor to the vendor list.
+        
+        Will either take API_NAME or an RP1210Config object.
+        """
+        if isinstance(vendor, str):
+            vendor = RP1210Config(vendor, self._api_path, self._config_path)
+            self.vendors.append(vendor)
+        elif isinstance(vendor, RP1210Config):
+            self.vendors.append(vendor)
+        else:
+            raise TypeError("Vendor must be str (API_NAME) or instance of RP1210Config.")
 
     def getList(self) -> list[RP1210Config]:
         """
@@ -1278,14 +1313,24 @@ class RP1210VendorList:
         self.vendorIndex = index
         self.deviceIndex = 0
 
-    def setVendor(self, api_name : str) -> None:
+    def setVendor(self, vendor) -> None:
         """
         Sets current vendor by api_name (e.g. NULN2R32).
 
+        Will now also accept RP1210Config object as argument.
+
         Will set index to 0 if api_name is not found in RP121032.ini.
         """
-        index = self.getVendorIndex(api_name)
-        self.setVendorIndex(index)
+        if isinstance(vendor, str): # set by api_name
+            index = self.getVendorIndex(vendor)
+            self.setVendorIndex(index)
+        elif isinstance(vendor, RP1210Config): # set by RP1210Config object
+            api_name = vendor.getAPIName()
+            if api_name not in self.getAPINames(): # if vendor not in list, add it
+                self.addVendor(vendor)
+            self.setVendor(api_name)
+        else:
+            raise TypeError("Vendor must be str (API_NAME) or instance of RP1210Config.")
 
     def setDeviceIndex(self, index : int) -> None:
         """
@@ -1293,21 +1338,26 @@ class RP1210VendorList:
         """
         self.deviceIndex = index
 
-    def setDevice(self, deviceID) -> None: 
+    def setDevice(self, device) -> None: 
         """
         Sets current device to device matching deviceID.
         """
-        index = self.getDeviceIndex(deviceID)
-        self.setDeviceIndex(index)
+        if isinstance(device, (int, RP1210Device)):
+            index = self.getDeviceIndex(device)
+            self.setDeviceIndex(index)
+        else:
+            raise TypeError("device param must be int (deviceID) or instance of RP1210Config.")
 
-    def getDeviceIndex(self, deviceID = -1) -> int:
+    def getDeviceIndex(self, deviceID = None) -> int:
         """
         Returns index of device matching deviceID for current vendor. Returns 0 if no match is found.
 
         Returns current device index if no deviceID is provided.
         """
-        if deviceID == -1:
+        if deviceID is None:
             return self.deviceIndex
+        if isinstance(deviceID, RP1210Device):
+            deviceID = deviceID.getID()
         index = 0
         try:
             for device in self.getCurrentVendor().getDevices():
@@ -1318,7 +1368,7 @@ class RP1210VendorList:
             return 0
         return 0
 
-    def getVendor(self, index : int = None) -> RP1210Config:
+    def getVendor(self, vendor = None) -> RP1210Config:
         """
         Returns RP1210Config object in vendor list at specified index.
 
@@ -1327,11 +1377,11 @@ class RP1210VendorList:
         Will return None on error.
         """
         try:
-            if index is None:
+            if vendor is None:
                 return self.getCurrentVendor()
-            if isinstance(index, str):
-                return self.vendors[self.getVendorIndex(index)]
-            return self.vendors[index]
+            if isinstance(vendor, str): # find by api name
+                return self.vendors[self.getVendorIndex(vendor)]
+            return self.vendors[vendor] # find by index
         except Exception:
             return None
 
@@ -1410,6 +1460,12 @@ class RP1210VendorList:
         Generates a list of vendor names that are listed in RP1210.ini file
         """
         return [vendor.getName() for vendor in self.getVendorList()]
+
+    def getAPIName(self) -> str:
+        """
+        Returns API name of current vendor.
+        """
+        return self.getCurrentVendor().getAPIName()
 
     def getAPINames(self) -> list[str]:
         """
@@ -1734,7 +1790,7 @@ class RP1210Client(RP1210VendorList):
         milliseconds. Set either block to 0 for infinite time.
         """
         cmd_num = 215
-        cmd_data = Commands.setJ1939Baud(block1, block2)
+        cmd_data = Commands.setBlockingTimeout(block1, block2)
         cmd_size = 2
         return self.command(cmd_num, cmd_data, cmd_size)
 

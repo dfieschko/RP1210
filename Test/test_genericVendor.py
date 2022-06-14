@@ -373,3 +373,107 @@ def test_disconnected_Read(api_name : str):
     assert rp1210.api.ReadMessage(0, read_array_in) <= 0
     assert not read_array_in.value
     assert not rp1210.api.ReadDirect(0)
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210API_magic_methods(api_name : str):
+    """Test __bool__ and __str__ in RP1210API."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping 'Remaining Functions' test for {api_name} due to missing dependencies.")
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    api = RP1210.RP1210API(api_name, dll_path)
+    assert bool(api) == api.isValid()
+    assert str(api) == api.getAPIName()
+
+@pytest.mark.parametrize("api_name", argvalues=INVALID_API_NAMES)
+def test_RP1210API_magic_methods_with_invalid_api(api_name : str):
+    """Test __bool__ and __str__ in RP1210API with invalid API names."""
+    api = RP1210.RP1210API(api_name)
+    assert bool(api) == api.isValid()
+    assert str(api) == api.getAPIName()
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210Config_magic_methods(api_name : str):
+    """Test __bool__ in RP1210Config."""
+    if api_name in invalid_apis:
+        pytest.skip(f"Skipping 'Remaining Functions' test for {api_name} due to missing dependencies.")
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    config = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    config2 = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    assert bool(config) == config.isValid()
+    assert config == config2
+    if api_name != "NULN2R32":
+        assert config != RP1210.RP1210Config("NULN2R32", dll_path, ini_path)
+
+@pytest.mark.parametrize("api_name", argvalues=INVALID_API_NAMES)
+def test_RP1210Config_magic_methods_with_invalid_api(api_name : str):
+    """Test __bool__ in RP1210Config with invalid API names."""
+    config = RP1210.RP1210Config(api_name)
+    config2 = RP1210.RP1210Config(api_name)
+    assert bool(config) == config.isValid()
+    assert config == config2
+    assert config != RP1210.RP1210Config("dinglebop")
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210VendorList_addVendor(api_name : str):
+    """Tests addVendor function in RP1210VendorList"""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    config = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    assert config in vendors
+    assert RP1210.RP1210Config("dinglebop") not in vendors
+    # add by name
+    length = len(vendors)
+    vendors.addVendor(api_name)
+    assert len(vendors) == length + 1
+    assert vendors[length] == config
+    # add by RP1210Config object
+    vendors.addVendor(config)
+    assert len(vendors) == length + 2
+    assert vendors[length + 1] == config
+    # add random api name
+    vendors.addVendor("dinglebop")
+    assert len(vendors) == length + 3
+    assert vendors[length + 2] != config
+    assert not vendors[length + 2].isValid() # should be invalid
+    # add invalid type
+    with pytest.raises(TypeError):
+        vendors.addVendor(4)
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210VendorList_setVendorByName(api_name : str):
+    """Tests setVendor function in RP1210VendorList"""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    config = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    vendors.setVendor(api_name)
+    assert vendors.getAPIName() == api_name
+    assert vendors.getVendorIndex() == vendors.getVendorIndex(api_name)
+    assert vendors.vendor == config
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210VendorList_setVendorByVendor(api_name : str):
+    """Tests setVendor function in RP1210VendorList"""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    ini_path = INI_DIRECTORY + "\\" + api_name + ".ini"
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    config = RP1210.RP1210Config(api_name, dll_path, ini_path)
+    vendors.setVendor(config)
+    assert vendors.getAPIName() == api_name
+    assert vendors.getVendorIndex() == vendors.getVendorIndex(api_name)
+    assert vendors.vendor == config
+
+@pytest.mark.parametrize("api_name", argvalues=API_NAMES)
+def test_RP1210VendorList_accessAPI(api_name : str):
+    """Access `api` property in RP1210VendorList."""
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    dll_path = DLL_DIRECTORY + "\\" + api_name + ".dll"
+    api = RP1210.RP1210API(api_name, dll_path)
+    vendors.setVendor(api_name)
+    assert vendors.api == api == api_name
+    assert vendors.getAPIName() == vendors.api.getAPIName()
+    # setter should raise exception
+    with pytest.raises(AttributeError):
+        vendors.api = api
