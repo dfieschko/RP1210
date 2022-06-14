@@ -537,7 +537,7 @@ def test_generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id
 def test_generateNetMgmtName_invalid_input():
     """Test generateNetMgmtName() function with invalid inputs"""
     # a list of different data types
-    invalid_type = [0.1]
+    invalid_type = [J1939.generateNetMgmtName] # feed it a function pointer, that's definitely wrong
     # a dictionary of each field and out-of-range int/bytes
     invalid_range={
         'aac': [2, b'\xff'],
