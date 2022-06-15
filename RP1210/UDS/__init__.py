@@ -1,7 +1,5 @@
 """A package for parsing and creating Unified Diagnostic Services messages."""
 
-import inspect
-import sys
 from .. import sanitize_msg_param
 
 BYTE_STUFFING_VALUE = b'\xAA'
@@ -176,6 +174,9 @@ class UDSMessage:
     def isResponse(self):
         return self._isResponse
 
+    def isRequest(self):
+        return not self._isResponse
+
     def __str__(self) -> str:
         return self.raw.decode('utf-8', errors='replace')
 
@@ -339,4 +340,4 @@ class UDSMessage:
             return 0
         return int.from_bytes(self._data, 'big')
 
-from . import *
+from DiagnosticSessionControl import *
