@@ -173,6 +173,9 @@ class UDSMessage:
     def dataSizeCanChange(self):
         return self._dataSizeCanChange
 
+    def isResponse(self):
+        return self._isResponse
+
     def __str__(self) -> str:
         return self.raw.decode('utf-8', errors='replace')
 
