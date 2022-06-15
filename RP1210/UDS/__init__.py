@@ -1,6 +1,6 @@
 """A package for parsing and creating Unified Diagnostic Services messages."""
 
-from RP1210 import sanitize_msg_param
+from .. import sanitize_msg_param
 
 BYTE_STUFFING_VALUE = b'\xAA'
 
@@ -39,7 +39,7 @@ ServiceNames = {
     0x37 : "Request Transfer Exit",
     0x38 : "Request File Transfer",
     # Negative Response (not a service)
-    0x3F : "Negative Response"
+    0x3E : "Negative Response"
 }
 """Dict of service names, organized by UDS Request SID."""
 
@@ -77,7 +77,7 @@ ResponseCodes = {
     0x5A : "Setting Access Rights failed",
     0x5B : "Session key creation/derivation failed",
     0x5C : "Configuration data usage failed",
-    0x5D : "DeAuthentication failed",
+    0x5D : "De-Authentication failed",
     0x70 : "Upload/Download Not Accepted",
     0x71 : "Transfer Data Suspended",
     0x72 : "General Programming Failure",
@@ -123,16 +123,6 @@ def translateResponseCode(code : int) -> str:
     if 0xF0 <= code <= 0xFE:
         return "Conditions Not Correct: Vehicle Manufacturer Specific"
     return ResponseCodes.get(code, "ISO/SAE Reserved")
-
-class services:
-    """
-    Names all services supported by this package by SID.
-
-    All this does is provide an SID for convenience; you can just as easily name SIDs directly.
-    """
-    DiagnosticSessionControl = 0x10
-    ECUReset = 0x11
-
 
 class UDSMessage:
     """

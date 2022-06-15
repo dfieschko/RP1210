@@ -6,7 +6,7 @@ import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 from typing import Literal
-from RP1210 import Commands, sanitize_msg_param
+from . import Commands, sanitize_msg_param
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
