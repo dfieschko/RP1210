@@ -21,6 +21,7 @@ class DiagnosticSessionControlRequest(UDSMessage):
     safetyDiagnosticSession = 0x04
 
     def __init__(self, subfn : int = defaultSession):
+        super().__init__()
         self.subfn = subfn
 
 class DiagnosticSessionControlResponse(UDSMessage):
@@ -52,6 +53,7 @@ class DiagnosticSessionControlResponse(UDSMessage):
     safetyDiagnosticSession = 0x04
 
     def __init__(self, subfn : int = defaultSession, data : bytes = b''):
+        super().__init__()
         self.subfn = subfn
         self.data = data
 

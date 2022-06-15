@@ -44,7 +44,7 @@ def test_DiagnosticSessionControlRequest_fromMessageData_subclass():
 
 def DiagnosticSessionControlResponse_testActions(msg : DiagnosticSessionControlResponse):
     assert isinstance(msg, DiagnosticSessionControlResponse)
-    assert msg.sid == 0x10
+    assert msg.sid == 0x50
     assert msg.isResponse()
     assert not msg.isRequest()
     assert msg.hasSubfn()
