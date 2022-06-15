@@ -61,7 +61,7 @@ def test_UDSMessage_allEnabled_isRequest():
     assert msg.sid == 0xAA
     assert msg.subfn is None
     assert msg.did is None
-    assert msg.data is None
+    assert msg.data == b''
     assert msg.raw == b'\xAA\x00\x00\x00\x00\x00\x00\x00'
     assert msg.value == 0
     checkMagicMethods(msg)
@@ -138,7 +138,7 @@ def test_UDSMessage_allEnabled_isResponse():
     assert msg.sid == 0x75
     assert msg.subfn is None
     assert msg.did is None
-    assert msg.data is None
+    assert msg.data == b''
     assert msg.raw == b'\x75\x00\x00\x00\x00\x00\x00\x00'
     assert msg.value == 0
     checkMagicMethods(msg)
@@ -181,7 +181,7 @@ def test_UDSMessage_allDisabled():
     assert msg.sid == 0x75
     assert msg.subfn is None
     assert msg.did is None
-    assert msg.data is None
+    assert msg.data == b''
     assert msg.raw == b'\x75'
     assert msg.value == 0
     checkMagicMethods(msg)
@@ -198,5 +198,5 @@ def test_UDSMessage_allDisabled():
 
     with pytest.raises(AttributeError):
         msg.data = b'\xAA\xAA'
-    assert msg.data is None
+    assert msg.data == b''
     checkMagicMethods(msg)
