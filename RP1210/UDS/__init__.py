@@ -1,7 +1,6 @@
 """A package for parsing and creating Unified Diagnostic Services messages."""
 
 from .. import sanitize_msg_param
-from . import * # make all files directly accessible
 
 BYTE_STUFFING_VALUE = b'\xAA'
 
