@@ -187,7 +187,10 @@ class UDSMessage:
         
         Will be None if the service does not have a sub-function.
         """
-        return self._subfn
+        if self._hasSubfn:
+            return self._subfn
+        else:
+            return None
 
     @subfn.setter
     def subfn(self, val : int):
@@ -204,7 +207,10 @@ class UDSMessage:
 
         Will be None if the service does not have a DID.
         """
-        return self._did
+        if self._hasDID:
+            return self._did
+        else:
+            return None
 
     @did.setter
     def did(self, val : int):
@@ -221,7 +227,10 @@ class UDSMessage:
 
         Will be None if the service does not have a data field.
         """
-        return self._data
+        if self._hasData:
+            return self._data
+        else:
+            return None
 
     @data.setter
     def data(self, val : bytes):
