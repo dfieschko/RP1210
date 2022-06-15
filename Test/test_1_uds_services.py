@@ -5,7 +5,7 @@ from RP1210.UDS import *
 ###########################################################################################
 #region DiagnosticSessionControl
 
-def DiagnosticSessionControlRequest_testActions(msg : DiagnosticSessionControlRequest):
+def DiagnosticSessionControlRequest_testActions(msg : DiagnosticSessionControlRequest, subfn = 0x01):
     """
     Runs default test actions for subclass.
     
@@ -20,7 +20,8 @@ def DiagnosticSessionControlRequest_testActions(msg : DiagnosticSessionControlRe
     assert msg.hasSubfn()
     assert not msg.hasDID()
     assert not msg.hasData()
-    assert msg.subfn == DiagnosticSessionControlRequest.defaultSession
+    assert msg.subfn == subfn
+    assert msg.value == 0
     msg.subfn = 0x02
     assert msg.subfn == DiagnosticSessionControlRequest.programmingSession
 
@@ -38,9 +39,9 @@ def test_DiagnosticSessionControlRequest_fromMessageData():
     DiagnosticSessionControlRequest_testActions(msg)
 
 def test_DiagnosticSessionControlRequest_fromMessageData_subclass():
-    data = b'\x10\x01'
+    data = b'\x10\x03'
     msg = DiagnosticSessionControlRequest.fromMessageData(data)
-    DiagnosticSessionControlRequest_testActions(msg)
+    DiagnosticSessionControlRequest_testActions(msg, subfn=0x03)
 
 def DiagnosticSessionControlResponse_testActions(msg : DiagnosticSessionControlResponse):
     assert isinstance(msg, DiagnosticSessionControlResponse)
@@ -56,8 +57,14 @@ def DiagnosticSessionControlResponse_testActions(msg : DiagnosticSessionControlR
     msg.subfn = 0x02
     assert msg.subfn == DiagnosticSessionControlResponse.programmingSession
     assert msg.data == BYTE_STUFFING_VALUE * msg.dataSize()
+    msg.data = b'\xFF'
+    assert msg.data == b'\xFF' + BYTE_STUFFING_VALUE * (msg.dataSize() - 1)
 
 def test_DiagnosticSessionControlResponse_fromSID():
     msg = UDSMessage.fromSID(0x50)
+    DiagnosticSessionControlResponse_testActions(msg)
+
+def test_DiagnosticSessionControlResponse_fromSID_subclass():
+    msg = DiagnosticSessionControlResponse.fromSID(0x50)
     DiagnosticSessionControlResponse_testActions(msg)
 #endregion

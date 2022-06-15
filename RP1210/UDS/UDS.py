@@ -334,6 +334,6 @@ class UDSMessage:
 
         If message doesn't contain a data field, returns 0.
         """
-        if self._data is None:
+        if not self._data:
             return 0
         return int.from_bytes(self._data, 'big')
