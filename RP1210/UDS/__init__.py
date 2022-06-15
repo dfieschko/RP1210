@@ -39,7 +39,7 @@ ServiceNames = {
     0x37 : "Request Transfer Exit",
     0x38 : "Request File Transfer",
     # Negative Response (not a service)
-    0x3E : "Negative Response"
+    0x3F : "Negative Response"
 }
 """Dict of service names, organized by UDS Request SID."""
 
