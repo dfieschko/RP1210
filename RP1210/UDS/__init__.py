@@ -142,10 +142,11 @@ class UDSMessage:
     _dataSize   = 0
     _dataSizeCanChange = False
 
+    _isResponse = False
+
     _sid    = None #type: int
 
     def __init__(self):
-        self._isResponse = self._sid + 0x40 in ServiceNames.keys() # response SIDs are request SIDs + 0x40
         self._subfn  = None #type: int
         self._did    = None #type: int
         self._data   = None #type: bytes
