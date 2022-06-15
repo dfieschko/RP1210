@@ -1,5 +1,7 @@
 """A package for parsing and creating Unified Diagnostic Services messages."""
 
+import inspect
+import sys
 from .. import sanitize_msg_param
 
 BYTE_STUFFING_VALUE = b'\xAA'
@@ -148,13 +150,28 @@ class UDSMessage:
     def __init__(self):
         self._subfn  = None #type: int
         self._did    = None #type: int
-        self._data   = None #type: bytes
+        self._data   = b'' #type: bytes
 
     def name(self):
         if self._isResponse:
             return translateResponseSID(self._sid)
         else:
             return translateRequestSID(self._sid)
+
+    def hasSubfn(self):
+        return self._hasSubfn
+
+    def hasDID(self):
+        return self._hasDID
+
+    def hasData(self):
+        return self._hasData
+
+    def dataSize(self):
+        return self._dataSize
+
+    def dataSizeCanChange(self):
+        return self._dataSizeCanChange
 
     def __str__(self) -> str:
         return self.raw.decode('utf-8', errors='replace')
@@ -171,6 +188,45 @@ class UDSMessage:
     def __getitem__(self, index : int) -> int:
         return self.raw[index]
 
+    @staticmethod
+    def fromMessageData(msg_data : bytes):
+        """
+        Generates a subclass instance of UDSMessage based on the given message data.
+
+        Message data must be in the following format:
+        1. Service ID (1 byte)
+        2. Sub-Function ID (0 or 1 bytes)
+        3. Data ID (0 or 2 bytes)
+        4. Data (0 or n bytes)
+        """
+        msg = UDSMessage.fromSID(msg_data[0])
+        index = 1
+        if msg.hasSubfn():
+            msg.subfn = msg_data[index]
+            index += 1
+        if msg.hasDID():
+            msg.did = msg_data[index:index+2]
+            index += 2
+        if msg.hasData():
+            if len(msg_data) > index:
+                msg.data = msg_data[index:]
+            else:
+                msg.data = b''
+        return msg
+
+    @staticmethod
+    def fromSID(sid : int):
+        """
+        Generates a subclass instance of UDSMessage based on the given message SID.
+
+        Only works for services supported by this package; will throw ValueError if the service
+        isn't supported. Open a GitHub issue or PR for any service requests.
+        """
+        for msg in UDSMessage.__subclasses__(): # search for subclasses of UDSMessage
+            if msg.sid == sid: # if sid matches, return subclass
+                return msg()
+        raise ValueError("Specified SID is not supported by RP1210 package. Generate/parse the message yourself.")
+            
     @property
     def sid(self) -> int:
         """
@@ -225,12 +281,12 @@ class UDSMessage:
         """
         Data field (n bytes).
 
-        Will be None if the service does not have a data field.
+        Will be `b''` if the service does not have a data field.
         """
         if self._hasData:
             return self._data
         else:
-            return None
+            return b''
 
     @data.setter
     def data(self, val : bytes):
