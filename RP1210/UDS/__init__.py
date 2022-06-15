@@ -271,3 +271,5 @@ class UDSMessage:
         if self._data is None:
             return 0
         return int.from_bytes(self._data, 'big')
+
+from . import *
