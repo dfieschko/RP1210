@@ -191,8 +191,8 @@ class UDSMessage:
     def __getitem__(self, index : int) -> int:
         return self.raw[index]
 
-    @staticmethod
-    def fromMessageData(msg_data : bytes):
+    @classmethod
+    def fromMessageData(cls, msg_data : bytes):
         """
         Generates a subclass instance of UDSMessage based on the given message data.
 
@@ -202,7 +202,7 @@ class UDSMessage:
         3. Data ID (0 or 2 bytes)
         4. Data (0 or n bytes)
         """
-        msg = UDSMessage.fromSID(msg_data[0])
+        msg = cls.fromSID(msg_data[0])
         index = 1
         if msg.hasSubfn():
             msg.subfn = msg_data[index]
@@ -217,18 +217,17 @@ class UDSMessage:
                 msg.data = b''
         return msg
 
-    @staticmethod
-    def fromSID(sid : int):
+    @classmethod
+    def fromSID(cls, sid : int):
         """
         Generates a subclass instance of UDSMessage based on the given message SID.
 
-        Only works for services supported by this package; will throw ValueError if the service
-        isn't supported. Open a GitHub issue or PR for any service requests.
+        Returns generic instance of this class if SID is not found in a subclass.
         """
-        for msg in UDSMessage.__subclasses__(): # search for subclasses of UDSMessage
-            if msg.sid == sid: # if sid matches, return subclass
+        for msg in cls.__subclasses__():
+            if msg.sid == sid:
                 return msg()
-        raise ValueError("Specified SID is not supported by RP1210 package. Generate/parse the message yourself.")
+        return cls
             
     @property
     def sid(self) -> int:
