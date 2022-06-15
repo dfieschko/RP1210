@@ -56,4 +56,3 @@ class DiagnosticSessionControlResponse(UDSMessage):
         super().__init__()
         self.subfn = subfn
         self.data = data
-
