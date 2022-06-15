@@ -1,6 +1,7 @@
 """A package for parsing and creating Unified Diagnostic Services messages."""
 
 from .. import sanitize_msg_param
+from . import * # make all files directly accessible
 
 BYTE_STUFFING_VALUE = b'\xAA'
 
@@ -135,7 +136,6 @@ class UDSMessage:
     - `did`   (int - 0 or 2 bytes)
     - `data`  (bytes - n bytes)
     """
-    _isResponse = False
     _hasSubfn   = False
     _hasDID     = False
     _hasData    = False
@@ -145,6 +145,7 @@ class UDSMessage:
     _sid    = None #type: int
 
     def __init__(self):
+        self._isResponse = self._sid + 0x40 in ServiceNames.keys() # response SIDs are request SIDs + 0x40
         self._subfn  = None #type: int
         self._did    = None #type: int
         self._data   = None #type: bytes
