@@ -43,7 +43,10 @@ def test_DiagnosticSessionControlRequest_fromMessageData_subclass():
     msg = DiagnosticSessionControlRequest.fromMessageData(data)
     DiagnosticSessionControlRequest_testActions(msg, subfn=0x03)
 
-def DiagnosticSessionControlResponse_testActions(msg : DiagnosticSessionControlResponse):
+def DiagnosticSessionControlResponse_testActions(msg : DiagnosticSessionControlResponse, subfn = 0x01,
+        data = None):
+    if data is None:
+        data = BYTE_STUFFING_VALUE * msg.dataSize()
     assert isinstance(msg, DiagnosticSessionControlResponse)
     assert msg.sid == 0x50
     assert msg.isResponse()
@@ -53,10 +56,10 @@ def DiagnosticSessionControlResponse_testActions(msg : DiagnosticSessionControlR
     assert msg.hasData()
     assert msg.dataSize() == 4
     assert not msg.dataSizeCanChange()
-    assert msg.subfn == DiagnosticSessionControlResponse.defaultSession
+    assert msg.subfn == subfn
     msg.subfn = 0x02
     assert msg.subfn == DiagnosticSessionControlResponse.programmingSession
-    assert msg.data == BYTE_STUFFING_VALUE * msg.dataSize()
+    assert msg.data == data
     msg.data = b'\xFF'
     assert msg.data == b'\xFF' + BYTE_STUFFING_VALUE * (msg.dataSize() - 1)
 
@@ -67,4 +70,15 @@ def test_DiagnosticSessionControlResponse_fromSID():
 def test_DiagnosticSessionControlResponse_fromSID_subclass():
     msg = DiagnosticSessionControlResponse.fromSID(0x50)
     DiagnosticSessionControlResponse_testActions(msg)
+
+def test_DiagnosticSessionControlResponse_fromMessageData():
+    data = b'\x50\x02\x11\x22\x33\x44'
+    msg = UDSMessage.fromMessageData(data)
+    DiagnosticSessionControlResponse_testActions(msg, subfn=0x02, data=b'\x11\x22\x33\x44')
+
+def test_DiagnosticSessionControlResponse_fromMessageData_noData():
+    data = b'\x50\x02'
+    msg = UDSMessage.fromMessageData(data)
+    DiagnosticSessionControlResponse_testActions(msg, subfn=0x02)
+
 #endregion
