@@ -213,6 +213,9 @@ def test_sanitize_msg_param_bool():
     assert sanitize_msg_param(True) == b'\x01'
     assert sanitize_msg_param(False) == b'\x00'
 
+def test_sanitize_msg_param_float():
+    assert sanitize_msg_param(0.34) == b'\x00'
+
 def test_sanitize_msg_param_typeerror():
     with pytest.raises(TypeError):
         sanitize_msg_param(RP1210.RP1210VendorList())

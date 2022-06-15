@@ -45,6 +45,9 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
             param2 = param
         val = int.from_bytes(param2[:num_bytes], byteorder)
         return sanitize_msg_param(val, num_bytes, byteorder)
+    elif isinstance(param, float):
+        # convert to int, run sanitize_msg_param again
+        return sanitize_msg_param(int(param), num_bytes, byteorder)
     else:
         try:
             return sanitize_msg_param(bytes(param), num_bytes, byteorder)
