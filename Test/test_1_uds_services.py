@@ -43,6 +43,10 @@ def test_DiagnosticSessionControlRequest_fromMessageData_subclass():
     msg = DiagnosticSessionControlRequest.fromMessageData(data)
     DiagnosticSessionControlRequest_testActions(msg, subfn=0x03)
 
+def test_DiagnosticSessionControlRequest():
+    msg = DiagnosticSessionControlRequest()
+    DiagnosticSessionControlRequest_testActions(msg)
+
 def DiagnosticSessionControlResponse_testActions(msg : DiagnosticSessionControlResponse, subfn = 0x01,
         data = None):
     if data is None:
@@ -80,5 +84,9 @@ def test_DiagnosticSessionControlResponse_fromMessageData_noData():
     data = b'\x50\x02'
     msg = UDSMessage.fromMessageData(data)
     DiagnosticSessionControlResponse_testActions(msg, subfn=0x02)
+
+def test_DiagnosticSessionControlResponse():
+    msg = DiagnosticSessionControlResponse()
+    DiagnosticSessionControlResponse_testActions(msg)
 
 #endregion
