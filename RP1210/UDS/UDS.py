@@ -337,3 +337,24 @@ class UDSMessage:
         if not self._data:
             return 0
         return int.from_bytes(self._data, 'big')
+
+    @property
+    def suppressPosRspMsgIndicationBit(self) -> bool:
+        """
+        Bit 7 of `subfn`.
+        - True = positive response to this service is suppressed.
+        - False = receiving ECU will send positive response.
+        """
+        if self._hasSubfn:
+            return bool(self.subfn & 0b10000000)
+        else:
+            return False
+
+    @suppressPosRspMsgIndicationBit.setter
+    def suppressPosRspMsgIndicationBit(self, val : bool):
+        if not self._hasSubfn:
+            raise AttributeError("Attempted to set subfn of UDS service that doesn't have sub-functions available.")
+        if val:
+            self.subfn |= 0b10000000
+        else:
+            self.subfn &= 0b01111111

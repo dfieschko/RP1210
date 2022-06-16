@@ -119,6 +119,17 @@ def test_UDSMessage_allEnabled_isRequest():
     assert msg.value == 0xFFAAAAAA
     checkMagicMethods(msg)
 
+    msg.subfn = 0x01
+    assert msg.subfn == 0x01
+    assert msg.suppressPosRspMsgIndicationBit == False
+    msg.suppressPosRspMsgIndicationBit = True
+    assert msg.suppressPosRspMsgIndicationBit == True
+    assert msg.subfn == 0x01 + 0x80
+    msg.suppressPosRspMsgIndicationBit = False
+    assert msg.suppressPosRspMsgIndicationBit == False
+    assert msg.subfn == 0x01
+    checkMagicMethods(msg)
+
 def test_UDSMessage_allEnabled_isResponse():
     """
     Run a test case with all parameters enabled. This one sets isResponse to True and uses a
@@ -200,3 +211,7 @@ def test_UDSMessage_allDisabled():
         msg.data = b'\xAA\xAA'
     assert msg.data == b''
     checkMagicMethods(msg)
+
+    with pytest.raises(AttributeError):
+        msg.suppressPosRspMsgIndicationBit = True
+    assert msg.suppressPosRspMsgIndicationBit == False
