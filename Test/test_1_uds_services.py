@@ -1,3 +1,4 @@
+import pytest
 from RP1210.UDS import *
 
 ###########################################################################################
@@ -88,5 +89,71 @@ def test_DiagnosticSessionControlResponse_fromMessageData_noData():
 def test_DiagnosticSessionControlResponse():
     msg = DiagnosticSessionControlResponse()
     DiagnosticSessionControlResponse_testActions(msg)
+
+#endregion
+
+###########################################################################################
+# ECUReset ################################################################################
+###########################################################################################
+#region ECUReset
+def ECUResetRequest_testActions(msg : ECUResetRequest, subfn=0x01):
+    assert msg.sid == 0x11
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert not msg.hasData()
+    assert msg.subfn == subfn
+    assert msg.raw == b'\x11' + sanitize_msg_param(subfn)
+
+def test_ECUResetRequest():
+    subfn = 0x02
+    msg = ECUResetRequest(subfn=subfn)
+    ECUResetRequest_testActions(msg, subfn)
+
+def test_ECUResetRequest_fromSID():
+    msg = UDSMessage.fromSID(0x11)
+    ECUResetRequest_testActions(msg)
+
+def test_ECUResetRequest_fromMessageData():
+    data = b'\x11\x02'
+    msg = UDSMessage.fromMessageData(data)
+    ECUResetRequest_testActions(msg, 0x02)
+
+def ECUResetResponse_testActions(msg : ECUResetResponse, subfn = 0x01, data = b''):
+    assert msg.sid == 0x51
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.data == data
+    if subfn == 0x04:
+        assert msg.hasData()
+        assert msg.dataSize() == 1
+        assert msg.powerDownTime == int.from_bytes(data, 'big')
+        msg.powerDownTime = 0xFE
+        assert msg.powerDownTime == 0xFE
+        assert msg.data == b'\xFE'
+    else:
+        assert not msg.hasData()
+        assert msg.powerDownTime is None
+    assert not msg.dataSizeCanChange()
+    assert msg.subfn == subfn
+    assert msg.raw == b'\x51' + sanitize_msg_param(subfn, 1) + msg.data
+    msg.subfn = b'\x05'
+    assert msg.subfn == 0x05
+
+def test_ECUResetResponse():
+    msg = ECUResetResponse()
+    ECUResetResponse_testActions(msg)
+
+def test_ECUResetResponse_0x04():
+    msg = ECUResetResponse(0x04, data=b'\x02')
+    ECUResetResponse_testActions(msg, 0x04, b'\x02')
+
+def test_ECUResetResponse_fromSID():
+    msg = UDSMessage.fromSID(0x51)
+    ECUResetResponse_testActions(msg)
+
+def test_ECUResetResponse_0x04_fromMessageData():
+    data = b'\x51\x04\x11'
+    msg = UDSMessage.fromMessageData(data)
+    ECUResetResponse_testActions(msg, 0x04, b'\x11')
 
 #endregion

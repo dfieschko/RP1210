@@ -3,3 +3,4 @@
 from . import *
 from .UDS import *
 from .DiagnosticSessionControl import *
+from .ECUReset import *
