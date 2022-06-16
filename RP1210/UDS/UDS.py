@@ -133,20 +133,21 @@ class UDSMessage:
     - `did`   (int - 0 or 2 bytes)
     - `data`  (bytes - n bytes)
     """
-    _hasSubfn   = False
-    _hasDID     = False
-    _hasData    = False
-    _dataSize   = 0
-    _dataSizeCanChange = False
 
     _isResponse = False
-
     _sid    = None #type: int
 
     def __init__(self):
+        self._hasSubfn   = False
+        self._hasDID     = False
+        self._hasData    = False
+        self._dataSizeCanChange = False
+
         self._subfn  = None #type: int
         self._did    = None #type: int
         self._data   = b'' #type: bytes
+        
+        self._dataSize   = 0
 
     def name(self):
         if self._isResponse:
@@ -224,7 +225,7 @@ class UDSMessage:
         Returns generic instance of this class if SID is not found in a subclass.
         """
         for msg in cls.__subclasses__():
-            if msg().sid == sid:
+            if msg._sid == sid:
                 return msg()
         return cls()
             

@@ -7,12 +7,7 @@ class DiagnosticSessionControlRequest(UDSMessage):
     - `subfn` = diagnosticSessionType
     """
     _sid = 0x10
-
     _isResponse = False
-
-    _hasSubfn = True
-    _hasDID = False
-    _hasData = False
 
     # sub-function IDs, for convenience:
     defaultSession = 0x01
@@ -22,6 +17,9 @@ class DiagnosticSessionControlRequest(UDSMessage):
 
     def __init__(self, subfn : int = defaultSession):
         super().__init__()
+        self._hasSubfn = True
+        self._hasDID = False
+        self._hasData = False
         self.subfn = subfn
 
 class DiagnosticSessionControlResponse(UDSMessage):
@@ -37,14 +35,7 @@ class DiagnosticSessionControlResponse(UDSMessage):
     """
 
     _sid = 0x50
-
     _isResponse = True
-
-    _hasSubfn = True
-    _hasDID = False
-    _hasData = True
-    _dataSize = 4
-    _dataSizeCanChange = False
 
     # sub-function IDs, for convenience:
     defaultSession = 0x01
@@ -54,5 +45,10 @@ class DiagnosticSessionControlResponse(UDSMessage):
 
     def __init__(self, subfn : int = defaultSession, data : bytes = b''):
         super().__init__()
+        self._hasSubfn = True
+        self._hasDID = False
+        self._hasData = True
+        self._dataSize = 4
+        self._dataSizeCanChange = False
         self.subfn = subfn
         self.data = data

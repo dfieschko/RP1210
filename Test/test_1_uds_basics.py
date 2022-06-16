@@ -49,13 +49,17 @@ def test_UDSMessage_allEnabled_isRequest():
     """Run a test case with all parameters enabled."""
     class EverythingMessage(UDS.UDSMessage):
         _isResponse = False
-        _hasSubfn = True
-        _hasDID = True
-        _hasData = True
-        _dataSize = 4
-        _dataSizeCanChange = True
-
         _sid = 0xAA
+
+        def __init__(self):
+            super().__init__()
+            self._hasSubfn = True
+            self._hasDID = True
+            self._hasData = True
+            self._dataSize = 4
+            self._dataSizeCanChange = True
+
+        
 
     msg = EverythingMessage()
     assert msg.sid == 0xAA
@@ -137,13 +141,15 @@ def test_UDSMessage_allEnabled_isResponse():
     """
     class EverythingMessage(UDS.UDSMessage):
         _isResponse = True
-        _hasSubfn = True
-        _hasDID = True
-        _hasData = True
-        _dataSize = 4
-        _dataSizeCanChange = True
-
         _sid = 0x75
+
+        def __init__(self):
+            super().__init__()
+            self._hasSubfn = True
+            self._hasDID = True
+            self._hasData = True
+            self._dataSize = 4
+            self._dataSizeCanChange = True
 
     msg = EverythingMessage()
     assert msg.sid == 0x75
