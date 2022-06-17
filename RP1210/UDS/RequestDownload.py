@@ -44,7 +44,7 @@ class RequestDownloadResponse(UDSMessage):
     _sid = 0x74
     _isResponse = True
 
-    def __init__(self, did: int = b'', data: bytes = b''):
+    def __init__(self, did: int = 0, data: bytes = b''):
         super().__init__()
         self._hasSubfn = False
         self._hasDID = True
