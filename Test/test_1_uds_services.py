@@ -291,14 +291,56 @@ def SecurityAccessRequest_testActions(msg: SecurityAccessRequest, subfn = 0x01, 
     assert msg.hasSubfn()
     assert not msg.hasDID()
     assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
     assert msg.subfn == subfn
+    assert msg.data == data
 
+def test_SecurityAccessRequest():
+    msg = SecurityAccessRequest()
+    SecurityAccessRequest_testActions(msg)
+
+def test_SecurityAccessRequest_fromSID():
+    msg = UDSMessage.fromSID(0x27)
+    SecurityAccessRequest_testActions(msg)
+
+def test_SecurityAccessRequest_subfnAndData():
+    subfn = 0x02
+    data = b'\xAB\xCD'
+    msg = SecurityAccessRequest(subfn, data)
+    SecurityAccessRequest_testActions(msg, subfn, data)
+
+def SecurityAccessResponse_testActions(msg: SecurityAccessResponse, subfn = 0x01, data: bytes = b''):
+    assert isinstance(msg, SecurityAccessResponse)
+    assert msg.sid == 0x67
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.subfn == subfn
+    assert msg.data == data
+
+def test_SecurityAccessResponse():
+    msg = SecurityAccessResponse()
+    SecurityAccessResponse_testActions(msg)
+
+def test_SecurityAccessResponse_fromSID():
+    msg = UDSMessage.fromSID(0x67)
+    SecurityAccessResponse_testActions(msg)
+
+def test_SecurityAccessResponse_subfnAndData():
+    subfn = 0x03
+    data = b'\xAB\xCD'
+    msg = SecurityAccessResponse(subfn, data)
+    SecurityAccessResponse_testActions(msg, subfn, data)
 #endregion
-
 
 ###########################################################################################
 # SecurityAccess ################################################################
 ###########################################################################################
 #region SecurityAccess
+def RequestDownloadRequest_testActions(msg: RequestDowloadRequest,):
+    assert isinstance(msg, RequestDowloadRequest)
 
 #endregion
