@@ -1,6 +1,6 @@
 from . import UDSMessage
 
-class WriteDataByIdentifierReqest(UDSMessage):
+class WriteDataByIdentifierRequest(UDSMessage):
     """
     Write Data By Identifier (Request)
     - `sid` = 0x2E
@@ -11,7 +11,7 @@ class WriteDataByIdentifierReqest(UDSMessage):
     _sid = 0x2E
     _isResponse = False
 
-    def __init__(self, did : int = 0x00, data : bytes = b''):
+    def __init__(self, did : int = 0, data : bytes = b''):
         super().__init__()
         self._hasSubfn = False
         self._hasDID = True
@@ -32,7 +32,7 @@ class WriteDataByIdentifierResponse(UDSMessage):
     _sid = 0x6E
     _isResponse = True
 
-    def __init__(self, did : int = 0x00):
+    def __init__(self, did : int = 0):
         super().__init__()
         self._hasSubfn = False
         self._hasDID = True

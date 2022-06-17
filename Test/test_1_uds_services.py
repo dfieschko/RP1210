@@ -1,3 +1,4 @@
+from tkinter import W
 import pytest
 from RP1210.UDS import *
 
@@ -155,5 +156,89 @@ def test_ECUResetResponse_0x04_fromMessageData():
     data = b'\x51\x04\x11'
     msg = UDSMessage.fromMessageData(data)
     ECUResetResponse_testActions(msg, 0x04, b'\x11')
+
+#endregion
+
+###########################################################################################
+# WriteDataByIdentifier ################################################################
+###########################################################################################
+#region WriteDataByIdentifier
+def WriteDataByIdentifierRequest_testActions(msg: WriteDataByIdentifierRequest, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, WriteDataByIdentifierRequest)
+    assert msg.sid == 0x2E
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_WriteDataByIdentifierRequest():
+    msg = WriteDataByIdentifierRequest()
+    WriteDataByIdentifierRequest_testActions(msg)
+
+def test_WriteDataByIdentifierRequest_fromSID():
+    msg = UDSMessage.fromSID(0x2E)
+    WriteDataByIdentifierRequest_testActions(msg)
+
+def test_WriteDataByIdentifierRequest_fromDID():
+    did = 8192
+    msg = WriteDataByIdentifierRequest(did = did)
+    WriteDataByIdentifierRequest_testActions(msg, did = did)
+
+def test_WriteDataByIdentifierRequest_fromMessageData():
+    data = b'\xEA\x53\x11\x04'
+    msg = WriteDataByIdentifierRequest(data = data)
+    WriteDataByIdentifierRequest_testActions(msg, data = data)
+
+def test_WriteDataByIdentifierRequest_fromDIDAndMessageData():
+    did = 8376
+    data = b'\x32\x02\xA5'
+    msg = WriteDataByIdentifierRequest(did = did, data = data)
+    WriteDataByIdentifierRequest_testActions(msg, did=did, data=data)
+
+def WriteDataByIdentifierResponse_testActions(msg: WriteDataByIdentifierRequest, did: int = 0):
+    assert isinstance(msg, WriteDataByIdentifierResponse)
+    assert msg.sid == 0x6E
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert not msg.hasData()
+    assert msg.did == did
+
+def test_WriteDataByIdentifierResponse():
+    msg = WriteDataByIdentifierResponse()
+    WriteDataByIdentifierResponse_testActions(msg)
+
+def test_WriteDataByIdentifierResponse_fromSID():
+    msg = UDSMessage.fromSID(0x6E)
+    WriteDataByIdentifierResponse_testActions(msg)
+
+def test_WriteDataByIdentifierResponse_fromDID():
+    did = 8472
+    msg = WriteDataByIdentifierResponse(did = did)
+    WriteDataByIdentifierResponse_testActions(msg, did)
+
+#endregion
+
+###########################################################################################
+# ReadDataByIdentifier ################################################################
+###########################################################################################
+#region ReadDataByIdentifier
+
+#endregion
+
+###########################################################################################
+# RequestDownload ################################################################
+###########################################################################################
+#region RequestDownload
+
+#endregion
+
+
+###########################################################################################
+# SecurityAccess ################################################################
+###########################################################################################
+#region SecurityAccess
 
 #endregion
