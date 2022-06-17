@@ -1,6 +1,9 @@
 from tkinter import W
+
 import pytest
 from RP1210.UDS import *
+
+from RP1210 import sanitize_msg_param
 
 ###########################################################################################
 # DiagnosticSessionControl ################################################################
@@ -182,17 +185,17 @@ def test_WriteDataByIdentifierRequest_fromSID():
     msg = UDSMessage.fromSID(0x2E)
     WriteDataByIdentifierRequest_testActions(msg)
 
-def test_WriteDataByIdentifierRequest_fromDID():
+def test_WriteDataByIdentifierRequest_DID():
     did = 8192
     msg = WriteDataByIdentifierRequest(did = did)
     WriteDataByIdentifierRequest_testActions(msg, did = did)
 
-def test_WriteDataByIdentifierRequest_fromMessageData():
+def test_WriteDataByIdentifierRequest_Data():
     data = b'\xEA\x53\x11\x04'
     msg = WriteDataByIdentifierRequest(data = data)
     WriteDataByIdentifierRequest_testActions(msg, data = data)
 
-def test_WriteDataByIdentifierRequest_fromDIDAndMessageData():
+def test_WriteDataByIdentifierRequest_DIDAndData():
     did = 8376
     data = b'\x32\x02\xA5'
     msg = WriteDataByIdentifierRequest(did = did, data = data)
@@ -214,24 +217,81 @@ def test_WriteDataByIdentifierResponse_fromSID():
     msg = UDSMessage.fromSID(0x6E)
     WriteDataByIdentifierResponse_testActions(msg)
 
-def test_WriteDataByIdentifierResponse_fromDID():
+def test_WriteDataByIdentifierResponse_fromMessageData():
     did = 8472
-    msg = WriteDataByIdentifierResponse(did = did)
+    msg = UDSMessage.fromMessageData(b'n!\x18')
     WriteDataByIdentifierResponse_testActions(msg, did)
-
 #endregion
 
 ###########################################################################################
 # ReadDataByIdentifier ################################################################
 ###########################################################################################
 #region ReadDataByIdentifier
+def ReadDataByIdentifierRequest_testActions(msg: ReadDataByIdentifierRequest, did: int = 0):
+    assert isinstance(msg, ReadDataByIdentifierRequest)
+    assert msg.sid == 0x22
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert not msg.hasData()
+    assert msg.did == did
 
+def test_ReadDataByIdentifierRequest():
+    msg = ReadDataByIdentifierRequest()
+    ReadDataByIdentifierRequest_testActions(msg)
+
+def test_ReadDataByIdentifierRequest_fromSID():
+    msg = UDSMessage.fromSID(0x22)
+    ReadDataByIdentifierRequest_testActions(msg)
+
+def test_ReadDataByIdentifierRequest_DID():
+    did = 8427
+    msg = ReadDataByIdentifierRequest(did)
+    ReadDataByIdentifierRequest_testActions(msg, did)
+
+def ReadDataByIdentifierResponse_testActions(msg: ReadDataByIdentifierResponse, did: int = 0, data : bytes = b''):
+    assert isinstance(msg, ReadDataByIdentifierResponse)
+    assert msg.sid == 0x62
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_ReadDataByIdentifierResponse():
+    msg = ReadDataByIdentifierResponse()
+    ReadDataByIdentifierResponse_testActions(msg)
+
+def test_ReadDataByIdentifierResponse_fromSID():
+    msg = UDSMessage.fromSID(0x62)
+    ReadDataByIdentifierResponse_testActions(msg)
+
+def test_ReadDataByIdentifierResponse_DIDAndData():
+    did = 8384
+    data = b'\x33\x42\x76'
+    msg = ReadDataByIdentifierResponse(did, data)
+    ReadDataByIdentifierResponse_testActions(msg, did, data)
+
+def test_ReadDataByIdentifierResponse_raw():
+    did = 8220
+    data = b'\x11'
+    msg = ReadDataByIdentifierResponse(did, data)
+    raw = msg.raw
+    assert b'b \x1c\x11' == raw
 #endregion
 
 ###########################################################################################
 # RequestDownload ################################################################
 ###########################################################################################
 #region RequestDownload
+def SecurityAccessRequest_testActions(msg: SecurityAccessRequest, subfn = 0x01, data:bytes = b''):
+    assert isinstance(msg, SecurityAccessRequest)
+    assert msg.sid == 0x27
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.subfn == subfn
 
 #endregion
 

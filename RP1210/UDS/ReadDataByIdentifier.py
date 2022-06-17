@@ -36,6 +36,8 @@ class ReadDataByIdentifierResponse(UDSMessage):
         self._hasSubfn = False
         self._hasDID = True
         self._hasData = True
+        self._dataSize = len(data)
+        self._dataSizeCanChange = True
 
         self.did = did
         self.data = data
