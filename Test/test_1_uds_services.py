@@ -273,7 +273,7 @@ def test_ReadDataByIdentifierResponse_DIDAndData():
     msg = ReadDataByIdentifierResponse(did, data)
     ReadDataByIdentifierResponse_testActions(msg, did, data)
 
-def test_ReadDataByIdentifierResponse_raw():
+def test_ReadDataByIdentifierResponse_Raw():
     did = 8220
     data = b'\x11'
     msg = ReadDataByIdentifierResponse(did, data)
@@ -304,7 +304,7 @@ def test_SecurityAccessRequest_fromSID():
     msg = UDSMessage.fromSID(0x27)
     SecurityAccessRequest_testActions(msg)
 
-def test_SecurityAccessRequest_subfnAndData():
+def test_SecurityAccessRequest_SubfnAndData():
     subfn = 0x02
     data = b'\xAB\xCD'
     msg = SecurityAccessRequest(subfn, data)
@@ -329,7 +329,7 @@ def test_SecurityAccessResponse_fromSID():
     msg = UDSMessage.fromSID(0x67)
     SecurityAccessResponse_testActions(msg)
 
-def test_SecurityAccessResponse_subfnAndData():
+def test_SecurityAccessResponse_SubfnAndData():
     subfn = 0x03
     data = b'\xAB\xCD'
     msg = SecurityAccessResponse(subfn, data)
@@ -340,7 +340,59 @@ def test_SecurityAccessResponse_subfnAndData():
 # SecurityAccess ################################################################
 ###########################################################################################
 #region SecurityAccess
-def RequestDownloadRequest_testActions(msg: RequestDowloadRequest,):
-    assert isinstance(msg, RequestDowloadRequest)
+def RequestDownloadRequest_testActions(msg: RequestDownloadRequest, dfid: bytes = b'', alfid: bytes = b'', maddr: bytes = b'', msize: bytes = b''):
+    assert isinstance(msg, RequestDownloadRequest)
+    assert msg.sid == 0x34
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(maddr + msize)
+    assert msg.dataSizeCanChange()
+    assert msg.did == int.from_bytes(sanitize_msg_param(dfid + alfid, 2), 'big')
+    assert msg.data == maddr + msize
 
+def test_RequestDownloadRequest():
+    msg = RequestDownloadRequest()
+    RequestDownloadRequest_testActions(msg)
+
+def test_RequestDownloadRequest_fromSID():
+    msg = UDSMessage.fromSID(0x34)
+    RequestDownloadRequest_testActions(msg)
+
+def test_RequestDownloadRequest_DID():
+    dfid = b'\x33'
+    alfid = b'\x34'
+    msg = RequestDownloadRequest(dfid, alfid)
+    RequestDownloadRequest_testActions(msg, dfid, alfid)
+
+def test_RequestDownloadRequest_Data():
+    maddr = b'\xBB\xCC'
+    msize = b'\xDD\xEE'
+    msg = RequestDownloadRequest(maddr=maddr, msize=msize)
+    RequestDownloadRequest_testActions(msg, maddr=maddr, msize=msize)
+
+def RequestDownloadResponse_testActions(msg: RequestDownloadResponse, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, RequestDownloadResponse)
+    assert msg.sid == 0x74
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_RequestDownloadResponse():
+    msg = RequestDownloadResponse()
+    RequestDownloadResponse_testActions(msg)
+
+def test_RequestDownloadResponse_fromSID():
+    msg = UDSMessage.fromSID(0x74)
+    RequestDownloadResponse_testActions(msg)
+
+def test_RequestDownloadResponse_DIDandData():
+    did = int('01010000', 2)
+    data = b'\x11\x22\x33'
+    msg = RequestDownloadResponse(did, data)
+    RequestDownloadResponse_testActions(msg, did, data)
 #endregion

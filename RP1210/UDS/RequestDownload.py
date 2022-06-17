@@ -2,7 +2,7 @@ from . import UDSMessage
 from .. import sanitize_msg_param
 
 
-class RequestDowloadRequest(UDSMessage):
+class RequestDownloadRequest(UDSMessage):
     """
     Request Download (Request)
     - `sid` = 0x34
@@ -27,11 +27,11 @@ class RequestDowloadRequest(UDSMessage):
         self._dataSize = len(maddr + msize)
         self._dataSizeCanChange = True
 
-        self.did = dfid + alfid
+        self.did = int.from_bytes(sanitize_msg_param(dfid + alfid, 2), 'big')
         self.data = maddr + msize
 
 
-class RequestDowloadResponse(UDSMessage):
+class RequestDownloadResponse(UDSMessage):
     """
     Request Download (Response)
     - `sid` = 0x74
@@ -49,6 +49,8 @@ class RequestDowloadResponse(UDSMessage):
         self._hasSubfn = False
         self._hasDID = True
         self._hasData = True
+        self._dataSize = len(data)
+        self._dataSizeCanChange = True
 
         self.did = did
         self.data = data
