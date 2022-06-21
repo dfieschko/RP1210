@@ -1,4 +1,3 @@
-from ssl import VerifyMode
 from . import UDSMessage
 
 
