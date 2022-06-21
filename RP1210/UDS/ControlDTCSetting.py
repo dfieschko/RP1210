@@ -40,7 +40,7 @@ class ControlDTCSettingResponse(UDSMessage):
 
     # sub-function IDs, for convenience:
     on = 0x01
-    off = 0x02
+    off = 0x02   
 
     def __init__(self, subfn: int = on):
         super().__init__()
