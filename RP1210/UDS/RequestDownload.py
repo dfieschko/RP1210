@@ -65,4 +65,4 @@ class RequestDownloadResponse(UDSMessage):
         DID in RequestDownload Response service is 1 byte instance of 2 bytes
         """
         val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
-        self._did = val & 0xFFFF
+        self._did = val & 0xFF
