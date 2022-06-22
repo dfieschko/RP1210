@@ -67,11 +67,11 @@ class WriteDataByIdentifierResponse(UDSMessage):
     def dataIdentifier(self, value : int):
         self.did = value
 
-    @property
-    def dataRecord(self) -> bytes:
-        """`dataRecord` field, stored in `data`."""
-        return self.data
+    # @property
+    # def dataRecord(self) -> bytes:
+    #     """`dataRecord` field, stored in `data`."""
+    #     return self.data
 
-    @dataRecord.setter
-    def dataRecord(self, value : bytes):
-        self.data = value
+    # @dataRecord.setter
+    # def dataRecord(self, value : bytes):
+    #     self.data = value

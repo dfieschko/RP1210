@@ -22,33 +22,19 @@ class CommunicationControlRequest(UDSMessage):
     enableRxAndDisableTxWithEnhancedAddressInformation = 0x04
     enableRxAndTxWithEnhancedAddressInformation = 0x05
 
-    def __init__(self, subfn: int = enableRxAndTx, comtype: int = 0x00, high_node_id: int = 0x00, low_node_id: int = 0x00):
+    def __init__(self, subfn: int = enableRxAndTx, comtype: bytes = b'', high_node_id: bytes = b'', low_node_id: bytes = b''):
         super().__init__()
         self._hasSubfn = True
-        self._hasDID = True
-        self._hasData = False
+        self._hasDID = False
+        self._hasData = True
+        self._dataSizeCanChange = False
 
         self.subfn = subfn
         if self.subfn in {0x04, 0x05}:
-            self.did = comtype+high_node_id+low_node_id
+            self._dataSize = 3
+            self.data = comtype+high_node_id+low_node_id
         else:
-            self.did = comtype
-
-    @property
-    def did(self) -> int:
-        return self._did
-
-    @did.setter
-    def did(self, val: int):
-        """
-        DID in Communication Control Request service is 1 byte if no nodeIdentificationNumber else 2 bytes
-        """
-        if self.subfn in {0x04, 0x05}:
-            val = int.from_bytes(sanitize_msg_param(val, 2), 'big')
-            self._did = val & 0xFFFF
-        else:
-            val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
-            self._did = val & 0xFF
+            self.data = comtype
 
 
 class CommunicationControlResponse(UDSMessage):

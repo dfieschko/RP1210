@@ -1,3 +1,4 @@
+from re import A
 from tkinter import W
 
 import pytest
@@ -201,6 +202,16 @@ def test_WriteDataByIdentifierRequest_DIDAndData():
     msg = WriteDataByIdentifierRequest(did = did, data = data)
     WriteDataByIdentifierRequest_testActions(msg, did=did, data=data)
 
+def test_WriteDataByIdentifierRequest_dataIdentifierAndDataRecord():
+    did = 8470
+    data = b'x11'
+    msg1 = WriteDataByIdentifierRequest()
+    msg2 = WriteDataByIdentifierRequest(did, data)
+    msg1.dataIdentifier = did
+    msg1.dataRecord = data
+    assert msg1.did == msg1.dataIdentifier == msg2.did == msg2.dataIdentifier == did
+    assert msg1.data == msg1.dataRecord == msg2.data == msg2.dataRecord == data
+
 def WriteDataByIdentifierResponse_testActions(msg: WriteDataByIdentifierRequest, did: int = 0):
     assert isinstance(msg, WriteDataByIdentifierResponse)
     assert msg.sid == 0x6E
@@ -221,6 +232,14 @@ def test_WriteDataByIdentifierResponse_fromMessageData():
     did = 8472
     msg = UDSMessage.fromMessageData(b'n!\x18')
     WriteDataByIdentifierResponse_testActions(msg, did)
+
+def test_WriteDataByIdentifierResponse_dataIdentifierAndDataRecord():
+    did = 8470
+    data = b'x11'
+    msg1 = WriteDataByIdentifierResponse()
+    msg1.dataIdentifier = did
+    msg1.dataRecord = data
+    assert msg1.did == msg1.dataIdentifier == did
 #endregion
 
 ###########################################################################################
@@ -395,4 +414,35 @@ def test_RequestDownloadResponse_DIDandData():
     data = b'\x11\x22\x33'
     msg = RequestDownloadResponse(did, data)
     RequestDownloadResponse_testActions(msg, did, data)
+#endregion
+
+###########################################################################################
+# LinkControl ################################################################
+###########################################################################################
+#region LinkControl
+def test_LinkControlRequest_transitionMode():
+    subfn = 0x03
+    data = b'\x01'
+    msg = LinkControlRequest(subfn, data)
+    assert msg.subfn == subfn
+    assert msg.hasData() == False
+    assert msg.hasDID() == False
+
+#endregion
+
+###########################################################################################
+# CommunicationControl ################################################################
+###########################################################################################
+#region CommunicationControl
+def test_CommunicationControlRequest_0x04():
+    subfn = 0x04
+    comtype = b'\x33'
+    high_node_id = b'\x88'
+    low_node_id = b'\x66'
+    msg = CommunicationControlRequest(subfn, comtype, high_node_id, low_node_id)
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.data == comtype+high_node_id+low_node_id
+    
 #endregion
