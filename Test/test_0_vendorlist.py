@@ -69,8 +69,7 @@ def test_vendorlist_init():
     Doesn't require any adapter software to be installed.
     """
     vendors = RP1210.RP1210VendorList()
-    vendors = RP1210.RP1210VendorList(
-        RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors
     assert len(vendors) == vendors.numVendors()
     vendor_names = []
@@ -83,8 +82,7 @@ def test_vendorlist_init():
 
 def test_vendorlist_nonevendors():
     """Force an error with vendor list and check numVendors()"""
-    vendors = RP1210.RP1210VendorList(
-        RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors
     assert vendors.numVendors()
     vendors.vendors = []
@@ -123,8 +121,7 @@ def test_vendorlist_index():
     Iterates through a bunch of indices for vendors and devices to make sure an invalid index
     doesn't cause a crash.
     """
-    vendors = RP1210.RP1210VendorList(
-        RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors.getVendorIndex("dinglebop") == 0
     assert vendors.getVendor("dinglebop") == vendors.getVendor(0)
     assert vendors.getDeviceIndex(23) == 0
@@ -148,8 +145,7 @@ def test_getlist():
     Test getList() function. Must have at least one adapter driver installed to pass
     this test.
     """
-    vendors = RP1210.RP1210VendorList(
-        RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors.getList() != []
     assert vendors.getList() == vendors.getVendorList()
 
@@ -159,8 +155,7 @@ def test_numvendors():
     Test getList() function. Must have at least one adapter driver installed to pass
     this test.
     """
-    vendors = RP1210.RP1210VendorList(
-        RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     assert vendors.numVendors() != 0
     assert vendors.numVendors() == len(vendors.getList())
 
@@ -169,8 +164,7 @@ def test_vendors_and_devices():
     """
     Run through each vendor and device and make sure everything matches.
     """
-    vendors = RP1210.RP1210VendorList(
-        RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     # check vendors
     for vendorIndex in range(vendors.numVendors()):
         vendors.setVendorIndex(vendorIndex)
@@ -195,8 +189,7 @@ def test_vendors_and_devices():
 def test_getVendorNames_getAPINames_getDeviceIDs():
     """Test getVendorNames(), getAPINames(), getDeviceIDs(), and __str__
     """
-    vendors = RP1210.RP1210VendorList(
-        RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
+    vendors = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
     vendor_names = vendors.getVendorNames()
     api_names = vendors.getAPINames()
 

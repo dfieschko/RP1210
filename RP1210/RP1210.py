@@ -6,7 +6,7 @@ import configparser
 from configparser import ConfigParser
 from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
 from typing import Literal
-from RP1210 import Commands, sanitize_msg_param
+from . import Commands, sanitize_msg_param
 
 RP1210_ERRORS = {
     1: "NO_ERRORS",
@@ -834,8 +834,8 @@ class RP1210API:
         Can take in a relative and absolute paths files and directories.
         
         If given a directory (by setting `WorkingAPIDirectory` param in `__init__()`), will attempt to
-        load DLL corresponding to `self._api_name` from that directory. If a working directory is not provided at
-        initialization of `RP1210API()`, will assume relative to launch path.
+        load DLL from that directory. If a working directory is not provided at
+        initialization of `RP1210API()`, will use default RP1210 DLL location.
         """
         if self._libDir is not None:
             path = ""

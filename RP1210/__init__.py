@@ -58,4 +58,4 @@ def sanitize_msg_param(param, num_bytes : int = 0, byteorder : str = 'big') -> b
 # Import everything from RP1210.py
 from RP1210.RP1210 import *
 # Import other modules (not necessary in Python 3.9+)
-from RP1210 import Commands, J1939
+from RP1210 import Commands, J1939, UDS

@@ -6,8 +6,7 @@ While a dict of J1939 PGNs would be convenient, they are not provided here becau
 copyright of SAE.
 """
 
-from typing import Union
-from RP1210 import sanitize_msg_param
+from . import sanitize_msg_param
 
 def toJ1939Message(pgn, pri, sa, da, data, size = 0, how = 0) -> bytes:
     """

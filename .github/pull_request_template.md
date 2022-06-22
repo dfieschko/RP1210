@@ -5,10 +5,10 @@
 - Bugs you fixed go here!
 
 ## 🗿 Miscellaneous
-- Changes that aren't enhancements or bugfixes go here!
+- All other changes go here!
 
 ## ✔️ Closed Issues
-Put the issues you closed here (e.g. closes #8)!
+Put the issues this PR will close here!
 
 ## 👀 Checklist
 - [ ] Did you test your changes?
