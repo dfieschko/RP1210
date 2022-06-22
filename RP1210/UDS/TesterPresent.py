@@ -1,4 +1,3 @@
-from numpy import zeros
 from . import UDSMessage
 
 

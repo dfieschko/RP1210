@@ -1,4 +1,3 @@
-from attr import s
 from . import UDSMessage
 
 
