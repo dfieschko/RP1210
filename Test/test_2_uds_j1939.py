@@ -16,6 +16,7 @@ from RP1210.UDS.RequestDownload import RequestDownloadRequest, RequestDownloadRe
 from RP1210.UDS.ResponseOnEvent import ResponseOnEventRequest, ResponseOnEventResponse
 from RP1210.UDS.SecurityAccess import SecurityAccessRequest, SecurityAccessResponse
 from RP1210.UDS.TesterPresent import TesterPresentRequest, TesterPresentResponse
+from RP1210.UDS.WriteDataByIdentifier import WriteDataByIdentifierRequest, WriteDataByIdentifierResponse
 
 UDSMESSAGE_CLASSES = [
     AuthenticationRequest, AuthenticationResponse, CommunicationControlRequest, CommunicationControlResponse,
@@ -23,7 +24,8 @@ UDSMESSAGE_CLASSES = [
     ECUResetRequest, ECUResetResponse, LinkControlRequest, LinkControlResponse, ReadDataByIdentifierRequest, ReadDataByIdentifierResponse,
     ReadMemoryByAddressRequest, ReadMemoryByAddressResponse, ReadScalingDataByIdentifierRequest, ReadScalingDataByIdentifierResponse,
     RequestDownloadRequest, RequestDownloadResponse, ResponseOnEventRequest, ResponseOnEventResponse,
-    SecurityAccessRequest, SecurityAccessResponse, TesterPresentRequest, TesterPresentResponse
+    SecurityAccessRequest, SecurityAccessResponse, TesterPresentRequest, TesterPresentResponse,
+    WriteDataByIdentifierRequest, WriteDataByIdentifierResponse
 ]
 
 @pytest.mark.parametrize("cls", argvalues=UDSMESSAGE_CLASSES)
@@ -32,3 +34,14 @@ def test_UDSMessage_as_J1939Message_data(cls : type[UDSMessage]):
     msg = J1939Message()
     msg.data = uds
     assert msg.data == uds.raw
+
+def test_WriteDataByIdentifierRequest_J1939Message():
+    request = WriteDataByIdentifierRequest()
+    request.dataIdentifier = 0xBEEF
+    request.dataRecord = b'\x12\x34\x56\x78'
+    msg = J1939Message()
+    msg.pgn = 0xDA00
+    msg.sa = 0xF9
+    msg.da = 0xBC
+    msg.data = request
+    assert msg.data == b'\x2E\xBE\xEF\x12\x34\x56\x78'

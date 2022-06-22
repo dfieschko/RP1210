@@ -22,6 +22,24 @@ class WriteDataByIdentifierRequest(UDSMessage):
         self.did = did
         self.data = data
 
+    @property
+    def dataIdentifier(self) -> int:
+        """`dataIdentifier` field, stored in `did`."""
+        return self.did
+
+    @dataIdentifier.setter
+    def dataIdentifier(self, value : int):
+        self.did = value
+
+    @property
+    def dataRecord(self) -> bytes:
+        """`dataRecord` field, stored in `data`."""
+        return self.data
+
+    @dataRecord.setter
+    def dataRecord(self, value : bytes):
+        self.data = value
+
 class WriteDataByIdentifierResponse(UDSMessage):
     """
     Write Data By Identifier (Response)
@@ -39,3 +57,21 @@ class WriteDataByIdentifierResponse(UDSMessage):
         self._hasData = False
 
         self.did = did
+
+    @property
+    def dataIdentifier(self) -> int:
+        """`dataIdentifier` field, stored in `did`."""
+        return self.did
+
+    @dataIdentifier.setter
+    def dataIdentifier(self, value : int):
+        self.did = value
+
+    @property
+    def dataRecord(self) -> bytes:
+        """`dataRecord` field, stored in `data`."""
+        return self.data
+
+    @dataRecord.setter
+    def dataRecord(self, value : bytes):
+        self.data = value
