@@ -31,9 +31,10 @@ class CommunicationControlRequest(UDSMessage):
 
         self.subfn = subfn
         if self.subfn in {0x04, 0x05}:
-            self._dataSize = 3
-            self.data = comtype+high_node_id+low_node_id
+            self._dataSize = len(comtype + high_node_id + low_node_id)
+            self.data = comtype + high_node_id + low_node_id
         else:
+            self._dataSize = len(comtype)
             self.data = comtype
 
 
