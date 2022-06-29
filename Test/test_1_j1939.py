@@ -508,31 +508,31 @@ def test_J1939Message_eq_noexception():
     assert not msg == []
     assert not msg == b'asdfasf'
 
-@pytest.mark.parametrize("aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n",
+@pytest.mark.parametrize("aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n, expected",
                          argvalues=[
-                             (0, 0, 0, 0, 0, 0, 0, 0, 0),
-                             (1, 7, 15, 126, 254, 31, 7, 2047, 2097151),
-                             (1, 6, 2, 5, 148, 21, 2, 1561, 1847634),
-                             (0, 0, 4, 84, 234, 23, 3, 1178, 97414),
-                             (b'', 5, b'\x04', 55, b'G', b'\x1c', b'\x04',2000, b'\x0c\x1a\xaf'),
-                             (b'', b'', b'\x04', b' ', b'G', b'\x1c', b'\x04', b'\x07Y', b'\x0c\x1a\xaf')
+                             (0, 0, 0, 0, 0, 0, 0, 0, 0, b'\x00\x00\x00\x00\x00\x00\x00\x00'),
+                             (1, 7, 15, 126, 254, 31, 7, 2047, 2097151, b'\xff\xff\xff\xff\xff\xfe\xfc\xff'),
+                             (1, 6, 2, 5, 148, 21, 2, 1561, 1847634, b'R1<\xc3\xaa\x94\n\xe2'),
+                             (0, 0, 4, 84, 234, 23, 3, 1178, 97414, b'\x86|A\x93\xbb\xea\xa8\x04'),
+                             (b'', 5, b'\x04', 55, b'G', b'\x1c', b'\x04',2000, b'\x0c\x1a\xaf', b'\xaf\x1a\x0c\xfa\xe4GnT'),
+                             (b'', b'', b'\x04', b' ', b'G', b'\x1c', b'\x04', b'\x07Y', b'\x0c\x1a\xaf', b'\xaf\x1a,\xeb\xe4G@\x04')
                          ])
-def test_generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n):
+def test_generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n, expected):
     """Test generateNetMgmtName() function"""
-    def generateName(arr: Union[list[int], list[bytes]], size: list[int] = [1,3,4,7,8,5,3,11,21]):
-        ans = 0
-        for count in range(len(arr)):
-            curr = arr[count]
-            if isinstance(curr, bytes):
-                curr = int.from_bytes(curr, 'big')
-            if count == 4: # for Reserved field which is always set to 0
-                ans = (ans << 1) + 0
-            ans = (ans << size[count]) | curr
-        return ans
-    expected_result = generateName([aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n]).to_bytes(8, 'big')
+    # def generateName(arr: Union[list[int], list[bytes]], size: list[int] = [1,3,4,7,8,5,3,11,21]):
+    #     ans = 0
+    #     for count in range(len(arr)):
+    #         curr = arr[count]
+    #         if isinstance(curr, bytes):
+    #             curr = int.from_bytes(curr, 'big')
+    #         if count == 4: # for Reserved field which is always set to 0
+    #             ans = (ans << 1) + 0
+    #         ans = (ans << size[count]) | curr
+    #     return ans
+    # expected_result = generateName([aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n]).to_bytes(8, 'big')
     actual_result = J1939.generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n)
     assert len(actual_result) == 8
-    assert actual_result == expected_result
+    assert actual_result == expected
 
 def test_generateNetMgmtName_invalid_input():
     """Test generateNetMgmtName() function with invalid inputs"""

@@ -1,4 +1,6 @@
-from re import A
+from calendar import c
+from re import A, I, sub
+from statistics import mode
 from tkinter import W
 
 import pytest
@@ -301,9 +303,9 @@ def test_ReadDataByIdentifierResponse_Raw():
 #endregion
 
 ###########################################################################################
-# RequestDownload ################################################################
+# SecurityAccess ################################################################
 ###########################################################################################
-#region RequestDownload
+#region SecurityAccess
 def SecurityAccessRequest_testActions(msg: SecurityAccessRequest, subfn = 0x01, data:bytes = b''):
     assert isinstance(msg, SecurityAccessRequest)
     assert msg.sid == 0x27
@@ -356,9 +358,9 @@ def test_SecurityAccessResponse_SubfnAndData():
 #endregion
 
 ###########################################################################################
-# SecurityAccess ################################################################
+# RequestDownload ################################################################
 ###########################################################################################
-#region SecurityAccess
+#region RequestDownload
 def RequestDownloadRequest_testActions(msg: RequestDownloadRequest, dfid: bytes = b'', alfid: bytes = b'', maddr: bytes = b'', msize: bytes = b''):
     assert isinstance(msg, RequestDownloadRequest)
     assert msg.sid == 0x34
@@ -420,13 +422,54 @@ def test_RequestDownloadResponse_DIDandData():
 # LinkControl ################################################################
 ###########################################################################################
 #region LinkControl
+def LinkControlRequest_testActions(msg: LinkControlRequest, subfn: int = 0x00, data: bytes = b''):
+    assert isinstance(msg, LinkControlRequest)
+    assert msg.sid == 0x87
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    if subfn != 0x03:
+        assert msg.hasData()
+        assert msg.dataSize() == len(data)
+        assert not msg.dataSizeCanChange()
+        assert msg.data == data
+    else:
+        assert not msg.hasData()
+    assert msg.subfn == subfn
+
+def test_LinkControlRequest():
+    msg = LinkControlRequest()
+    LinkControlRequest_testActions(msg)
+
+def test_LinkControlRequest_fromSID():
+    msg = UDSMessage.fromSID(0x87)
+    LinkControlRequest_testActions(msg)
+
 def test_LinkControlRequest_transitionMode():
     subfn = 0x03
     data = b'\x01'
     msg = LinkControlRequest(subfn, data)
+    LinkControlRequest_testActions(msg, subfn, data)
+
+def LinkControlResponse_testActions(msg: LinkControlResponse, subfn: int = 0x00):
+    assert isinstance(msg, LinkControlResponse)
+    assert msg.sid == 0xC7
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert not msg.hasData()
     assert msg.subfn == subfn
-    assert msg.hasData() == False
-    assert msg.hasDID() == False
+
+def test_LinkControlResponse():
+    msg = LinkControlResponse()
+    LinkControlResponse_testActions(msg)
+
+def test_LinkControlResponse_fromSID():
+    msg = UDSMessage.fromSID(0xC7)
+    LinkControlResponse_testActions(msg)
+
+def test_LinkControlResponse_transitionMode():
+    subfn = 0x03
+    msg = LinkControlResponse(subfn)
+    LinkControlResponse_testActions(msg, subfn)
 
 #endregion
 
@@ -434,15 +477,757 @@ def test_LinkControlRequest_transitionMode():
 # CommunicationControl ################################################################
 ###########################################################################################
 #region CommunicationControl
+def CommunicationControlRequest_testActions(msg: CommunicationControlRequest, subfn: int = 0, comtype: bytes = b'', high_node_id: bytes = b'', low_node_id: bytes = b''):
+    assert isinstance(msg, CommunicationControlRequest)
+    assert msg.sid == 0x28
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    if subfn in {0x04, 0x05}:
+        assert msg.dataSize() == len(comtype + high_node_id + low_node_id)
+        assert msg.data == comtype + high_node_id + low_node_id
+    else:
+        assert msg.dataSize() == len(comtype)
+        assert msg.data == comtype
+    assert not msg.dataSizeCanChange()
+    assert msg.subfn == subfn
+
+def test_CommunicationControlRequest():
+    msg = CommunicationControlRequest()
+    CommunicationControlRequest_testActions(msg)
+
+def test_CommunicationControlRequest_fromSID():
+    msg = UDSMessage.fromSID(0x28)
+    CommunicationControlRequest_testActions(msg)
+
+def test_CommunicationControlRequest_0x01():
+    subfn = 0x01
+    comtype = b'\x11'
+    msg = CommunicationControlRequest(subfn, comtype)
+    CommunicationControlRequest_testActions(msg, subfn, comtype)
+
 def test_CommunicationControlRequest_0x04():
     subfn = 0x04
     comtype = b'\x33'
     high_node_id = b'\x88'
     low_node_id = b'\x66'
     msg = CommunicationControlRequest(subfn, comtype, high_node_id, low_node_id)
+    CommunicationControlRequest_testActions(msg, subfn, comtype, high_node_id, low_node_id)
+
+def CommunicationControlResponse_testActions(msg: CommunicationControlResponse, subfn: int = 0):
+    assert isinstance(msg, CommunicationControlResponse)
+    assert msg.sid == 0x68
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert not msg.hasData()
+    assert msg.subfn == subfn
+    
+def test_CommunicationControlResponse():
+    msg = CommunicationControlResponse()
+    CommunicationControlResponse_testActions(msg)
+
+def test_CommunicationControlResponse_fromSID():
+    msg = UDSMessage.fromSID(0x68)
+    CommunicationControlResponse_testActions(msg)
+
+def test_CommunicationControlResponse_0x01():
+    subfn = 0x01
+    msg = CommunicationControlResponse(subfn)
+    CommunicationControlResponse_testActions(msg, subfn)
+
+def test_CommunicationControlResponse_0x04():
+    subfn = 0x04
+    msg = CommunicationControlResponse(subfn)
+    CommunicationControlResponse_testActions(msg, subfn)
+
+#endregion
+
+###########################################################################################
+# ClearDiagnosticInformation ################################################################
+###########################################################################################
+#region ClearDiagnosticInformation
+def ClearDiagnosticInformationRequest_testActions(msg: ClearDiagnosticInformationRequest, data: bytes = b''):
+    assert isinstance(msg, ClearDiagnosticInformationRequest)
+    assert msg.sid == 0x14
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_ClearDiagnosticInformationRequest():
+    msg = ClearDiagnosticInformationRequest()
+    ClearDiagnosticInformationRequest_testActions(msg)
+
+def test_ClearDiagnosticInformationRequest_fromSID():
+    msg = UDSMessage.fromSID(0x14)
+    ClearDiagnosticInformationRequest_testActions(msg)
+
+def test_ClearDiagnosticInformationRequest_data():
+    data = b'\xA3\xA2'
+    msg = ClearDiagnosticInformationRequest(data)
+    ClearDiagnosticInformationRequest_testActions(msg, data)
+
+def ClearDiagnosticInformationResponse_testActions(msg: ClearDiagnosticInformationResponse):
+    assert isinstance(msg, ClearDiagnosticInformationResponse)
+    assert msg.sid == 0x54
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert not msg.hasData()
+
+def test_ClearDiagnosticInformationResponse():
+    msg = ClearDiagnosticInformationResponse()
+    ClearDiagnosticInformationResponse_testActions(msg)
+
+def test_ClearDiagnosticInformationResponse_fromSID():
+    msg = UDSMessage.fromSID(0x54)
+    ClearDiagnosticInformationResponse_testActions(msg)
+
+#endregion
+
+###########################################################################################
+# InputOutputControlByIdentifier ################################################################
+###########################################################################################
+#region InputOutputControlByIdentifier
+def InputOutputControlByIdentifierRequest_testActions(msg: InputOutputControlByIdentifierRequest, did: int = 0, data: bytes = b''):
+    assert isinstance(msg , InputOutputControlByIdentifierRequest)
+    assert msg.sid == 0x2F
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_InputOutputControlByIdentifierRequest():
+    msg = InputOutputControlByIdentifierRequest()
+    InputOutputControlByIdentifierRequest_testActions(msg)
+
+def test_InputOutputControlByIdentifierRequest_fromSID():
+    msg = UDSMessage.fromSID(0x2F)
+    InputOutputControlByIdentifierRequest_testActions(msg)
+
+def test_InputOutputControlByIdentifierRequest_didAndData():
+    did = 8400
+    data = b'\xCC'
+    msg = InputOutputControlByIdentifierRequest(did, data)
+    InputOutputControlByIdentifierRequest_testActions(msg, did, data)
+
+def InputOutputControlByIdentifierResponse_testActions(msg: InputOutputControlByIdentifierResponse, did: int = 0, data: bytes = b''):
+    assert isinstance(msg , InputOutputControlByIdentifierResponse)
+    assert msg.sid == 0x6F
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_InputOutputControlByIdentifierResponse():
+    msg = InputOutputControlByIdentifierResponse()
+    InputOutputControlByIdentifierResponse_testActions(msg)
+
+def test_InputOutputControlByIdentifierResponse_fromSID():
+    msg = UDSMessage.fromSID(0x6F)
+    InputOutputControlByIdentifierResponse_testActions(msg)
+
+def test_InputOutputControlByIdentifierResponse_didAndData():
+    did = 8400
+    data = b'\xCC'
+    msg = InputOutputControlByIdentifierResponse(did, data)
+    InputOutputControlByIdentifierResponse_testActions(msg, did, data)
+#endregion
+
+###########################################################################################
+# ReadDTCInformation ################################################################
+###########################################################################################
+#region ReadDTCInformation
+def ReadDTCInformationRequest_testActions(msg: ReadDTCInformationRequest, subfn: int = 0x01, data: bytes = b''):
+    assert isinstance(msg , ReadDTCInformationRequest)
+    assert msg.sid == 0x19
     assert msg.hasSubfn()
     assert not msg.hasDID()
     assert msg.hasData()
-    assert msg.data == comtype+high_node_id+low_node_id
-    
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.subfn == subfn
+    assert msg.data == data
+
+def test_ReadDTCInformationRequest():
+    msg = ReadDTCInformationRequest()
+    ReadDTCInformationRequest_testActions(msg)
+
+def test_ReadDTCInformationRequest_fromSID():
+    msg = UDSMessage.fromSID(0x19)
+    ReadDTCInformationRequest_testActions(msg)
+
+def test_ReadDTCInformationRequest_reportNumberOfDTCByStatusMask():
+    subfn = 0x01
+    data = b'\x25'
+    msg = ReadDTCInformationRequest(subfn, data)
+    ReadDTCInformationRequest_testActions(msg, subfn, data)
+
+def test_ReadDTCInformationRequest_reportDTCSnapshotIdentification():
+    subfn = 0x03
+    data= b'\xA1\xA2\xA3\xA4'
+    msg = ReadDTCInformationRequest(subfn, data)
+    ReadDTCInformationRequest_testActions(msg, subfn, data)
+
+def ReadDTCInformationResponse_testActions(msg: ReadDTCInformationResponse, subfn: int = 0x01, data: bytes = b''):
+    assert isinstance(msg , ReadDTCInformationResponse)
+    assert msg.sid == 0x59
+    assert msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.subfn == subfn
+    assert msg.data == data
+
+def test_ReadDTCInformationResponse():
+    msg = ReadDTCInformationResponse()
+    ReadDTCInformationResponse_testActions(msg)
+
+def test_ReadDTCInformationResponse_fromSID():
+    msg = UDSMessage.fromSID(0x59)
+    ReadDTCInformationResponse_testActions(msg)
+
+def test_ReadDTCInformationResponse_reportNumberOfDTCBySeverityMaskRecord():
+    subfn = 0x07
+    data = b'\xB5\x00\x01\x02\x03\x04\xF1\x01'
+    msg = ReadDTCInformationResponse(subfn, data)
+    ReadDTCInformationResponse_testActions(msg, subfn, data)
+
+def test_ReadDTCInformationResponse_reportFirstTestFailedDTC():
+    subfn = 0x08
+    data = b'\xE3\x04\xF3\x25\x83\x77\x57'
+    msg = ReadDTCInformationResponse(subfn, data)
+    ReadDTCInformationResponse_testActions(msg, subfn, data)
+
+#endregion
+
+###########################################################################################
+# RequestFileTransfer ################################################################
+###########################################################################################
+#region RequestFileTransfer
+def RequestFileTransferRequest_testActions(msg: RequestFileTransferRequest, data: bytes = b''):
+    assert isinstance(msg, RequestFileTransferRequest)
+    assert msg.sid == 0x38
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_RequestFileTransferRequest():
+    msg = RequestFileTransferRequest()
+    RequestFileTransferRequest_testActions(msg)
+
+def test_RequestFileTransferRequest_fromSID():
+    msg = UDSMessage.fromSID(0x38)
+    RequestFileTransferRequest_testActions(msg)
+
+def test_RequestFileTransferRequest_AddFile():
+    modeOfOperation = b'\x01'
+    filePathAndNameLength = b'\x00\x01'
+    filePathAndName = b'\xF6'
+    dataFormatIdentifier = b'\x43'
+    fileSizeParameterLength = b'\x02'
+    fileSizeUncompressed = b'\x34\x21'
+    fileSizeUncompressed = b'\xE7\xC4'
+
+    data = modeOfOperation + filePathAndNameLength + filePathAndName + dataFormatIdentifier \
+        + fileSizeParameterLength + fileSizeUncompressed + fileSizeUncompressed
+    msg = RequestFileTransferRequest(data)
+    RequestFileTransferRequest_testActions(msg, data)
+
+def test_RequestFileTransferRequest_DeleteFile():
+    modeOfOperation = b'\x01'
+    filePathAndNameLength = b'\x00\x01'
+    filePathAndName = b'\xF6'
+
+    data = modeOfOperation + filePathAndNameLength + filePathAndName
+    msg = RequestFileTransferRequest(data)
+    RequestFileTransferRequest_testActions(msg, data)
+
+def RequestFileTransferResponse_testActions(msg: RequestFileTransferResponse, data: bytes = b''):
+    assert isinstance(msg, RequestFileTransferResponse)
+    assert msg.sid == 0x78
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_RequestFileTransferResponse():
+    msg = RequestFileTransferResponse()
+    RequestFileTransferResponse_testActions(msg)
+
+def test_RequestFileTransferResponse_fromSID():
+    msg = UDSMessage.fromSID(0x78)
+    RequestFileTransferResponse_testActions(msg)
+
+def test_RequestFileTransferResponse_ReplaceFile():
+    modeOfOperation = b'\x03'
+    lengthFormatIdentifier = b'\x02'
+    maxNumberOfBlockLength = b'\xD3\x83'
+    dataFormatIdentifier = b'\x33\x55'
+
+    data = modeOfOperation + lengthFormatIdentifier + maxNumberOfBlockLength + dataFormatIdentifier
+    msg = RequestFileTransferResponse(data)
+    RequestFileTransferResponse_testActions(msg, data)
+
+def test_RequestFileTransferResponse_ReadDir():
+    modeOfOperation = b'\x05'
+    lengthFormatIdentifier = b'\x02'
+    maxNumberOfBlockLength = b'\xD3\x83'
+    dataFormatIdentifier = b'\x00' # has to be 0x00 if ReadDir
+    fileSizeOrDirInfoParameterLength = b'\x01'
+    fileSizeUncompressedOrDirInfoLength = b'\x02'
+
+    data = modeOfOperation + lengthFormatIdentifier + maxNumberOfBlockLength + dataFormatIdentifier + \
+            fileSizeOrDirInfoParameterLength + fileSizeUncompressedOrDirInfoLength
+    msg = RequestFileTransferResponse(data)
+    RequestFileTransferResponse_testActions(msg, data)
+
+#endregion
+
+###########################################################################################
+# RequestTransferExit ################################################################
+###########################################################################################
+#region RequestTransferExit
+def RequestTransferExitRequest_testActions(msg: RequestTransferExitRequest, data: bytes = b''):
+    assert isinstance(msg, RequestTransferExitRequest)
+    assert msg.sid == 0x37
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_RequestTransferExitRequest():
+    msg = RequestTransferExitRequest()
+    RequestTransferExitRequest_testActions(msg)
+
+def test_RequestTransferExitRequest_fromSID():
+    msg = UDSMessage.fromSID(0x37)
+    RequestTransferExitRequest_testActions(msg)
+
+def test_RequestTransferExitRequest_data():
+    data = b'\xE3\xD6\x65'
+    msg = RequestTransferExitRequest(data)
+    RequestTransferExitRequest_testActions(msg, data)
+
+def RequestTransferExitResponse_testActions(msg: RequestTransferExitResponse, data: bytes = b''):
+    assert isinstance(msg, RequestTransferExitResponse)
+    assert msg.sid == 0x77
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_RequestTransferExitResponse():
+    msg = RequestTransferExitResponse()
+    RequestTransferExitResponse_testActions(msg)
+
+def test_RequestTransferExitResponse_fromSID():
+    msg = UDSMessage.fromSID(0x77)
+    RequestTransferExitResponse_testActions(msg)
+
+def test_RequestTransferExitResponse_data():
+    data = b'\xE3\xD6\x65'
+    msg = RequestTransferExitResponse(data)
+    RequestTransferExitResponse_testActions(msg, data)
+#endregion
+
+###########################################################################################
+# RequestUpload ################################################################
+###########################################################################################
+#region RequestUpload
+def RequestUploadRequest_testActions(msg: RequestUploadRequest, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, RequestUploadRequest)
+    assert msg.sid == 0x35
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_RequestUploadRequest():
+    msg = RequestUploadRequest()
+    RequestUploadRequest_testActions(msg)
+
+def test_RequestUploadRequest_fromSID():
+    msg = UDSMessage.fromSID(0x35)
+    RequestUploadRequest_testActions(msg)
+
+def RequestUploadRequest_didAndData():
+    did = 8429
+    data = b'\x77'
+    msg = RequestUploadRequest(did, data)
+    RequestDownloadRequest_testActions(msg, did, data)
+
+def RequestUploadResponse_testActions(msg: RequestUploadResponse, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, RequestUploadResponse)
+    assert msg.sid == 0x75
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_RequestUploadResponse():
+    msg = RequestUploadResponse()
+    RequestUploadResponse_testActions(msg)
+
+def test_RequestUploadResponse_fromSID():
+    msg = UDSMessage.fromSID(0x75)
+    RequestUploadResponse_testActions(msg)
+
+def RequestUploadResponse_didAndData():
+    did = 8428
+    data = b'\x67'
+    msg = RequestUploadResponse(did, data)
+    RequestDownloadResponse_testActions(msg, did, data)
+
+
+#endregion
+
+###########################################################################################
+# RoutineControl ################################################################
+###########################################################################################
+#region RoutineControl
+def RoutineControlRequest_testActions(msg: RoutineControlRequest, subfn: int = 0x01, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, RoutineControlRequest)
+    assert msg.sid == 0x31
+    assert msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.subfn == subfn
+    assert msg.did == did
+    assert msg.data == data
+
+def test_RoutineControlRequest():
+    msg = RoutineControlRequest()
+    RoutineControlRequest_testActions(msg)
+
+def test_RoutineControlRequest_fromSID():
+    msg = UDSMessage.fromSID(0x31)
+    RoutineControlRequest_testActions(msg)
+
+def test_RoutineControlRequest_startRoutine():
+    subfn = 0x01
+    did = 8411
+    data = b'\x31'
+    msg = RoutineControlRequest(subfn, did, data)
+    RoutineControlRequest_testActions(msg, subfn, did, data)
+
+def RoutineControlResponse_testActions(msg: RoutineControlResponse, subfn: int = 0x01, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, RoutineControlResponse)
+    assert msg.sid == 0x71
+    assert msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.subfn == subfn
+    assert msg.did == did
+    assert msg.data == data
+
+def test_RoutineControlResponse():
+    msg = RoutineControlResponse()
+    RoutineControlResponse_testActions(msg)
+
+def test_RoutineControlResponse_fromSID():
+    msg = UDSMessage.fromSID(0x71)
+    RoutineControlResponse_testActions(msg)
+
+def test_RoutineControlResponse_startRoutine():
+    subfn = 0x01
+    did = 8411
+    data = b'\x31'
+    msg = RoutineControlResponse(subfn, did, data)
+    RoutineControlResponse_testActions(msg, subfn, did, data)
+#endregion
+
+###########################################################################################
+# TransferData ################################################################
+###########################################################################################
+#region TransferData
+def TransferDataRequest_testActions(msg: TransferDataRequest, data: bytes = b''):
+    assert isinstance(msg, TransferDataRequest)
+    assert msg.sid == 0x36
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_TransferDataRequest():
+    msg = TransferDataRequest()
+    TransferDataRequest_testActions(msg)
+
+def test_TransferDataRequest_fromSID():
+    msg = UDSMessage.fromSID(0x36)
+    TransferDataRequest_testActions(msg)
+
+def test_TransferDataRequest_data():
+    data = b'\x46'
+    msg = TransferDataRequest(data)
+    TransferDataRequest_testActions(msg, data)
+
+def TransferDataResponse_testActions(msg: TransferDataResponse, data: bytes = b''):
+    assert isinstance(msg, TransferDataResponse)
+    assert msg.sid == 0x76
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_TransferDataResponse():
+    msg = TransferDataResponse()
+    TransferDataResponse_testActions(msg)
+
+def test_TransferDataResponse_fromSID():
+    msg = UDSMessage.fromSID(0x76)
+    TransferDataResponse_testActions(msg)
+
+def test_TransferDataResponse_data():
+    data = b'\x46'
+    msg = TransferDataResponse(data)
+    TransferDataResponse_testActions(msg, data)
+#endregion
+
+###########################################################################################
+# WriteMemoryByAddress ################################################################
+###########################################################################################
+#region WriteMemoryByAddress
+def WriteMemoryByAddressRequest_testActions(msg: WriteMemoryByAddressRequest, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, WriteMemoryByAddressRequest)
+    assert msg.sid == 0x3D
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_WriteMemoryByAddressRequest():
+    msg = WriteMemoryByAddressRequest()
+    WriteMemoryByAddressRequest_testActions(msg)
+
+def test_WriteMemoryByAddressRequest_fromSID():
+    msg = UDSMessage.fromSID(0x3D)
+    WriteMemoryByAddressRequest_testActions(msg)
+
+def test_WriteMemoryByAddressRequest_didAndData():
+    did = 20
+    data = b'\xFE\x33'
+    msg = WriteMemoryByAddressRequest(did, data)
+    WriteMemoryByAddressRequest_testActions(msg, did, data)
+
+def WriteMemoryByAddressResponse_testActions(msg: WriteMemoryByAddressResponse, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, WriteMemoryByAddressResponse)
+    assert msg.sid == 0x7D
+    assert not msg.hasSubfn()
+    assert msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.did == did
+    assert msg.data == data
+
+def test_WriteMemoryByAddressResponse():
+    msg = WriteMemoryByAddressResponse()
+    WriteMemoryByAddressResponse_testActions(msg)
+
+def test_WriteMemoryByAddressResponse_fromSID():
+    msg = UDSMessage.fromSID(0x7D)
+    WriteMemoryByAddressResponse_testActions(msg)
+
+def test_WriteMemoryByAddressResponse_didAndData():
+    did = 20
+    data = b'\x55\x33'
+    msg = WriteMemoryByAddressResponse(did, data)
+    WriteMemoryByAddressResponse_testActions(msg, did, data)
+
+#endregion
+
+###########################################################################################
+# SecuredDataTransmission ################################################################
+###########################################################################################
+#region SecuredDataTransmission
+def SecuredDataTransmissionRequest_testActions(msg: SecuredDataTransmissionRequest, data: bytes = b''):
+    assert isinstance(msg, SecuredDataTransmissionRequest)
+    assert msg.sid == 0x84
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_SecuredDataTransmissionRequest():
+    msg = SecuredDataTransmissionRequest()
+    SecuredDataTransmissionRequest_testActions(msg)
+
+def test_SecuredDataTransmissionRequest_fromSID():
+    msg = UDSMessage.fromSID(0x84)
+    SecuredDataTransmissionRequest_testActions(msg)
+
+def test_SecuredDataTransmissionRequest_data():
+    data = b'\x00\x01\x44\xA4\xB2\xD4\xC6\x12\x42\x12\x42'
+    msg = SecuredDataTransmissionRequest(data)
+    SecuredDataTransmissionRequest_testActions(msg, data)
+
+def SecuredDataTransmissionResponse_testActions(msg: SecuredDataTransmissionResponse, data: bytes = b''):
+    assert isinstance(msg, SecuredDataTransmissionResponse)
+    assert msg.sid == 0xC4
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_SecuredDataTransmissionResponse():
+    msg = SecuredDataTransmissionResponse()
+    SecuredDataTransmissionResponse_testActions(msg)
+
+def test_SecuredDataTransmissionResponse_fromSID():
+    msg = UDSMessage.fromSID(0xC4)
+    SecuredDataTransmissionResponse_testActions(msg)
+
+def test_SecuredDataTransmissionResponse_data():
+    data = b'\x00\x02\x73\xE2\xB2\xD4\xC6\x12\x42\xC2\x53'
+    msg = SecuredDataTransmissionResponse(data)
+    SecuredDataTransmissionResponse_testActions(msg, data)
+
+#endregion
+
+###########################################################################################
+# ReadDataByPeriodicIdentifier ################################################################
+###########################################################################################
+#region ReadDataByPeriodicIdentifier
+def ReadDataByPeriodicIdentifierRequest_testActions(msg: ReadDataByPeriodicIdentifierRequest, data: bytes = b''):
+    assert isinstance(msg, ReadDataByPeriodicIdentifierRequest)
+    assert msg.sid == 0x2A
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert msg.hasData()
+    assert msg.dataSize() == len(data)
+    assert msg.dataSizeCanChange()
+    assert msg.data == data
+
+def test_ReadDataByPeriodicIdentifierRequest():
+    msg = ReadDataByPeriodicIdentifierRequest()
+    ReadDataByPeriodicIdentifierRequest_testActions(msg)
+
+def test_ReadDataByPeriodicIdentifierRequest_fromSID():
+    msg = UDSMessage.fromSID(0x2A)
+    ReadDataByPeriodicIdentifierRequest_testActions(msg)
+
+def test_ReadDataByPeriodicIdentifierRequest_data():
+    data = b'\xFE\x33'
+    msg = ReadDataByPeriodicIdentifierRequest(data)
+    ReadDataByPeriodicIdentifierRequest_testActions(msg, data)
+
+def ReadDataByPeriodicIdentifierResponse_testActions(msg: ReadDataByPeriodicIdentifierResponse):
+    assert isinstance(msg, ReadDataByPeriodicIdentifierResponse)
+    assert msg.sid == 0x6A
+    assert not msg.hasSubfn()
+    assert not msg.hasDID()
+    assert not msg.hasData()
+
+def test_ReadDataByPeriodicIdentifierResponse():
+    msg = ReadDataByPeriodicIdentifierResponse()
+    ReadDataByPeriodicIdentifierResponse_testActions(msg)
+
+def test_ReadDataByPeriodicIdentifierResponse_fromSID():
+    msg = UDSMessage.fromSID(0x6A)
+    ReadDataByPeriodicIdentifierResponse_testActions(msg)
+
+#endregion
+
+###########################################################################################
+# DynamicallyDefineDataIdentifier ################################################################
+###########################################################################################
+#region DynamicallyDefineDataIdentifier
+def DynamicallyDefineDataIdentifierRequest_testActions(msg: DynamicallyDefineDataIdentifierRequest, subfn: int = 1, did: int = 0, data: bytes = b''):
+    assert isinstance(msg, DynamicallyDefineDataIdentifierRequest)
+    assert msg.sid == 0x2C
+    assert msg.hasSubfn()
+    assert msg.hasDID()
+    if subfn != 0x03:
+        assert msg.hasData()
+        assert msg.dataSize() == len(data)
+        assert msg.dataSizeCanChange()
+        assert msg.data == data
+    else:
+        assert not msg.hasData()
+    assert msg.subfn == subfn
+    assert msg.did == did
+
+def test_DynamicallyDefineDataIdentifierRequest():
+    msg = DynamicallyDefineDataIdentifierRequest()
+    DynamicallyDefineDataIdentifierRequest_testActions(msg)
+
+def test_DynamicallyDefineDataIdentifierRequest_fromSID():
+    msg = UDSMessage.fromSID(0x2C)
+    DynamicallyDefineDataIdentifierRequest_testActions(msg)
+
+def test_DynamicallyDefineDataIdentifierRequest_defineByIdentifier():
+    subfn = 0x01
+    did = 0xF352
+    data = b'\xFE\x33\x43\x24\x53\xD5\x35\xF4'
+    msg = DynamicallyDefineDataIdentifierRequest(subfn, did, data)
+    DynamicallyDefineDataIdentifierRequest_testActions(msg, subfn, did, data)
+
+def test_DynamicallyDefineDataIdentifierRequest_clearDynamicallyDefineddataIdentifier():
+    subfn = 0x03
+    did = 0xF301
+    msg = DynamicallyDefineDataIdentifierRequest(subfn, did)
+    DynamicallyDefineDataIdentifierRequest_testActions(msg, subfn, did,)
+
+def DynamicallyDefineDataIdentifierResponse_testActions(msg: DynamicallyDefineDataIdentifierResponse, subfn: int = 1, did: int = 0):
+    assert isinstance(msg, DynamicallyDefineDataIdentifierResponse)
+    assert msg.sid == 0x6C
+    assert msg.hasSubfn()
+    assert msg.hasDID()
+    assert not msg.hasData()
+    assert msg.subfn == subfn
+    assert msg.did == did
+
+def test_DynamicallyDefineDataIdentifierResponse():
+    msg = DynamicallyDefineDataIdentifierResponse()
+    DynamicallyDefineDataIdentifierResponse_testActions(msg)
+
+def test_DynamicallyDefineDataIdentifierResponse_fromSID():
+    msg = UDSMessage.fromSID(0x6C)
+    DynamicallyDefineDataIdentifierResponse_testActions(msg)
+
+def test_DynamicallyDefineDataIdentifierResponse_defineByMemoryAddress():
+    subfn = 0x02
+    did = 0xF244
+    msg = DynamicallyDefineDataIdentifierResponse(subfn, did)
+    DynamicallyDefineDataIdentifierResponse_testActions(msg, subfn, did)
+
 #endregion

@@ -998,20 +998,22 @@ def generateNetMgmtName(aac, ig, vsi, vs, func, func_inst, ecu_inst, mc, id_n) -
         raise IndexError('Manufacturer Code is not in the range [0, 2047].')
     if not 0 <= id_n <= 2097151:
         raise IndexError('Identity number is not in the range [0, 2097151].')
-    
-    # combine Arbitrary Addess Capable, Industry Group, and Vehicle System Instance (1 byte)
-    name = sanitize_msg_param((aac << 7) | (ig << 4) | vsi, 1)
 
-    # combine Vehicle System and Reserved (1 byte)
-    name += sanitize_msg_param(vs << 1, 1)
+    name = b''
 
-    # concate Function (1 byte)
-    name += sanitize_msg_param(func, 1)
+    # combine manufacturer Code and Identity Number (4 bytes)
+    name += sanitize_msg_param((mc << 21) | id_n, 4, 'little')
 
     # combine Function Instance and ECU Instance (1 byte)
     name += sanitize_msg_param((func_inst << 3) | ecu_inst, 1)
 
-    # combine manufacturer Code and Identity Number (4 bytes)
-    name += sanitize_msg_param((mc << 21) | id_n, 4)
+    # concate Function (1 byte)
+    name += sanitize_msg_param(func, 1)
+
+    # combine Vehicle System and Reserved (1 byte)
+    name += sanitize_msg_param(vs << 1, 1)
+
+    # combine Arbitrary Addess Capable, Industry Group, and Vehicle System Instance (1 byte)
+    name += sanitize_msg_param((aac << 7) | (ig << 4) | vsi, 1)
 
     return name

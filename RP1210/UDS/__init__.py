@@ -16,3 +16,15 @@ from .ReadMemoryByAddress import *
 from .ReadScalingDataByIdentifier import *
 from .ResponseOnEvent import *
 from .TesterPresent import *
+from .ClearDiagnosticInformation import *
+from .InputOutputControlByIdentifier import *
+from .ReadDTCInformation import *
+from .RequestFileTransfer import *
+from .RequestTransferExit import *
+from .RequestUpload import *
+from .RoutineControl import *
+from .TransferData import *
+from .WriteMemoryByAddress import *
+from .SecuredDataTransmission import *
+from .ReadDataByPeriodicIdentifier import *
+from .DynamicallyDefineDataIdentifier import *

@@ -50,7 +50,7 @@ class LinkControlResponse(UDSMessage):
     verifyModeTransitionWithSpecificParameter = 0x02
     transitionMode = 0x03
 
-    def __init__(self, subfn: int = verifyModeTransitionWithFixedParameter, data: bytes = b''):
+    def __init__(self, subfn: int = verifyModeTransitionWithFixedParameter):
         super().__init__()
         self._hasSubfn = True
         self._hasDID = False

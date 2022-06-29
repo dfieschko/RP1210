@@ -62,7 +62,7 @@ class RequestDownloadResponse(UDSMessage):
     @did.setter
     def did(self, val: int):
         """
-        DID in RequestDownload Response service is 1 byte instance of 2 bytes
+        DID in RequestDownload Response service is 1 byte
         """
         val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
         self._did = val & 0xFF
