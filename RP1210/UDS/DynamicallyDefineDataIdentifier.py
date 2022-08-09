@@ -1,4 +1,3 @@
-from re import sub
 from . import UDSMessage
 
 

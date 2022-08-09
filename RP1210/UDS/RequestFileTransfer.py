@@ -1,4 +1,3 @@
-from RP1210.UDS import UDS
 from . import UDSMessage
 
 
