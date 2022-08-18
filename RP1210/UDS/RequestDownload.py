@@ -17,23 +17,22 @@ class RequestDownloadRequest(UDSMessage):
         - `msize` = memorySize (n bytes)
     """
 
-    _DFID_IDX = 0
-
     _sid = 0x34
     _isResponse = False
 
-    def __init__(self, dfid: bytes = b'', alfid: bytes = b'', maddr: bytes = b'', msize: bytes = b''):
+    def __init__(self, dfid: bytes = b'\x00', alfid: bytes = b'\x00', maddr: bytes = b'', msize: bytes = b'', autoALFID: bool = True):
         super().__init__()
         self._hasSubfn = False
         self._hasDID = False
         self._hasData = True
-        self._dataSize = len(maddr + msize)
         self._dataSizeCanChange = True
+        self._autoALFID: bool = autoALFID
 
         self.dfid = dfid
         self.alfid = alfid
         self.maddr = maddr
         self.msize = msize
+        self._dataSize = len(self.data)
 
         # self.did = int.from_bytes(sanitize_msg_param(dfid + alfid, 2), 'big') # remove later
         # self.data = dfid + alfid + maddr + msize
@@ -44,9 +43,9 @@ class RequestDownloadRequest(UDSMessage):
 
     @dfid.setter
     def dfid(self, dfid: int | bytes):
-        dfid = sanitize_msg_param(dfid)
-        if(dfid.__len__() != 1):
-            raise ValueError(F"DFID length must be 1 byte, got {dfid.__len__()} bytes: {dfid}")
+        dfid = sanitize_msg_param(dfid, 1)
+        # if(dfid.__len__() != 1):
+        #     raise ValueError(F"DFID length must be 1 byte, got {dfid.__len__()} bytes: {dfid}")
         self._dfid = dfid
     
     @property
@@ -55,9 +54,9 @@ class RequestDownloadRequest(UDSMessage):
 
     @alfid.setter
     def alfid(self, alfid: int | bytes):
-        alfid = sanitize_msg_param(alfid)
-        if(alfid.__len__() != 1):
-            raise ValueError(F"ALFID length must be 1 byte, got {alfid.__len__()} bytes: {alfid}")
+        alfid = sanitize_msg_param(alfid, 1)
+        # if(alfid.__len__() != 1):
+        #     raise ValueError(F"ALFID length must be 1 byte, got {alfid.__len__()} bytes: {alfid}")
         self._alfid = alfid
 
     @property
@@ -67,8 +66,10 @@ class RequestDownloadRequest(UDSMessage):
     @maddr.setter
     def maddr(self, maddr: int | bytes):
         maddr = sanitize_msg_param(maddr)
-        if(maddr.__len__() != 1):
-            raise ValueError(F"maddr length must be 1 byte, got {maddr.__len__()} bytes: {maddr}")
+        if(self._autoALFID == True):
+            if(maddr.__len__() > 0x0f):
+                raise ValueError(F"maddr length must be less than 16 bytes, got {maddr.__len__()} bytes: {maddr}")
+            self.alfid = (self.alfid & 0xf0) | (maddr.__len__() & 0x0f)
         self._maddr = maddr
     
     @property
@@ -78,12 +79,19 @@ class RequestDownloadRequest(UDSMessage):
     @msize.setter
     def msize(self, msize: int | bytes):
         msize = sanitize_msg_param(msize)
-        if(msize.__len__() != 1):
-            raise ValueError(F"msize length must be 1 byte, got {msize.__len__()} bytes: {msize}")
+        if(self._autoALFID == True):
+            if(msize.__len__() > 0x0f):
+                raise ValueError(F"msize length must be less than 16 bytes, got {msize.__len__()} bytes: {msize}")
+            self.alfid = (self.alfid & 0x0f) | ((msize.__len__() & 0x0f) << 4)
         self._msize = msize
     
-    def _refresh_data(self) -> None:
-        self.data = sanitize_msg_param(self._dfid) + sanitize_msg_param(self._alfid)
+    @property
+    def data(self) -> bytes:
+        return sanitize_msg_param(self._dfid) + sanitize_msg_param(self._alfid) + sanitize_msg_param(self._maddr) + sanitize_msg_param(self._msize)
+
+    # @property
+    # def _dataSize(self) -> int:
+    #     return self.data.__len__()
 
 
 class RequestDownloadResponse(UDSMessage):
