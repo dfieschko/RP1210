@@ -1,3 +1,4 @@
+from typing import Union
 from . import UDSMessage
 from .. import sanitize_msg_param
 
@@ -48,7 +49,7 @@ class RequestUploadRequest(UDSMessage):
         return int.from_bytes(self._dfid, 'big')
 
     @dfid.setter
-    def dfid(self, dfid: int | bytes) -> None:
+    def dfid(self, dfid: Union[int, bytes]) -> None:
         self._dfid = sanitize_msg_param(dfid, 1)
     
     @property
@@ -56,7 +57,7 @@ class RequestUploadRequest(UDSMessage):
         return int.from_bytes(self._alfid, 'big')
 
     @alfid.setter
-    def alfid(self, alfid: int | bytes) -> None:
+    def alfid(self, alfid: Union[int, bytes]) -> None:
         self._alfid = sanitize_msg_param(alfid, 1)
 
     @property
@@ -64,7 +65,7 @@ class RequestUploadRequest(UDSMessage):
         return int.from_bytes(self._maddr, 'big')
 
     @maddr.setter
-    def maddr(self, maddr: int | bytes) -> None:
+    def maddr(self, maddr: Union[int, bytes]) -> None:
         maddr = sanitize_msg_param(maddr)
         if(self._autoALFID == True): # Auto-calculating alfid
             if(maddr.__len__() > 0x0f):
@@ -77,7 +78,7 @@ class RequestUploadRequest(UDSMessage):
         return int.from_bytes(self._msize, 'big')
 
     @msize.setter
-    def msize(self, msize: int | bytes) -> None:
+    def msize(self, msize: Union[int, bytes]) -> None:
         msize = sanitize_msg_param(msize)
         if(self._autoALFID == True): # Auto-calculating alfid
             if(msize.__len__() > 0x0f):
@@ -125,7 +126,7 @@ class RequestUploadResponse(UDSMessage):
         return self.data[0]
 
     @lfid.setter
-    def lfid(self, lfid: int | bytes) -> None:
+    def lfid(self, lfid: Union[int, bytes]) -> None:
         self.data = sanitize_msg_param(lfid, 1) + self.data[1:]
 
     @property
@@ -136,5 +137,5 @@ class RequestUploadResponse(UDSMessage):
         return int.from_bytes(self.data[1:], 'big')
 
     @mnrob.setter
-    def mnrob(self, mnrob: int | bytes) -> None:
+    def mnrob(self, mnrob: Union[int, bytes]) -> None:
         self.data = sanitize_msg_param(self.data[0]) + sanitize_msg_param(mnrob)
