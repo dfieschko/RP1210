@@ -99,34 +99,44 @@ class RequestDownloadResponse(UDSMessage):
     """
     Request Download (Response)
     - `sid` = 0x74
-    - `did` = lengthFormatIdentifier (1 byte)
-        - bit 7 - 4: maxNumberOfBlockLength
-        - bit 3 - 0: reserved; set to be 0
-    - `data` = maxNumberOfBlockLength (n bytes)
+    - `data` = lfid + mnrob
+        - `lfid` = lengthFormatIdentifier (1 byte)
+            - bit 7 - 4: maxNumberOfBlockLength
+            - bit 3 - 0: reserved; set to be 0
+        - `mnrob` = maxNumberOfBlockLength (n bytes)
     """
 
     _sid = 0x74
     _isResponse = True
 
-    def __init__(self, did: int = 0, data: bytes = b''):
+    def __init__(self, data: bytes = b''):
         super().__init__()
-        self._hasSubfn = False
-        self._hasDID = False
-        self._hasData = True
-        self._dataSize = len(data)
+        self._hasSubfn          = False
+        self._hasDID            = False
+        self._hasData           = True
+        self._dataSize          = len(data)
         self._dataSizeCanChange = True
 
-        self.did = did
         self.data = data
+    
+    @property
+    def lfid(self) -> int:
+        """
+        Length format identifier. Only bits 7-4 are used.
+        """
+        return self.data[0]
+
+    @lfid.setter
+    def lfid(self, lfid: int | bytes) -> None:
+        self.data = sanitize_msg_param(lfid, 1) + self.data[1:]
 
     @property
-    def did(self) -> int:
-        return self._did
+    def mnrob(self) -> int:
+        """
+        Max NumbeR Of Blocks. Length must match the value specified in the LFID.
+        """
+        return int.from_bytes(self.data[1:], 'big')
 
-    @did.setter
-    def did(self, val: int):
-        """
-        DID in RequestDownload Response service is 1 byte
-        """
-        val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
-        self._did = val & 0xFF
+    @mnrob.setter
+    def mnrob(self, mnrob: int | bytes) -> None:
+        self.data = sanitize_msg_param(self.data[0]) + sanitize_msg_param(mnrob)
