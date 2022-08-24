@@ -2,6 +2,7 @@ from calendar import c
 from re import A, I, sub
 from statistics import mode
 from tkinter import W
+from unittest.case import _AssertRaisesContext
 
 import pytest
 from RP1210.UDS import *
@@ -361,16 +362,20 @@ def test_SecurityAccessResponse_SubfnAndData():
 # RequestDownload ################################################################
 ###########################################################################################
 #region RequestDownload
-def RequestDownloadRequest_testActions(msg: RequestDownloadRequest, dfid: bytes = b'', alfid: bytes = b'', maddr: bytes = b'', msize: bytes = b''):
+def RequestDownloadRequest_testActions(msg: RequestDownloadRequest, dfid: bytes = b'\x00', alfid: bytes = b'\x00', maddr: bytes = b'', msize: bytes = b'', autoALFID: bool = True):
     assert isinstance(msg, RequestDownloadRequest)
     assert msg.sid == 0x34
     assert not msg.hasSubfn()
-    assert msg.hasDID()
+    assert not msg.hasDID()
     assert msg.hasData()
-    assert msg.dataSize() == len(maddr + msize)
+    assert msg.dataSize() == len(dfid + alfid + maddr + msize)
     assert msg.dataSizeCanChange()
-    assert msg.did == int.from_bytes(sanitize_msg_param(dfid + alfid, 2), 'big')
-    assert msg.data == maddr + msize
+    assert msg.dfid == int.from_bytes(dfid, 'big')
+    if autoALFID is False:
+        assert msg.alfid == int.from_bytes(alfid, 'big')
+    assert msg.maddr == int.from_bytes(maddr, 'big')
+    assert msg.msize == int.from_bytes(msize, 'big')
+    assert msg.data == dfid + alfid + maddr + msize
 
 def test_RequestDownloadRequest():
     msg = RequestDownloadRequest()
@@ -380,42 +385,72 @@ def test_RequestDownloadRequest_fromSID():
     msg = UDSMessage.fromSID(0x34)
     RequestDownloadRequest_testActions(msg)
 
-def test_RequestDownloadRequest_DID():
+def test_RequestDownloadRequest_Data():
     dfid = b'\x33'
     alfid = b'\x34'
-    msg = RequestDownloadRequest(dfid, alfid)
-    RequestDownloadRequest_testActions(msg, dfid, alfid)
-
-def test_RequestDownloadRequest_Data():
     maddr = b'\xBB\xCC'
     msize = b'\xDD\xEE'
-    msg = RequestDownloadRequest(maddr=maddr, msize=msize)
-    RequestDownloadRequest_testActions(msg, maddr=maddr, msize=msize)
+    autoALFID = False
+    msg = RequestDownloadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+    RequestDownloadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
 
-def RequestDownloadResponse_testActions(msg: RequestDownloadResponse, did: int = 0, data: bytes = b''):
+    # Testinng with autoALFID
+    dfid = b'\x00'
+    alfid = b'\x22'
+    maddr = b'\xBB\xCC'
+    msize = b'\xDD\xEE'
+    autoALFID = True
+    msg = RequestDownloadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+    RequestDownloadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+
+def test_RequestDownloadRequest_Errors():
+    dfid = b'\x00'
+    alfid = b'\x22'
+    maddr = b'\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC'
+    msize = b'\xDD\xEE'
+    autoALFID = True
+    with pytest.raises(ValueError):
+        msg = RequestDownloadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+        RequestDownloadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+
+    dfid = b'\x00'
+    alfid = b'\x22'
+    maddr = b'\xDD\xEE'
+    msize = b'\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC'
+    autoALFID = True
+    with pytest.raises(ValueError):
+        msg = RequestDownloadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+        RequestDownloadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+
+def RequestDownloadResponse_testActions(msg: RequestDownloadResponse, data: bytes = b''):
     assert isinstance(msg, RequestDownloadResponse)
     assert msg.sid == 0x74
     assert not msg.hasSubfn()
-    assert msg.hasDID()
+    assert not msg.hasDID()
     assert msg.hasData()
     assert msg.dataSize() == len(data)
     assert msg.dataSizeCanChange()
-    assert msg.did == did
     assert msg.data == data
+    if len(data) >= 2:
+        assert msg.lfid == data[0]
+        assert msg.mnrob == int.from_bytes(data[1:], 'big')
+        msg.lfid = 32
+        msg.mnrob = 128
+        assert msg.lfid == 32
+        assert msg.mnrob == 128
+
 
 def test_RequestDownloadResponse():
     msg = RequestDownloadResponse()
-    RequestDownloadResponse_testActions(msg)
+    RequestDownloadResponse_testActions(msg=msg)
+
+    msg = RequestDownloadResponse(data=b'\x30\x12\x34\x56')
+    RequestDownloadResponse_testActions(msg=msg, data=b'\x30\x12\x34\x56')
 
 def test_RequestDownloadResponse_fromSID():
     msg = UDSMessage.fromSID(0x74)
-    RequestDownloadResponse_testActions(msg)
+    RequestDownloadResponse_testActions(msg=msg)
 
-def test_RequestDownloadResponse_DIDandData():
-    did = int('01010000', 2)
-    data = b'\x11\x22\x33'
-    msg = RequestDownloadResponse(did, data)
-    RequestDownloadResponse_testActions(msg, did, data)
 #endregion
 
 ###########################################################################################
@@ -852,16 +887,20 @@ def test_RequestTransferExitResponse_data():
 # RequestUpload ################################################################
 ###########################################################################################
 #region RequestUpload
-def RequestUploadRequest_testActions(msg: RequestUploadRequest, did: int = 0, data: bytes = b''):
+def RequestUploadRequest_testActions(msg: RequestUploadRequest, dfid: bytes = b'\x00', alfid: bytes = b'\x00', maddr: bytes = b'', msize: bytes = b'', autoALFID: bool = True):
     assert isinstance(msg, RequestUploadRequest)
     assert msg.sid == 0x35
     assert not msg.hasSubfn()
-    assert msg.hasDID()
+    assert not msg.hasDID()
     assert msg.hasData()
-    assert msg.dataSize() == len(data)
+    assert msg.dataSize() == len(dfid + alfid + maddr + msize)
     assert msg.dataSizeCanChange()
-    assert msg.did == did
-    assert msg.data == data
+    assert msg.dfid == int.from_bytes(dfid, 'big')
+    if autoALFID is False:
+        assert msg.alfid == int.from_bytes(alfid, 'big')
+    assert msg.maddr == int.from_bytes(maddr, 'big')
+    assert msg.msize == int.from_bytes(msize, 'big')
+    assert msg.data == dfid + alfid + maddr + msize
 
 def test_RequestUploadRequest():
     msg = RequestUploadRequest()
@@ -871,36 +910,61 @@ def test_RequestUploadRequest_fromSID():
     msg = UDSMessage.fromSID(0x35)
     RequestUploadRequest_testActions(msg)
 
-def RequestUploadRequest_didAndData():
-    did = 8429
-    data = b'\x77'
-    msg = RequestUploadRequest(did, data)
-    RequestDownloadRequest_testActions(msg, did, data)
+def test_RequestUploadRequest_Data():
+    dfid = b'\x33'
+    alfid = b'\x34'
+    maddr = b'\xBB\xCC'
+    msize = b'\xDD\xEE'
+    autoALFID = False
+    msg = RequestUploadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+    RequestUploadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
 
-def RequestUploadResponse_testActions(msg: RequestUploadResponse, did: int = 0, data: bytes = b''):
+    # Testinng with autoALFID
+    dfid = b'\x00'
+    alfid = b'\x22'
+    maddr = b'\xBB\xCC'
+    msize = b'\xDD\xEE'
+    autoALFID = True
+    msg = RequestUploadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+    RequestUploadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+
+def test_RequestUploadRequest_Errors():
+    dfid = b'\x00'
+    alfid = b'\x22'
+    maddr = b'\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC'
+    msize = b'\xDD\xEE'
+    autoALFID = True
+    with pytest.raises(ValueError):
+        msg = RequestUploadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+        RequestUploadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+
+def RequestUploadResponse_testActions(msg: RequestUploadResponse, data: bytes = b''):
     assert isinstance(msg, RequestUploadResponse)
     assert msg.sid == 0x75
     assert not msg.hasSubfn()
-    assert msg.hasDID()
+    assert not msg.hasDID()
     assert msg.hasData()
     assert msg.dataSize() == len(data)
     assert msg.dataSizeCanChange()
-    assert msg.did == did
     assert msg.data == data
+    if len(data) >= 2:
+        assert msg.lfid == data[0]
+        assert msg.mnrob == int.from_bytes(data[1:], 'big')
+        msg.lfid = 32
+        msg.mnrob = 128
+        assert msg.lfid == 32
+        assert msg.mnrob == 128
 
 def test_RequestUploadResponse():
     msg = RequestUploadResponse()
-    RequestUploadResponse_testActions(msg)
+    RequestUploadResponse_testActions(msg=msg)
+
+    msg = RequestUploadResponse(data=b'\x30\x12\x34\x56')
+    RequestUploadResponse_testActions(msg=msg, data=b'\x30\x12\x34\x56')
 
 def test_RequestUploadResponse_fromSID():
     msg = UDSMessage.fromSID(0x75)
-    RequestUploadResponse_testActions(msg)
-
-def RequestUploadResponse_didAndData():
-    did = 8428
-    data = b'\x67'
-    msg = RequestUploadResponse(did, data)
-    RequestDownloadResponse_testActions(msg, did, data)
+    RequestUploadResponse_testActions(msg=msg)
 
 
 #endregion
