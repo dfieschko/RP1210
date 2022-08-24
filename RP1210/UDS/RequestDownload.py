@@ -66,10 +66,10 @@ class RequestDownloadRequest(UDSMessage):
     @maddr.setter
     def maddr(self, maddr: Union[int, bytes]) -> None:
         maddr = sanitize_msg_param(maddr)
-        if(self._autoALFID == True): # Auto-calculating alfid
-            if(maddr.__len__() > 0x0f):
-                raise ValueError(F"maddr length must be less than 16 bytes, got {maddr.__len__()} bytes: {maddr}")
-            self.alfid = (self.alfid & 0xf0) | (maddr.__len__() & 0x0f)
+        if(self._autoALFID): # Auto-calculating alfid
+            if(len(maddr) > 0x0f):
+                raise ValueError(F"maddr length must be less than 16 bytes, got {len(maddr)} bytes: {maddr}")
+            self.alfid = (self.alfid & 0xf0) | (len(maddr) & 0x0f)
         self._maddr = maddr
 
     @property
@@ -79,10 +79,10 @@ class RequestDownloadRequest(UDSMessage):
     @msize.setter
     def msize(self, msize: Union[int, bytes]) -> None:
         msize = sanitize_msg_param(msize)
-        if(self._autoALFID == True): # Auto-calculating alfid
-            if(msize.__len__() > 0x0f):
-                raise ValueError(F"msize length must be less than 16 bytes, got {msize.__len__()} bytes: {msize}")
-            self.alfid = (self.alfid & 0x0f) | ((msize.__len__() & 0x0f) << 4)
+        if(self._autoALFID): # Auto-calculating alfid
+            if(len(msize) > 0x0f):
+                raise ValueError(F"msize length must be less than 16 bytes, got {len(msize)} bytes: {msize}")
+            self.alfid = (self.alfid & 0x0f) | ((len(msize) & 0x0f) << 4)
         self._msize = msize
     
     @property
