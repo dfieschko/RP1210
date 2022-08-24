@@ -2,9 +2,6 @@ from typing import Union
 from . import UDSMessage
 from .. import sanitize_msg_param
 
-from RP1210 import sanitize_msg_param
-from RP1210.UDS import UDSMessage
-
 class RequestDownloadRequest(UDSMessage):
     """
     Request Download (Request)
