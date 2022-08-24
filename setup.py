@@ -4,7 +4,7 @@ import setuptools
 setup(
   name = 'RP1210',
   packages = setuptools.find_packages(),
-  version = '0.0.22',
+  version = '0.0.23',
   license='MIT',
   description = 'A Python32 implementation of the RP1210C standard.',
   long_description = open('README.md').read(),
