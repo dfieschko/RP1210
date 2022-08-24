@@ -938,6 +938,15 @@ def test_RequestUploadRequest_Errors():
         msg = RequestUploadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
         RequestUploadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
 
+    dfid = b'\x00'
+    alfid = b'\x22'
+    maddr = b'\xDD\xEE'
+    msize = b'\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC\xBB\xCC'
+    autoALFID = True
+    with pytest.raises(ValueError):
+        msg = RequestUploadRequest(dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+        RequestUploadRequest_testActions(msg=msg, dfid=dfid, alfid=alfid, maddr=maddr, msize=msize, autoALFID=autoALFID)
+
 def RequestUploadResponse_testActions(msg: RequestUploadResponse, data: bytes = b''):
     assert isinstance(msg, RequestUploadResponse)
     assert msg.sid == 0x75
