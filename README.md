@@ -26,3 +26,37 @@ read the official RP1210C documentation from TMC.
 
 Official RP1210C documentation can be purchased from TMC at this link ($37.50 at time of writing):
     https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP
+
+## Brief Examples
+
+### Getting Started
+```python
+from RP1210 import RP1210Client, translateErrorCode
+
+# init client
+client = RP1210Client()
+
+# select vendor and device
+client.setVendor("NULN2R32") # Nexiq USB-Link 2 in this case
+client.setDevice(1) # wired USB-Link 2
+
+# connect to adapter w/ specified protocol
+clientID = client.connect(b'J1939:Baud=Auto') # will return clientID or error code
+error_msg = translateErrorCode(clientID)
+if error_msg != "NO_ERRORS": # failed to connect
+   print("Connection failed:", error_msg)
+
+# read all messages (no filter)
+client.setAllFiltersToPass()
+
+# send a message
+msg = b'message contents'
+err_code = client.tx(msg)
+print("Tx Result:", translateErrorCode(err_code))
+
+# read messages
+while True:
+   msg = client.rx()
+   if msg: # message was received
+      print(msg)
+```
