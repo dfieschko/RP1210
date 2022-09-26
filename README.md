@@ -27,8 +27,6 @@ read the official RP1210C documentation from TMC.
 Official RP1210C documentation can be purchased from TMC at this link ($37.50 at time of writing):
     https://www.atabusinesssolutions.com/Shopping/Product/viewproduct/2675472/TMC-Individual-RP
 
-## Brief Examples
-
 ### Getting Started
 ```python
 from RP1210 import RP1210Client, translateErrorCode
