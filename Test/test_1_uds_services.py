@@ -1031,7 +1031,7 @@ def test_RoutineControlResponse_fromSID():
 
 def test_RoutineControlResponse_startRoutine():
     subfn = 0x01
-    did = 8411
+    did = 1
     data = b'\x31'
     msg = RoutineControlResponse(subfn, did, data)
     RoutineControlResponse_testActions(msg, subfn, did, data)
