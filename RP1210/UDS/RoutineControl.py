@@ -1,4 +1,5 @@
 from . import UDSMessage
+from .. import sanitize_msg_param
 
 
 class RoutineControlRequest(UDSMessage):
@@ -59,3 +60,15 @@ class RoutineControlResponse(UDSMessage):
         self.subfn = subfn
         self.did = did
         self.data = data
+
+    @property
+    def did(self) -> int:
+        return self._did
+
+    @did.setter
+    def did(self, val: int):
+        """
+        DID is 1 byte
+        """
+        val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
+        self._did = val & 0xFF
