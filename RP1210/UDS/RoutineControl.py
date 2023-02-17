@@ -7,7 +7,7 @@ class RoutineControlRequest(UDSMessage):
     Routine Control (Request)
     - `sid` = 0x31
     - `subfn` = routineControlType
-    - 'did` = routineIdentifier
+    - 'did` = routineIdentifier (2 bytes)
     - `data` = routineControlOptionRecord
     """
 
@@ -31,13 +31,12 @@ class RoutineControlRequest(UDSMessage):
         self.did = did
         self.data = data
 
-
 class RoutineControlResponse(UDSMessage):
     """
     Routine Control (Response)
     - `sid` = 0x71
     - `subfn` = routineControlType
-    - 'did` = routineIdentifier
+    - 'did` = routineIdentifier (2 bytes)
     - `data` = routineInfo (1 byte) + routineStatusRecord (n bytes)
     """
 
@@ -60,15 +59,3 @@ class RoutineControlResponse(UDSMessage):
         self.subfn = subfn
         self.did = did
         self.data = data
-
-    @property
-    def did(self) -> int:
-        return self._did
-
-    @did.setter
-    def did(self, val: int):
-        """
-        DID is 1 byte
-        """
-        val = int.from_bytes(sanitize_msg_param(val, 1), 'big')
-        self._did = val & 0xFF
