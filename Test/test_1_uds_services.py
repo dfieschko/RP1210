@@ -1041,7 +1041,7 @@ def test_RoutineControlResponse_startRoutine():
 # TransferData ################################################################
 ###########################################################################################
 #region TransferData
-def TransferDataRequest_testActions(msg: TransferDataRequest, data: bytes = b''):
+def TransferDataRequest_testActions(msg: TransferDataRequest, bsc: int = 1, data: bytes = b''):
     assert isinstance(msg, TransferDataRequest)
     assert msg.sid == 0x36
     assert not msg.hasSubfn()
@@ -1049,7 +1049,9 @@ def TransferDataRequest_testActions(msg: TransferDataRequest, data: bytes = b'')
     assert msg.hasData()
     assert msg.dataSize() == len(data)
     assert msg.dataSizeCanChange()
+    assert msg.bsc == bsc
     assert msg.data == data
+    assert msg.raw == (sanitize_msg_param(0x36, 1) + sanitize_msg_param(bsc, 1) + sanitize_msg_param(data, len(data)))
 
 def test_TransferDataRequest():
     msg = TransferDataRequest()
@@ -1060,19 +1062,21 @@ def test_TransferDataRequest_fromSID():
     TransferDataRequest_testActions(msg)
 
 def test_TransferDataRequest_data():
+    bsc = 2
     data = b'\x46'
-    msg = TransferDataRequest(data)
-    TransferDataRequest_testActions(msg, data)
+    msg = TransferDataRequest(bsc, data)
+    TransferDataRequest_testActions(msg, bsc, data)
 
-def TransferDataResponse_testActions(msg: TransferDataResponse, data: bytes = b''):
+def TransferDataResponse_testActions(msg: TransferDataResponse, data: bytes = b'\x01'):
     assert isinstance(msg, TransferDataResponse)
     assert msg.sid == 0x76
     assert not msg.hasSubfn()
     assert not msg.hasDID()
     assert msg.hasData()
-    assert msg.dataSize() == len(data)
+    assert msg.dataSize() == len(data) - 1
     assert msg.dataSizeCanChange()
-    assert msg.data == data
+    assert msg.bsc == data[0]
+    assert msg.data == data[1:]
 
 def test_TransferDataResponse():
     msg = TransferDataResponse()
@@ -1083,7 +1087,7 @@ def test_TransferDataResponse_fromSID():
     TransferDataResponse_testActions(msg)
 
 def test_TransferDataResponse_data():
-    data = b'\x46'
+    data = b'\x02\x46'
     msg = TransferDataResponse(data)
     TransferDataResponse_testActions(msg, data)
 #endregion

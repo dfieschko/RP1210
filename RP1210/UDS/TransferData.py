@@ -33,7 +33,7 @@ class TransferDataRequest(UDSMessage):
         """
         blockSequenceCounter - counts current nth blocks of data
         """
-        return self.bsc
+        return self._bsc
 
     @bsc.setter
     def bsc(self, val: int):
@@ -63,14 +63,13 @@ class TransferDataResponse(UDSMessage):
     """
     Transfer Data (Response)
     - `sid` = 0x76
-    - `bsc` = blockSequenceCounter (1 byte)
-    - `data` = transferEquestParameterRecord (n bytes)
+    - `data` = blockSequenceCounter (1 byte) + transferEquestParameterRecord (n bytes)
     """
 
     _sid = 0x76
     _isResponse = True
 
-    def __init__(self, data: bytes = b''):
+    def __init__(self, data: bytes = b'\x01'):
         super().__init__()
         self._hasSubfn = False
         self._hasDID = False
@@ -89,7 +88,7 @@ class TransferDataResponse(UDSMessage):
         """
         blockSequenceCounter - counts current nth blocks of data
         """
-        return self.bsc
+        return self._bsc
 
     @bsc.setter
     def bsc(self, val: int):
