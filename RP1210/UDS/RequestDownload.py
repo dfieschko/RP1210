@@ -41,6 +41,10 @@ class RequestDownloadRequest(UDSMessage):
         self.maddr            = maddr
         self.msize            = msize
 
+        self.data = sanitize_msg_param(self._dfid) + \
+                    sanitize_msg_param(self._alfid) + \
+                    sanitize_msg_param(self._maddr) + \
+                    sanitize_msg_param(self._msize)
         self._dataSize: int = len(self.data)
 
     @property
@@ -85,12 +89,12 @@ class RequestDownloadRequest(UDSMessage):
             self.alfid = (self.alfid & 0x0f) | ((len(msize) & 0x0f) << 4)
         self._msize = msize
     
-    @property
-    def data(self) -> bytes:
-        """
-        Concatenates the request's properties to form the data field.
-        """
-        return sanitize_msg_param(self._dfid) + sanitize_msg_param(self._alfid) + sanitize_msg_param(self._maddr) + sanitize_msg_param(self._msize)
+    # @property
+    # def data(self) -> bytes:
+    #     """
+    #     Concatenates the request's properties to form the data field.
+    #     """
+    #     return sanitize_msg_param(self._dfid) + sanitize_msg_param(self._alfid) + sanitize_msg_param(self._maddr) + sanitize_msg_param(self._msize)
 
 
 class RequestDownloadResponse(UDSMessage):
