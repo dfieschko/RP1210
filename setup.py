@@ -4,7 +4,7 @@ import setuptools
 setup(
   name = 'RP1210',
   packages = setuptools.find_packages(),
-  version = '0.0.24',
+  version = '0.0.25',
   license='MIT',
   description = 'A Python32 implementation of the RP1210C standard.',
   long_description = open('README.md').read(),
@@ -22,6 +22,7 @@ setup(
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
     'Operating System :: Microsoft :: Windows'
   ],
   project_urls = {
