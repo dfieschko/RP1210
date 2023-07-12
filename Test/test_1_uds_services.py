@@ -1067,6 +1067,12 @@ def test_TransferDataRequest_data():
     msg = TransferDataRequest(bsc, data)
     TransferDataRequest_testActions(msg, bsc, data)
 
+def test_TransferDataRequest_nonIntBsc():
+    bsc = ''
+    data = b'\x46'
+    msg = TransferDataRequest(bsc, data)
+    TransferDataRequest_testActions(msg=msg, bsc=0, data=data)
+
 def TransferDataResponse_testActions(msg: TransferDataResponse, data: bytes = b'\x01'):
     assert isinstance(msg, TransferDataResponse)
     assert msg.sid == 0x76
@@ -1089,6 +1095,21 @@ def test_TransferDataResponse_fromSID():
 def test_TransferDataResponse_data():
     data = b'\x02\x46'
     msg = TransferDataResponse(data)
+    TransferDataResponse_testActions(msg, data)
+
+def test_TransferDataResponse_lenDataIs0():
+    data = b''
+    with pytest.raises(IndexError):
+        msg = TransferDataResponse(data)
+        TransferDataResponse_testActions(msg, data)
+
+def test_TransferDataResponse_nonIntBsc():
+    data =  b'\x02\x46'
+    msg = TransferDataResponse(data)
+    # test that sanitize_msg_param is called on bsc
+    msg.bsc = 'a'
+    assert msg.bsc == 97
+    msg.bsc = b'\x02'
     TransferDataResponse_testActions(msg, data)
 #endregion
 
