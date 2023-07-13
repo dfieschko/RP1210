@@ -5,8 +5,7 @@ from RP1210 import sanitize_msg_param
 import RP1210
 import pytest
 from mock import patch
-from ctypes import cdll
-from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL, create_string_buffer
+from ctypes import POINTER, c_char_p, c_int32, c_long, c_short, c_void_p, cdll, CDLL
 
 API_NAMES = ["PEAKRP32", "DLAUSB32", "DGDPA5MA", "NULN2R32",
              "CMNSI632", "CIL7R32", "DrewLinQ", "DTKRP32"]
@@ -41,7 +40,7 @@ def test_RP1210Interface_InvalidAPIName():
     rp1210 = RP1210.RP1210Config(api_name)
     assert rp1210.isValid() == False
     assert str(rp1210) == api_name + " - (Vendor Name Missing) - (drivers invalid)"
-    assert rp1210.getAPI() == RP1210.RP1210API(api_name, None) 
+    assert rp1210.getAPI() == RP1210.RP1210API(api_name, None)
     assert rp1210.isValid() == False
     assert rp1210.getAPIName() == api_name
     assert rp1210.getName() == "(Vendor Name Missing)"
@@ -313,7 +312,7 @@ class Test_translateErrorCode:
             else:
                 if i < 128:
                     assert 'NO_ERRORS' == RP1210.translateErrorCode(i)
-                else: 
+                else:
                     assert str(i) == RP1210.translateErrorCode(i)
 
 class Test_getAPINames:
@@ -923,7 +922,7 @@ class Test_RP1210Config:
         assert [] == config.getProtocols()
 
         config = RP1210.RP1210Config(api_name='PEAKRP32', api_path=DLL_DIRECTORY, config_path=INI_DIRECTORY)
-        protocols = config.getProtocols()        
+        protocols = config.getProtocols()
         assert protocols
         assert len(protocols) == 3
         for protocol in protocols:
@@ -1003,14 +1002,14 @@ class Test_RP1210API:
         assert '' == api._api_name
         assert None == api.dll
         assert True == api._conforms_to_rp1210c
-        assert None  == api._libDir
+        assert None == api._libDir
 
         api = RP1210.RP1210API(api_name='foo', WorkingAPIDirectory='bar')
         assert False == api._api_valid
         assert 'foo' == api._api_name
         assert None == api.dll
         assert True == api._conforms_to_rp1210c
-        assert 'bar'  == api._libDir
+        assert 'bar' == api._libDir
 
     def test_RP1210API_bool(self):
         api = RP1210.RP1210API(api_name='')
@@ -1022,7 +1021,7 @@ class Test_RP1210API:
         assert True == api._api_valid
         assert True == api.dll
 
-        assert True  == bool(api)
+        assert True == bool(api)
 
     def test_RP1210API_str(self):
         api = RP1210.RP1210API(api_name='')
@@ -1089,12 +1088,12 @@ class Test_RP1210API:
         api = RP1210.RP1210API(api_name='PEAKRP32', WorkingAPIDirectory=os.path.abspath('Test/test-files/dlls/'))
         assert True == api.isValid()
 
-        api._conforms_to_rp1210c  = True
+        api._conforms_to_rp1210c = True
         assert True == api._conforms_to_rp1210c
 
         assert True == api.conformsToRP1210C() # conforms and is valid
 
-        api._conforms_to_rp1210c  = False
+        api._conforms_to_rp1210c = False
         assert False == api._conforms_to_rp1210c
 
         assert False == api.conformsToRP1210C() # no conform and valid
@@ -1102,12 +1101,12 @@ class Test_RP1210API:
         api = RP1210.RP1210API(api_name='')
         assert False == api.isValid()
 
-        api._conforms_to_rp1210c  = True
+        api._conforms_to_rp1210c = True
         assert True == api._conforms_to_rp1210c
 
         assert False == api.conformsToRP1210C() # conforms and no valid
 
-        api._conforms_to_rp1210c  = False
+        api._conforms_to_rp1210c = False
         assert False == api._conforms_to_rp1210c
 
         assert False == api.conformsToRP1210C() # no conforms and no valid
@@ -1489,23 +1488,23 @@ class Test_RP1210VendorList:
 
     def test_RP1210VendorList_getList(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-       
+
         vlist = vendorList.getList()
-        assert len(vlist) == 8 
+        assert len(vlist) == 8
         for v in vlist:
             assert isinstance(v, RP1210.RP1210Config)
 
     def test_RP1210VendorList_getVendorList(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-       
+
         vlist = vendorList.getVendorList()
-        assert len(vlist) == 8 
+        assert len(vlist) == 8
         for v in vlist:
             assert isinstance(v, RP1210.RP1210Config)
 
     def test_RP1210VendorList_getAPI(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-       
+
         assert RP1210.RP1210API('PEAKRP32') == vendorList.getAPI()
         vendorList.vendor = 'DLAUSB32'
         assert RP1210.RP1210API('DLAUSB32') == vendorList.getAPI()
@@ -1515,7 +1514,7 @@ class Test_RP1210VendorList:
 
     def test_RP1210VendorList_numVendors(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-       
+
         assert 8 == vendorList.numVendors()
         vendorList.vendors = []
         assert 0 == vendorList.numVendors()
@@ -1524,7 +1523,7 @@ class Test_RP1210VendorList:
 
     def test_RP1210VendorList_numDevices(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-        
+
         vendorList.vendor = 'NULN2R32'
         assert 3 == vendorList.numDevices()
         vendorList.vendor = 'PEAKRP32'
@@ -1533,7 +1532,7 @@ class Test_RP1210VendorList:
     @patch.object(RP1210.RP1210Config, 'getDevices')
     def test_RP1210VendorList_numDevices_exception(self, patch_fn):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-        
+
         patch_fn.return_value = 0
         assert 0 == vendorList.numDevices()
 
@@ -1554,21 +1553,20 @@ class Test_RP1210VendorList:
     def test_RP1210VendorList_setVendor(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
 
-        assert RP1210.RP1210Config('PEAKRP32')  == vendorList.vendor
+        assert RP1210.RP1210Config('PEAKRP32') == vendorList.vendor
 
         vendorList.vendor = 'DLAUSB32'
-        assert RP1210.RP1210Config('DLAUSB32')  == vendorList.vendor
+        assert RP1210.RP1210Config('DLAUSB32') == vendorList.vendor
 
         vendorList.vendor = RP1210.RP1210Config('NULN2R32')
-        assert RP1210.RP1210Config('NULN2R32')  == vendorList.vendor
-
+        assert RP1210.RP1210Config('NULN2R32') == vendorList.vendor
 
         vendorList.vendor = RP1210.RP1210Config('foo')
-        assert RP1210.RP1210Config('foo')  == vendorList.vendor
+        assert RP1210.RP1210Config('foo') == vendorList.vendor
 
         with pytest.raises(TypeError):
             vendorList.vendor = 0
-        assert RP1210.RP1210Config('foo')  == vendorList.vendor # not changed
+        assert RP1210.RP1210Config('foo') == vendorList.vendor # not changed
 
     def test_RP1210VendorList_setDeviceIndex(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
@@ -1637,9 +1635,9 @@ class Test_RP1210VendorList:
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
 
         assert RP1210.RP1210Config('PEAKRP32') == vendorList.getCurrentVendor()
-        vendorList.vendor = RP1210.RP1210Config('NULN2R32') 
+        vendorList.vendor = RP1210.RP1210Config('NULN2R32')
         assert RP1210.RP1210Config('NULN2R32') == vendorList.getCurrentVendor()
-        vendorList.vendor = RP1210.RP1210Config('PEAKRP32') 
+        vendorList.vendor = RP1210.RP1210Config('PEAKRP32')
         assert RP1210.RP1210Config('PEAKRP32') == vendorList.getCurrentVendor()
 
         vendorList.vendorIndex = {}
@@ -1649,9 +1647,9 @@ class Test_RP1210VendorList:
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
 
         assert 'PEAK-System PCAN Adapter' == vendorList.getVendorName()
-        vendorList.vendor = RP1210.RP1210Config('NULN2R32') 
+        vendorList.vendor = RP1210.RP1210Config('NULN2R32')
         assert 'NEXIQ Technologies USB-Link 2' == vendorList.getVendorName()
-        vendorList.vendor = RP1210.RP1210Config('PEAKRP32') 
+        vendorList.vendor = RP1210.RP1210Config('PEAKRP32')
         assert 'PEAK-System PCAN Adapter' == vendorList.getVendorName()
 
         vendorList.vendorIndex = {}
@@ -1659,7 +1657,7 @@ class Test_RP1210VendorList:
    
     def test_RP1210VendorList_getCurrentDevice(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-        vendorList.vendor = RP1210.RP1210Config('NULN2R32') 
+        vendorList.vendor = RP1210.RP1210Config('NULN2R32')
 
         assert '1 - USB-Link 2' == str(vendorList.getCurrentDevice())
         vendorList.setDeviceIndex(1)
@@ -1670,20 +1668,24 @@ class Test_RP1210VendorList:
         assert 0 == vendorList.deviceIndex
 
         vendorList.deviceIndex = 69420
+
         def dummy():
             return []
+
         vendorList.vendor.getDevices = dummy
         assert None == vendorList.getCurrentDevice()
 
         vendorList.deviceIndex = 69420
+
         def dummy():
             return 0
+
         vendorList.vendor.getDevices = dummy
         assert None == vendorList.getCurrentDevice()
 
     def test_RP1210VendorList_getDeviceID(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
-        vendorList.vendor = RP1210.RP1210Config('NULN2R32') 
+        vendorList.vendor = RP1210.RP1210Config('NULN2R32')
 
         assert 1 == vendorList.getDeviceID()
        
@@ -1699,9 +1701,9 @@ class Test_RP1210VendorList:
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
 
         assert 'PEAKRP32' == vendorList.getAPIName()
-        vendorList.vendor = RP1210.RP1210Config('NULN2R32') 
+        vendorList.vendor = RP1210.RP1210Config('NULN2R32')
         assert 'NULN2R32' == vendorList.getAPIName()
-        vendorList.vendor = RP1210.RP1210Config('PEAKRP32') 
+        vendorList.vendor = RP1210.RP1210Config('PEAKRP32')
         assert 'PEAKRP32' == vendorList.getAPIName()
 
     def test_RP1210VendorList_getAPINames(self):
@@ -1712,7 +1714,7 @@ class Test_RP1210VendorList:
     def test_RP1210VendorList_getDeviceIDs(self):
         vendorList = RP1210.RP1210VendorList(RP121032_PATH, DLL_DIRECTORY, INI_DIRECTORY)
 
-        vendorList.vendor = RP1210.RP1210Config('NULN2R32') 
+        vendorList.vendor = RP1210.RP1210Config('NULN2R32')
         assert [1, 2, 3] == vendorList.getDeviceIDs()
 
 class Test_RP1210Client:
