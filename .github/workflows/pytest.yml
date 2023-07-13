@@ -23,6 +23,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         pip install pytest-cov
+        pip install mock
         pip install -r RP1210/requirements.txt
     - name: Test with pytest
       run: |
