@@ -769,7 +769,7 @@ class RP1210Config(ConfigParser):
         """Returns absolute path to API config file."""
        
         if self._configDir is not None:
-            if os.path.abspath(self._configDir):
+            if os.path.isabs(self._configDir):
 
                 if os.path.isfile(self._configDir):
                     # [provided absolute path]
@@ -841,16 +841,13 @@ class RP1210API:
             path = ""
             if not os.path.isabs(self._libDir):
                 # If path given is relative, get the working directory
-                if self._libDir is not None:
-                    path += self._libDir
-                else:
-                    path += os.path.abspath(os.curdir)
+                path = os.path.abspath(os.curdir)
 
-            path += self._libDir
+            path = os.path.join(path, self._libDir)
                 
             if not os.path.isfile(path):
                 # Append API name to complete path
-                path += self._api_name + ".dll"
+                path = os.path.join(path, self._api_name + ".dll")
             try:
                 dll = cdll.LoadLibrary(path)
                 self.setDLL(dll)

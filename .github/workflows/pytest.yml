@@ -25,6 +25,9 @@ jobs:
         pip install pytest-cov
         pip install mock
         pip install -r RP1210/requirements.txt
+    - name: Copy files into alternate directory
+      run: |
+        python ./Test/github_windows_dir_files/copy_files_github.py
     - name: Test with pytest
       run: |
         tree /F
