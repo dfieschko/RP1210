@@ -4,7 +4,7 @@ import setuptools
 setup(
     name="RP1210",
     packages=setuptools.find_packages(),
-    version="0.0.26",
+    version="1.0.0,
     license="MIT",
     description="A Python32 implementation of the RP1210C standard.",
     long_description=open("README.md").read(),
@@ -15,7 +15,7 @@ setup(
     keywords=["RP1210", "RP1210C", "J1939", "CAN", "UDS"],
     install_requires=["python-can~=4.3.1"],
     classifiers=[
-        "Development Status :: 3 - Alpha",  # "3 - Alpha", "4 - Beta" or "5 - Production/Stable"
+        "Development Status :: 5 - Production/Stable",  # "3 - Alpha", "4 - Beta" or "5 - Production/Stable"
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "License :: OSI Approved :: MIT License",
