@@ -8,6 +8,8 @@ Contributions welcome!
 
 **Note from the author:** I no longer work with RP1210 regularly (or at all) and have no need to work with and no access to RP1210 adapters. As such, I'm not actively updating this package anymore. Contributions and bug reports are still welcome.
 
+**This module is considered 'complete', mostly by dint of me not updating it anymore.**
+
 Some documentation and examples are available in [this repo's wiki](https://github.com/dfieschko/RP1210/wiki) and the Examples folder.
 
 This module was written and tested with Python 3.9 and 3.10, 32-bit. Older (and newer) Python versions have not been tested and may not be supported.   
@@ -15,9 +17,6 @@ This module was written and tested with Python 3.9 and 3.10, 32-bit. Older (and 
 and can thus only be loaded with 32-bit Python. A 64-bit implementation via
 [MSL-LoadLib](https://github.com/MSLNZ/msl-loadlib) is possible and may be released as a separate
 module sometime in the future.
-
-**This module is currently in alpha, and changes to core functionality may happen.** Once it hits beta,
-I will start taking care not to break people's code. Until then, expect changes. You can keep track of planned changes in the [Issues](https://github.com/dfieschko/RP1210/issues) page.
 
 Not all aspects of the RP1210C standard are fully implemented as independent features. Currently, my focus is on J1939 communication.
 Other protocols have significantly less support, but you can still access all the low-level commands via the `RP1210API` class.
