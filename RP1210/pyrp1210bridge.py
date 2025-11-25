@@ -1,4 +1,5 @@
 import time
+from collections import deque
 from typing import Any, Optional
 
 import can
@@ -19,6 +20,7 @@ class PyRP1210Bridge(can.bus.BusABC):
         :param channel: String in format "DLL_NAME[:DEVICE_ID[:CHANNEL]]"
                         e.g., "PEAKRP32", "PEAKRP32:1", "PEAKRP32:1:2"
         """
+        self._rx_buffer = deque()
         self.poll_interval = poll_interval
         self.bitrate = bitrate
 
@@ -65,65 +67,66 @@ class PyRP1210Bridge(can.bus.BusABC):
         )
 
     def send(self, msg: Message, timeout: Optional[float] = None) -> None:
-        arbitration_id = msg.arbitration_id.to_bytes(length=4, byteorder="big")
-        frame_bytes = b"\x01" + arbitration_id + msg.data
-        self.interface.tx(frame_bytes)
-        pass
+        arb_id = msg.arbitration_id
+        self.interface.tx(b"\x01" + arb_id.to_bytes(4, "big") + msg.data)
 
     def _recv_internal(self, timeout: Optional[float] = None):
+        if self._rx_buffer:
+            return self._rx_buffer.popleft(), False
+
         start = time.monotonic()
-        msg = None
 
-        while msg is None:
-            res = self.interface.rx(buffer_size=256 + 5, blocking=False)
+        while True:
+            while True:
+                res = self.interface.rx(buffer_size=256 + 5, blocking=False)
 
-            if res is None or len(res) == 0:
-                if timeout is not None and (time.monotonic() - start) >= timeout:
-                    return None, False
+                if res is None or len(res) == 0:
+                    break  # Hardware queue is empty
+
+                timestamp = int.from_bytes(res[0:4], "big")
+                flags = res[4]
+                arbitration_id = int.from_bytes(res[5: 5 + 4], "big")
+                dlc = len(res) - 4 - 5
+                if dlc > 0:
+                    data = res[9:]
                 else:
-                    time.sleep(self.poll_interval)
-                    continue
-            else:
-                msg = res
+                    data = b""
 
-        if msg is None:
-            return None, False
+                if flags != 0xFF:
+                    is_extended = bool(flags & 0x01)
+                    is_remote = bool((flags >> 1) & 0x01)
+                    is_error = bool((flags >> 2) & 0x01)
+                else:
+                    is_extended = True
+                    is_remote = False
+                    is_error = False
 
-        timestamp = int.from_bytes(msg[0:4], "big")
-        flags = msg[4]
+                if is_error:
+                    raise CanOperationError("RP1210 error reported")
 
-        arbitration_id = int.from_bytes(msg[5: 5 + 4], "big")
+                msg = Message(
+                    arbitration_id=arbitration_id,
+                    is_extended_id=is_extended,
+                    timestamp=timestamp,
+                    is_remote_frame=is_remote,
+                    dlc=dlc,
+                    data=data,
+                    channel=self.channel_info,
+                    is_rx=True,
+                )
+                self._rx_buffer.append(msg)
 
-        dlc = len(msg) - 4 - 5
-        if dlc > 0:
-            data = msg[9:]
-        else:
-            data = b""
+            if self._rx_buffer:
+                return self._rx_buffer.popleft(), False
 
-        if flags != 0xFF:
-            is_extended = bool(flags & 0x01)
-            is_remote = bool((flags >> 1) & 0x01)
-            is_error = bool((flags >> 2) & 0x01)
-        else:
-            is_extended = True
-            is_remote = False
-            is_error = False
+            if timeout == 0:
+                return None, False
 
-        if is_error:
-            raise CanOperationError("RP1210 error reported")
+            if timeout is not None:
+                if (time.monotonic() - start) >= timeout:
+                    return None, False
 
-        msg = Message(
-            arbitration_id=arbitration_id,
-            is_extended_id=is_extended,
-            timestamp=timestamp,
-            is_remote_frame=is_remote,
-            dlc=dlc,
-            data=data,
-            channel=self.channel_info,
-            is_rx=True,
-        )
-
-        return msg, False
+            time.sleep(self.poll_interval)
 
     def shutdown(self) -> None:
         super().shutdown()
