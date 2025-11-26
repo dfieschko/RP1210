@@ -59,3 +59,5 @@ while True:
    if msg: # message was received
       print(msg)
 ```
+
+[![Coverage Status](https://coveralls.io/repos/github/Sulstice/global-chem/badge.svg?branch=master)](https://coveralls.io/github/Sulstice/global-chem?branch=master)  [![PyPI Downloads](https://static.pepy.tech/personalized-badge/rp1210?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/rp1210)
