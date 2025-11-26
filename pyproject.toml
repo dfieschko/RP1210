@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "RP1210"
+version = "1.0.1"
+description = "A Python32 implementation of the RP1210C standard."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+  {name = "Darius Fieschko", email = "dfieschko@gmail.com"}
+]
+keywords = ["RP1210", "RP1210C", "J1939", "CAN", "UDS"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: Microsoft :: Windows",
+]
+dependencies = [
+    "python-can~=4.3.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/dfieschko/RP1210"
+Wiki = "https://github.com/dfieschko/RP1210/wiki"
+Issues = "https://github.com/dfieschko/RP1210/issues"
+Discussions = "https://github.com/dfieschko/RP1210/discussions"
+
+[project.entry-points."can.interface"]
+rp1210 = "RP1210.pyrp1210bridge:PyRP1210Bridge"
+
+[tool.setuptools.packages.find]
+where = ["."]
