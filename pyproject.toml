@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "RP1210"
-version = "1.0.1"
+version = "1.0.2.dev0"
 description = "A Python32 implementation of the RP1210C standard."
 readme = "README.md"
 requires-python = ">=3.9"
